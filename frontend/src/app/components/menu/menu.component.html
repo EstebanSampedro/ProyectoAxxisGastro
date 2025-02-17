@@ -1,0 +1,27 @@
+<div class="menu-container">
+    <!-- Encabezado con el logo centrado -->
+    <header class="menu-header">
+      <img src="/assets/axxis-gastro.png" alt="Logo AxxisGastro">
+    </header>
+  
+    <!-- Opciones del menú en una sola fila con colores invertidos -->
+    <div class="menu-options">
+      <button class="menu-button" (click)="goTo('registro-citas')">
+        <img src="/assets/cita.png" alt="Registro Citas">
+        <span>REGISTRO CITAS</span>
+      </button>
+      <button class="menu-button" (click)="goTo('consultas')">
+        <img src="/assets/consultante.png" alt="Consultas">
+        <span>CONSULTAS</span>
+      </button>
+      <button class="menu-button" (click)="goTo('respaldo')">
+        <img src="/assets/archivo-excel.png" alt="Respaldo">
+        <span>RESPALDO</span>
+      </button>
+      <button class="menu-button" (click)="logout()">
+        <img src="/assets/cerrar-sesion.png" alt="Cerrar Sesión">
+        <span>CERRAR SESIÓN</span>
+      </button>
+    </div>
+  </div>
+  

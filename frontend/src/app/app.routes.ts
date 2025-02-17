@@ -1,11 +1,8 @@
 import { Routes } from '@angular/router';
-import { LoginComponent } from './components/login/login.component';
-
 
 export const routes: Routes = [
-  { path: 'login', component: LoginComponent },
-  // Redirige cualquier ruta vacía al login:
-  { path: '', redirectTo: 'login', pathMatch: 'full' },
-  // También podrías capturar rutas no reconocidas:
-  { path: '**', redirectTo: 'login' },
+  // Aquí defines tus rutas, por ejemplo:
+  { path: '', redirectTo: '/login', pathMatch: 'full' },
+  { path: 'login', loadComponent: () => import('./components/login/login.component').then(m => m.LoginComponent) },
+  { path: 'menu', loadComponent: () => import('./components/menu/menu.component').then(m => m.MenuComponent) }
 ];
