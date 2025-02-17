@@ -39,7 +39,7 @@ export class LoginComponent {
           // Guarda el token de forma segura, por ejemplo en localStorage
           localStorage.setItem('token', res.token);
           // Navega a la ruta protegida para administradores
-          this.router.navigate(['/admin/dashboard']);
+          this.router.navigate(['/menu']);
         },
         error: (err) => {
           console.error('Error en login admin:', err);

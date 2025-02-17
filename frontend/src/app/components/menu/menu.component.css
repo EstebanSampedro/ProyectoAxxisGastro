@@ -1,0 +1,66 @@
+/* Contenedor principal centrado */
+.menu-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+    background-color: #f5f5f5;
+    min-height: 100vh;
+  }
+  
+  /* Encabezado con el logo */
+  .menu-header {
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+  
+  .menu-header img {
+    max-width: 200px;
+    width: 100%;
+  }
+  
+  /* Opciones del menú en una sola fila */
+  .menu-options {
+    display: flex;
+    justify-content: center;
+    gap: 2rem; /* Espaciado mayor */
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 1500px;
+  }
+  
+  /* Estilo para cada botón */
+  .menu-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+    background-color: #ffc107; /* Fondo amarillo */
+    border: none;
+    border-radius: 12px;
+    color: #000; /* Texto en negro */
+    font-size: 1.4rem; /* Texto más grande */
+    cursor: pointer;
+    transition: transform 0.3s ease, background-color 0.3s ease;
+    width: 235px; /* Más ancho */
+    height: 235px; /* Más alto */
+  }
+  
+  .menu-button:hover {
+    transform: translateY(-5px);
+    background-color: #ffb300;
+  }
+  
+  /* Imágenes de los botones */
+  .menu-button img {
+    max-width: 100px; /* Tamaño de la imagen más grande */
+    height: auto;
+    margin-bottom: 1rem;
+  }
+  
+  /* Texto del botón */
+  .menu-button span {
+    text-align: center;
+    font-weight: bold;
+  }
+  
