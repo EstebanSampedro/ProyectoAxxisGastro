@@ -27,28 +27,30 @@
       </div>
       <div class="form-group role-selector">
         <label>Tipo de Usuario</label>
-        <label>
-          <input
-            type="radio"
-            name="role"
-            value="admin"
-            [(ngModel)]="credentials.role"
-            required
-          />
-          Administrador
-        </label>
-        <label>
-          <input
-            type="radio"
-            name="role"
-            value="doctor"
-            [(ngModel)]="credentials.role"
-            required
-          />
-          Doctor
-        </label>
+        <div class="role-options">
+          <label class="role-option">
+            <input
+              type="radio"
+              name="role"
+              value="admin"
+              [(ngModel)]="credentials.role"
+              required
+            />
+            <span>Administrador</span>
+          </label>
+          <label class="role-option">
+            <input
+              type="radio"
+              name="role"
+              value="doctor"
+              [(ngModel)]="credentials.role"
+              required
+            />
+            <span>Doctor</span>
+          </label>
+        </div>
       </div>
-      <button type="submit" [disabled]="!loginForm.form.valid">Entrar</button>
+      <button type="submit" [disabled]="!loginForm.form.valid">Acceder</button>
     </form>
     <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
   </div>
