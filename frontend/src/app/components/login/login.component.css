@@ -43,6 +43,7 @@
 .form-group {
   margin-bottom: 1rem;
   text-align: left;
+  font-size: 18px;
 }
 
 .form-group label {
@@ -59,15 +60,65 @@
   font-size: 1rem;
 }
 
-/* Selector de rol (radio buttons) */
+/* Selector de rol modernizado */
 .role-selector {
   margin-top: 1rem;
+  text-align: left;
 }
 
-.role-selector label {
+.role-selector label:first-of-type {
+  display: block;
+  margin-bottom: 0.5rem;
   color: #ffffff;
-  margin-right: 1rem;
   font-weight: 500;
+}
+
+/* Contenedor de opciones de rol */
+.role-options {
+  display: flex;
+  gap: 1rem;
+}
+
+/* Estilo para cada opción de rol */
+.role-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background-color: #2e2e2e;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+  user-select: none;
+}
+
+/* Ocultar el radio original */
+.role-option input[type="radio"] {
+  display: none;
+}
+
+/* Estilo para el texto dentro de la opción */
+.role-option span {
+  color: #ffffff;
+  font-size: 1rem;
+}
+
+/* Efecto hover */
+.role-option:hover {
+  background-color: #3a3a3a;
+}
+
+/* Estado seleccionado: se cambia el color y se muestra un indicador */
+.role-option input[type="radio"]:checked + span {
+  font-weight: bold;
+  color: #ffc107;
+}
+
+/* Indicador visual al seleccionar (tick) */
+.role-option input[type="radio"]:checked + span::after {
+  content: ' ✔';
 }
 
 /* Botón de envío en amarillo con hover */
@@ -82,6 +133,7 @@ button {
   cursor: pointer;
   transition: background-color 0.3s ease;
   margin-top: 1rem;
+  font-size: 18px;
 }
 
 button:hover {
