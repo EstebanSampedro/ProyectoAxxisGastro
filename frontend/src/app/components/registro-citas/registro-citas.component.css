@@ -1,0 +1,195 @@
+/* ===================== ENCABEZADO SUPERIOR ===================== */
+.header-bar {
+    display: flex;
+    justify-content: space-between; /* Logo a la derecha, texto a la izquierda */
+    align-items: center;
+    background-color: #1e1e1e;
+    color: #ffc107; /* Color amarillo similar al login */
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+  }
+  
+  .header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .header-left h2 {
+    margin: 0;
+    font-size: 1.4rem;
+  }
+  
+  .header-left span {
+    font-size: 0.9rem;
+    font-weight: bold;
+  }
+  
+  .header-right img {
+    max-height: 50px;
+  }
+  
+  /* ===================== BARRA DE MENÚ (NAV) ===================== */
+  .navbar {
+    background-color: #333;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  .navbar ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex; /* Menú horizontal */
+  }
+  
+  .navbar li {
+    position: relative; /* Para el dropdown */
+  }
+  
+  .navbar a {
+    display: block;
+    color: #fff;
+    text-decoration: none;
+    padding: 0.75rem 1rem;
+    transition: background-color 0.3s ease;
+  }
+  
+  /* Hover en las opciones principales del menú */
+  .navbar a:hover {
+    background-color: #444;
+  }
+  
+  /* ===================== DROPDOWN ===================== */
+  /* El contenedor con clase .dropdown es el que tiene submenú */
+  .dropdown .dropbtn {
+    cursor: pointer;
+  }
+  
+  /* Submenú oculto por defecto */
+  .dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #333;
+    min-width: 160px;
+    z-index: 1;
+    top: 100%; /* Para que aparezca debajo del botón */
+    left: 0;
+    border-radius: 0 0 8px 8px;
+  }
+  
+  /* Mostrar el submenú al hacer hover en el padre .dropdown */
+  .dropdown:hover .dropdown-content {
+    display: block;
+  }
+  
+  /* Estilos de los links dentro del dropdown */
+  .dropdown-content a {
+    display: block;
+    padding: 0.5rem 1rem;
+    color: #fff;
+  }
+  
+  .dropdown-content a:hover {
+    background-color: #444;
+  }
+  
+  /* ===================== SECCIÓN DE ACCIONES (FECHA, BOTONES) ===================== */
+  .actions-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .date-section {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .formatted-date {
+    font-weight: bold;
+    color: #333;
+    margin-left: 0.5rem;
+  }
+  
+  .buttons-section button {
+    margin-left: 1rem;
+    padding: 0.5rem 1rem;
+    background-color: #1e1e1e;
+    border: none;
+    border-radius: 4px;
+    color: #ffc107;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+  }
+  
+  .buttons-section button:hover {
+    background-color: #333333;
+  }
+  
+  /* ===================== OBSERVACIONES ===================== */
+  .observaciones-section {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .observaciones-section label {
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .observaciones-section textarea {
+    width: 60%;
+    resize: vertical;
+  }
+  
+  .observaciones-section button {
+    background-color: #ffc107;
+    border: none;
+    border-radius: 4px;
+    color: #121212;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+  }
+  
+  .observaciones-section button:hover {
+    background-color: #e6b800;
+  }
+  
+  /* ===================== TABLA DE CITAS ===================== */
+  .citas-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 2rem;
+  }
+  
+  .citas-table thead {
+    background-color: #80bfff;
+  }
+  
+  .citas-table th,
+  .citas-table td {
+    padding: 0.75rem;
+    text-align: center;
+    border: 2px solid #fff;
+    font-size: 0.9rem;
+  }
+  
+  .citas-table th {
+    font-style: italic;
+    font-weight: bold;
+  }
+  
+  .citas-table tbody tr:hover {
+    background-color: #d9f2ff;
+  }
+  
