@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = "mysql://axxis:axxis@localhost:3306/axxis-citas"
+}
+
+model cita {
+  idCita                 Int              @id @default(autoincrement()) @db.UnsignedInt
+  idResponsable_idMedico Int?
+  idConfirma_idMedico    Int?
+  idBorra_idMedico       Int?
+  idDoctor_cita          Int?
+  fecha                  DateTime         @db.Date
+  torre                  Int?             @db.TinyInt
+  hora                   DateTime         @db.Time(0)
+  horaTermina            DateTime         @db.Time(0)
+  paciente               String           @db.VarChar(100)
+  edad                   Int?             @db.TinyInt
+  telefono               String?          @db.VarChar(20)
+  procedimiento          String?          @db.VarChar(200)
+  imagen                 String?          @db.VarChar(255)
+  pedido                 String?          @db.VarChar(100)
+  institucion            String?          @db.VarChar(100)
+  seguro                 String?          @db.VarChar(50)
+  estado                 String           @db.VarChar(50)
+  confirmado             cita_confirmado? @default(pendiente)
+  observaciones          String?          @db.Text
+  observaciones2         String?          @db.Text
+  fechaIng               DateTime?        @default(now()) @db.Timestamp(0)
+  fechaConfir            DateTime?        @db.Timestamp(0)
+  fechaBorra             DateTime?        @db.Timestamp(0)
+  colorCita              String           @db.VarChar(20)
+}
+
+model confirmacion {
+  idConfirmacion   Int      @id @default(autoincrement()) @db.UnsignedInt
+  fechaCita        DateTime @db.Date
+  idMedicoConfirma Int      @db.UnsignedInt
+  fechaConfirma    DateTime @db.Timestamp(0)
+  confTorre1       String   @db.VarChar(255)
+  confTorre2       String   @db.VarChar(255)
+  confTorre3       String   @db.VarChar(255)
+  confTorre4       String   @db.VarChar(255)
+  confDoctor       Int      @db.UnsignedInt
+  estado           String?  @db.VarChar(50)
+
+  @@index([fechaCita], map: "idx_fecha_cita")
+  @@index([idMedicoConfirma], map: "idx_medico_confirma")
+}
+
+model logs {
+  idLog           Int      @id @default(autoincrement())
+  cita_idCita     Int
+  tipoCambio      String   @db.VarChar(255)
+  medico_idMedico Int
+  fechaLog        DateTime @default(now()) @db.Timestamp(0)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model medico {
+  idmedico     Int     @id @default(autoincrement())
+  nombreMedico String  @db.VarChar(255)
+  cedulaMedico String  @db.VarChar(15)
+  codigoMedico String? @db.VarChar(50)
+  firmaMedico  Bytes?  @db.Blob
+  user         String  @db.VarChar(50)
+  pass         String  @db.VarChar(255)
+  permiso      String  @db.VarChar(50)
+  empresa      String? @db.VarChar(50)
+}
+
+model observaciones {
+  idObser    Int      @id @default(autoincrement())
+  fechaObser DateTime @db.Date
+  textObser  String   @db.Text
+  estado     String   @db.VarChar(50)
+  docObser   Int
+}
+
+model torres {
+  idTorre   Int    @id @default(autoincrement())
+  textTorre String @db.VarChar(255)
+}
+
+enum cita_confirmado {
+  si
+  no
+  pendiente
+}
