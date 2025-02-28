@@ -12,7 +12,7 @@ export class ApiService {
   constructor(private http: HttpClient) {}
 
   getDoctores(): Observable<any[]> {
-    return this.http.get<any[]>(`${BASE_URL}/doctores`);
+    return this.http.get<any[]>(`${BASE_URL}/api/doctores`);
   }
 
   // NUEVOS MÉTODOS PARA LOGIN:
@@ -36,4 +36,6 @@ export class ApiService {
     };
     return this.http.post<any>(`${BASE_URL}/api/auth/doctor`, payload);
   }
+
+  
 }

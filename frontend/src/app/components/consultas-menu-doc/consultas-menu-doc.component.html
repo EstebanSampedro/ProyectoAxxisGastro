@@ -1,0 +1,102 @@
+<!-- Encabezado Superior -->
+<div class="header-bar">
+  <div class="header-left">
+    <h2>SISTEMA DE REGISTRO DE CONSULTAS</h2>
+    <span>USUARIO: ADMINISTRADOR</span>
+  </div>
+  <div class="header-right">
+    <img src="/assets/axxis-gastro.png" alt="Logo Axxis" />
+  </div>
+</div>
+
+<!-- Barra de Menú -->
+<nav class="navbar">
+  <ul>
+    <li>
+      <a (click)="goToInicio()">INICIO</a>
+    </li>
+    <li class="dropdown">
+      <a href="javascript:void(0)" class="dropbtn">HISTORIAL</a>
+      <div class="dropdown-content">
+        <a (click)="goToHistorialCitas()">Citas</a>
+        <a (click)="goToModificaciones()">Modificaciones</a>
+        <a (click)="goToConfirmaciones()">Confirmaciones</a>
+      </div>
+    </li>
+    <li class="dropdown">
+      <a href="javascript:void(0)" class="dropbtn">CONFIGURACIONES</a>
+      <div class="dropdown-content">
+        <a (click)="goToUsuarios()">Usuarios</a>
+        <a (click)="goToDoctores()">Doctor</a>
+        <a (click)="goToTorres()">Torres</a>
+      </div>
+    </li>
+    <li>
+      <a (click)="goToSalir()">SALIR</a>
+    </li>
+  </ul>
+</nav>
+
+<!-- Encabezado del Doctor -->
+<div class="header-doc">
+  <h1>{{ doctorName }}</h1>
+</div>
+
+<!-- Sección de Fecha y Botón Buscar -->
+<div class="date-section">
+  <label for="fecha">Fecha:</label>
+  <input
+    type="date"
+    id="fecha"
+    [(ngModel)]="selectedDate"
+    (change)="onDateChange()"
+  />
+  <span class="formatted-date">{{ formattedDate }}</span>
+  <button (click)="cargarConsultas()">Buscar</button>
+</div>
+
+<!-- Observaciones -->
+<div class="observaciones-section">
+  <label for="observaciones">OBSERVACIONES:</label>
+  <textarea
+    id="observaciones"
+    rows="2"
+    [(ngModel)]="observaciones"
+  ></textarea>
+  <button (click)="guardarObservaciones()">Guardar</button>
+</div>
+
+<!-- Tabla de Consultas -->
+<table class="consultas-table">
+  <thead>
+    <tr>
+      <th>HORA</th>
+      <th>HORA FIN</th>
+      <th>PACIENTE</th>
+      <th>TELEFONO</th>
+      <th>SEGURO</th>
+      <th>OBSERVACIONES</th>
+      <th>COLOR</th>
+      <th>CONF.</th>
+      <th>RESP.</th>
+      <th>OPCIONES</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let c of consultas">
+      <td>{{ c.horaInicio }}</td>
+      <td>{{ c.horaFin }}</td>
+      <td>{{ c.paciente }}</td>
+      <td>{{ c.telefono }}</td>
+      <td>{{ c.seguro }}</td>
+      <td>{{ c.observaciones }}</td>
+      <td>{{ c.colorCita }}</td>
+      <td>{{ c.confirmado }}</td>
+      <td>{{ c.codigoMedico }}</td>
+      <td>
+        <button (click)="editarConsulta(c)">Editar</button>
+        <button (click)="eliminarConsulta(c)">Eliminar</button>
+      </td>
+    </tr>
+  </tbody>
+</table>
