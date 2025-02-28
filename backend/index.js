@@ -16,6 +16,10 @@ app.get('/', (req, res) => {
 const authRouter = require('./routes/auth');
 app.use('/api/auth', authRouter);
 
+// Ruta para doctores
+const doctorRouter = require('./routes/doctor');
+app.use('/api/doctores', doctorRouter);
+
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
