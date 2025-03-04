@@ -61,32 +61,37 @@ router.post('/register/admin', async (req, res) => {
  */
 router.post('/register/doctor', async (req, res) => {
   try {
-    const { userDoc, password, nomDoctor2, estadoDoctor2 } = req.body;
-    
+    // Ajustamos los nombres para que coincidan con la petición y la base de datos
+    const { userDoc, passDoc, nomDoctor2, estadoDoctor2 } = req.body;
+
     // Validación de campos requeridos
-    if (!userDoc || !password || !nomDoctor2) {
+    if (!userDoc || !passDoc || !nomDoctor2) {
       return res.status(400).json({ error: 'Faltan campos requeridos.' });
     }
 
     // Generar el hash de la contraseña
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(passDoc, 10);
 
-    // Insertar el nuevo doctor en la tabla "doctor2"
-    const [result] = await prisma.doctor.create({
+    // Insertar el nuevo doctor en la tabla "doctor2" usando Prisma
+    const newDoctor = await prisma.doctor2.create({
       data: {
         nomDoctor2,
-        estado: estadoDoctor2  || 'activo',
+        estadoDoctor2: estadoDoctor2 || 'activo',
         userDoc,
-        pass:hashedPassword
+        passDoc: hashedPassword // Importante: usar passDoc, no pass
       }
     });
 
-    return res.json({ message: 'Doctor registrado exitosamente', id: result.insertId });
+    return res.json({
+      message: 'Doctor registrado exitosamente',
+      id: newDoctor.idDoctor2
+    });
   } catch (error) {
     console.error('Error en registro doctor:', error);
     return res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
+
 
 /**
  * Endpoint de login para Admin (tabla "medico")

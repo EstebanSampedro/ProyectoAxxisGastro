@@ -12,9 +12,7 @@
 <!-- Barra de Menú -->
 <nav class="navbar">
   <ul>
-    <li>
-      <a (click)="goToInicio()">INICIO</a>
-    </li>
+    <li><a (click)="goToInicio()">INICIO</a></li>
     <li class="dropdown">
       <a href="javascript:void(0)" class="dropbtn">HISTORIAL</a>
       <div class="dropdown-content">
@@ -31,9 +29,7 @@
         <a (click)="goToTorres()">Torres</a>
       </div>
     </li>
-    <li>
-      <a (click)="goToSalir()">SALIR</a>
-    </li>
+    <li><a (click)="goToSalir()">SALIR</a></li>
   </ul>
 </nav>
 
@@ -83,20 +79,146 @@
     </tr>
   </thead>
   <tbody>
-    <tr *ngFor="let c of consultas">
-      <td>{{ c.horaInicio }}</td>
-      <td>{{ c.horaFin }}</td>
-      <td>{{ c.paciente }}</td>
-      <td>{{ c.telefono }}</td>
-      <td>{{ c.seguro }}</td>
-      <td>{{ c.observaciones }}</td>
-      <td>{{ c.colorCita }}</td>
-      <td>{{ c.confirmado }}</td>
-      <td>{{ c.codigoMedico }}</td>
-      <td>
-        <button (click)="editarConsulta(c)">Editar</button>
-        <button (click)="eliminarConsulta(c)">Eliminar</button>
-      </td>
+    <!-- Recorremos cada slot de tiempo (07:00:00, 07:30:00, etc.) -->
+    <tr *ngFor="let slot of timeSlots">
+      <!-- Columna 1: HORA -->
+      <td>{{ slot }}</td>
+
+      <!-- Ver si existe una cita en este slot -->
+      <ng-container *ngIf="getCitaBySlot(slot) as cita; else noCita">
+        <!-- Columna 2: HORA FIN -->
+        <td>{{ cita.horaFinStr }}</td>
+        <!-- Columna 3: PACIENTE -->
+        <td>{{ cita.paciente }}</td>
+        <!-- Columna 4: TELEFONO -->
+        <td>{{ cita.telefono }}</td>
+        <!-- Columna 5: SEGURO -->
+        <td>{{ cita.seguro }}</td>
+        <!-- Columna 6: OBSERVACIONES -->
+        <td>{{ cita.observaciones }}</td>
+        <!-- Columna 7: COLOR -->
+        <td>{{ cita.colorCita }}</td>
+        <!-- Columna 8: CONFIRMADO -->
+        <td>{{ cita.confirmado }}</td>
+        <!-- Columna 9: RESP (código médico) -->
+        <td>{{ cita.codigoMedico }}</td>
+        <!-- Columna 10: OPCIONES (botones en horizontal) -->
+        <td>
+          <div class="horizontal-btns">
+            <!-- Si está pendiente, botón de confirmar -->
+            <button
+              *ngIf="cita.confirmado==='pendiente'"
+              (click)="confirmarCita(cita)"
+            >
+              ✔
+            </button>
+            <button (click)="editarConsulta(cita)">✏</button>
+            <button (click)="eliminarConsulta(cita)">❌</button>
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Si no existe cita, mostramos la fila de inputs o el "+" -->
+      <ng-template #noCita>
+        <!-- Columna 2: HORA FIN -->
+        <td *ngIf="editingSlot!==slot; else editingHoraFin"></td>
+        <ng-template #editingHoraFin>
+          <td>
+            <span class="placeholder-text">--:--</span>
+          </td>
+        </ng-template>
+
+        <!-- Columna 3: PACIENTE -->
+        <td *ngIf="editingSlot!==slot; else editingPaciente"></td>
+        <ng-template #editingPaciente>
+          <td>
+            <input
+              class="inline-input"
+              type="text"
+              [(ngModel)]="newCitaData.paciente"
+              placeholder="Paciente"
+            />
+          </td>
+        </ng-template>
+
+        <!-- Columna 4: TELÉFONO -->
+        <td *ngIf="editingSlot!==slot; else editingTelefono"></td>
+        <ng-template #editingTelefono>
+          <td>
+            <input
+              class="inline-input"
+              type="text"
+              [(ngModel)]="newCitaData.telefono"
+              placeholder="Teléfono"
+            />
+          </td>
+        </ng-template>
+
+        <!-- Columna 5: SEGURO -->
+        <td *ngIf="editingSlot!==slot; else editingSeguro"></td>
+        <ng-template #editingSeguro>
+          <td>
+            <input
+              class="inline-input"
+              type="text"
+              [(ngModel)]="newCitaData.seguro"
+              placeholder="Seguro"
+            />
+          </td>
+        </ng-template>
+
+        <!-- Columna 6: OBSERVACIONES -->
+        <td *ngIf="editingSlot!==slot; else editingObs"></td>
+        <ng-template #editingObs>
+          <td>
+            <input
+              class="inline-input"
+              type="text"
+              [(ngModel)]="newCitaData.observaciones"
+              placeholder="Observaciones"
+            />
+          </td>
+        </ng-template>
+
+        <!-- Columna 7: COLOR -->
+        <td *ngIf="editingSlot!==slot; else editingColor"></td>
+        <ng-template #editingColor>
+          <td>
+            <input
+              type="color"
+              [(ngModel)]="newCitaData.colorCita"
+            />
+          </td>
+        </ng-template>
+
+        <!-- Columna 8: CONFIRMADO -->
+        <td *ngIf="editingSlot!==slot; else editingConfirmado">
+          <!-- vacío -->
+        </td>
+        <ng-template #editingConfirmado>
+          <td>
+            <span class="placeholder-text">pendiente</span>
+          </td>
+        </ng-template>
+
+        <!-- Columna 9: RESP -->
+        <td></td>
+
+        <!-- Columna 10: OPCIONES -->
+        <td>
+          <!-- Si no estamos editando, mostramos "+" -->
+          <ng-container *ngIf="editingSlot!==slot; else editingButtons">
+            <button class="plus-btn" (click)="iniciarCita(slot)">➕</button>
+          </ng-container>
+          <!-- Si estamos editando, mostramos Guardar/Cancelar en vertical -->
+          <ng-template #editingButtons>
+            <div class="vertical-btns">
+              <button (click)="guardarCita(slot)">Guardar</button>
+              <button (click)="cancelarCita()">Cancelar</button>
+            </div>
+          </ng-template>
+        </td>
+      </ng-template>
     </tr>
   </tbody>
 </table>

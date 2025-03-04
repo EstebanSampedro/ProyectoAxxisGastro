@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms'; // Para [(ngModel)]
+import { FormsModule } from '@angular/forms'; 
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { format, parseISO } from 'date-fns';
@@ -16,10 +16,22 @@ import { es } from 'date-fns/locale';
 export class ConsultasMenuDocComponent implements OnInit {
   idDoctor!: string;
   doctorName: string = '';
+
   selectedDate: string = '';
   formattedDate: string = '';
   observaciones: string = '';
+
+  // Lista de citas (transformadas con horaStr y horaFinStr)
   consultas: any[] = [];
+
+  // Slots de 7:00 a 20:00 (cada 30 min)
+  timeSlots: string[] = [];
+
+  // Indica qué slot está en edición
+  editingSlot: string | null = null;
+
+  // Objeto que guarda los datos del formulario inline
+  newCitaData: any = {};
 
   constructor(
     private route: ActivatedRoute,
@@ -28,30 +40,38 @@ export class ConsultasMenuDocComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Leer el id del doctor de la URL
     this.idDoctor = this.route.snapshot.paramMap.get('idDoctor') || '';
-    // Inicializar la fecha actual
+    this.generarTimeSlots();
+
     const hoy = new Date();
     this.selectedDate = hoy.toISOString().split('T')[0];
     this.onDateChange();
-    // Cargar datos iniciales
+
     this.cargarNombreDoctor();
     this.cargarConsultas();
     this.cargarObservaciones();
   }
 
+  generarTimeSlots() {
+    const startHour = 7;
+    const endHour = 20;
+    for (let hour = startHour; hour < endHour; hour++) {
+      const slot1 = `${hour.toString().padStart(2, '0')}:00:00`;
+      this.timeSlots.push(slot1);
+
+      const slot2 = `${hour.toString().padStart(2, '0')}:30:00`;
+      this.timeSlots.push(slot2);
+    }
+  }
+
   onDateChange() {
     const parsedDate = parseISO(this.selectedDate);
-    this.formattedDate = format(parsedDate, "EEEE, dd 'de' MMMM 'del' yyyy", {
-      locale: es
-    });
-    // Recargar datos al cambiar la fecha
+    this.formattedDate = format(parsedDate, "EEEE, dd 'de' MMMM 'del' yyyy", { locale: es });
     this.cargarConsultas();
     this.cargarObservaciones();
   }
 
   cargarNombreDoctor() {
-    // Ejemplo: GET /api/doctor/:idDoctor
     const url = `http://localhost:3000/api/doctores/${this.idDoctor}`;
     this.http.get<any>(url).subscribe({
       next: (data) => {
@@ -65,12 +85,15 @@ export class ConsultasMenuDocComponent implements OnInit {
   }
 
   cargarConsultas() {
-    // Ejemplo: GET /api/consultas?doctorId=...&fecha=...
-    const url = `http://localhost:3000/api/consultas?doctorId=${this.idDoctor}&fecha=${this.selectedDate}`;
+    const url = `http://localhost:3000/api/citas/filter?doctorId=${this.idDoctor}&fecha=${this.selectedDate}`;
     this.http.get<any[]>(url).subscribe({
       next: (data) => {
-        this.consultas = data;
-        console.log('Consultas:', data);
+        this.consultas = data.map(cita => {
+          const horaStr = this.extraerHora(cita.hora);
+          const horaFinStr = this.extraerHora(cita.horaTermina);
+          return { ...cita, horaStr, horaFinStr };
+        });
+        console.log('Consultas:', this.consultas);
       },
       error: (err) => {
         console.error('Error al obtener consultas:', err);
@@ -78,8 +101,14 @@ export class ConsultasMenuDocComponent implements OnInit {
     });
   }
 
+  // Extrae la hora HH:mm:00 ignorando la zona horaria
+  extraerHora(fechaString: string): string {
+    if (!fechaString) return '';
+    const match = fechaString.match(/T(\d{2}:\d{2}):/);
+    return match ? `${match[1]}:00` : '';
+  }
+
   cargarObservaciones() {
-    // Ejemplo: GET /api/consultas/observaciones?doctorId=...&fecha=...
     const url = `http://localhost:3000/api/consultas/observaciones?doctorId=${this.idDoctor}&fecha=${this.selectedDate}`;
     this.http.get<any>(url).subscribe({
       next: (data) => {
@@ -92,7 +121,6 @@ export class ConsultasMenuDocComponent implements OnInit {
   }
 
   guardarObservaciones() {
-    // Ejemplo: POST /api/consultas/observaciones
     const url = `http://localhost:3000/api/consultas/observaciones`;
     const body = {
       doctorId: this.idDoctor,
@@ -109,47 +137,109 @@ export class ConsultasMenuDocComponent implements OnInit {
     });
   }
 
-  editarConsulta(consulta: any) {
-    console.log('Editar consulta:', consulta);
-    // Aquí podrías navegar a una ruta de edición o abrir un modal
+  getCitaBySlot(slot: string) {
+    return this.consultas.find(c => c.horaStr === slot);
   }
 
-  eliminarConsulta(consulta: any) {
-    console.log('Eliminar consulta:', consulta);
-    // Aquí llamarías a un endpoint para eliminar la consulta
+  iniciarCita(slot: string) {
+    this.editingSlot = slot;
+    // Valores iniciales para los inputs
+    this.newCitaData = {
+      paciente: '',
+      telefono: '',
+      seguro: '',
+      observaciones: '',
+      colorCita: '#FFFFFF'
+    };
+  }
+
+  guardarCita(slot: string) {
+    const horaFin = this.calcularFin(slot, 30); // 30 minutos por defecto
+    const body = {
+      idDoctor_cita: parseInt(this.idDoctor),
+      fecha: this.selectedDate,
+      torre: 1,
+      hora: slot,
+      horaTermina: horaFin,
+      paciente: this.newCitaData.paciente || 'Paciente X',
+      edad: 30,
+      telefono: this.newCitaData.telefono || '',
+      procedimiento: '',
+      imagen: '',
+      pedido: '',
+      institucion: '',
+      seguro: this.newCitaData.seguro || '',
+      estado: 'activo',
+      confirmado: 'pendiente',
+      observaciones: this.newCitaData.observaciones || '',
+      observaciones2: '',
+      colorCita: this.newCitaData.colorCita || '#FFFFFF'
+    };
+
+    this.http.post('http://localhost:3000/api/citas/register', body).subscribe({
+      next: (resp: any) => {
+        console.log('Cita agregada:', resp);
+        // Limpiar
+        this.editingSlot = null;
+        this.newCitaData = {};
+        this.cargarConsultas();
+      },
+      error: err => {
+        console.error('Error al agregar cita:', err);
+      }
+    });
+  }
+
+  cancelarCita() {
+    this.editingSlot = null;
+    this.newCitaData = {};
+  }
+
+  calcularFin(slot: string, minutos: number): string {
+    const [hh, mm] = slot.split(':');
+    const totalMin = parseInt(mm) + minutos;
+    const hour = parseInt(hh) + Math.floor(totalMin / 60);
+    const min = totalMin % 60;
+
+    const hhFin = hour.toString().padStart(2, '0');
+    const mmFin = min.toString().padStart(2, '0');
+    return `${hhFin}:${mmFin}:00`;
+  }
+
+  confirmarCita(cita: any) {
+    console.log('Confirmar cita:', cita);
+  }
+
+  editarConsulta(cita: any) {
+    console.log('Editar cita:', cita);
+  }
+
+  eliminarConsulta(cita: any) {
+    console.log('Eliminar cita:', cita);
   }
 
   // Métodos de navegación del menú
-
   goToInicio() {
-    // Si "INICIO" debe llevar a una URL externa, por ejemplo:
     window.location.href = 'http://tuservidor/axxis-citas/paginas/principal';
   }
-
   goToHistorialCitas() {
     this.router.navigate(['/historial-citas']);
   }
-
   goToModificaciones() {
     this.router.navigate(['/historial-modificaciones']);
   }
-
   goToConfirmaciones() {
     this.router.navigate(['/historial-confirmaciones']);
   }
-
   goToUsuarios() {
     this.router.navigate(['/config-usuarios']);
   }
-
   goToDoctores() {
     this.router.navigate(['/config-doctores']);
   }
-
   goToTorres() {
     this.router.navigate(['/config-torres']);
   }
-
   goToSalir() {
     this.router.navigate(['/menu']);
   }
