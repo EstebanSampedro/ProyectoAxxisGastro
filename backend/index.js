@@ -20,6 +20,10 @@ app.use('/api/auth', authRouter);
 const doctorRouter = require('./routes/doctor');
 app.use('/api/doctores', doctorRouter);
 
+// Ruta para doctores
+const citaRouter = require('./routes/citas');
+app.use('/api/citas', citaRouter);
+
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
