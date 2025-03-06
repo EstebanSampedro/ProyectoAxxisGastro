@@ -4,6 +4,7 @@ const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+// --------------------------
 // Endpoint para registrar una nueva cita
 router.post('/register', async (req, res) => {
   try {
@@ -63,7 +64,8 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Nuevo endpoint para filtrar citas por doctor y fecha
+// --------------------------
+// Endpoint para filtrar citas por doctor y fecha
 router.get('/filter', async (req, res) => {
   try {
     const { doctorId, fecha } = req.query;
@@ -86,6 +88,7 @@ router.get('/filter', async (req, res) => {
   }
 });
 
+// --------------------------
 // (Opcional) Endpoint para obtener todas las citas
 router.get('/', async (req, res) => {
   try {
@@ -93,6 +96,75 @@ router.get('/', async (req, res) => {
     res.json(citas);
   } catch (error) {
     console.error('Error al obtener citas:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// --------------------------
+// Nuevo Endpoint: Obtener observaciones para un doctor en una fecha
+router.get('/observaciones', async (req, res) => {
+  try {
+    const { doctorId, fecha } = req.query;
+    if (!doctorId || !fecha) {
+      return res.status(400).json({ error: 'Faltan parámetros: doctorId y fecha son requeridos.' });
+    }
+    const obs = await prisma.observaciones.findFirst({
+      where: {
+        docObser: parseInt(doctorId.toString()),
+        fechaObser: new Date(fecha.toString())
+      }
+    });
+    // Devolvemos un objeto con la propiedad 'observaciones'
+    if (obs) {
+      res.json({ observaciones: obs.textObser });
+    } else {
+      res.json({ observaciones: '' });
+    }
+  } catch (error) {
+    console.error('Error al obtener observaciones:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+
+// Nuevo Endpoint: Guardar (crear o actualizar) observaciones para un doctor en una fecha
+router.post('/observaciones', async (req, res) => {
+  try {
+    const { doctorId, fecha, observaciones } = req.body;
+    if (!doctorId || !fecha) {
+      return res.status(400).json({ error: 'Faltan parámetros: doctorId y fecha son requeridos.' });
+    }
+    // Verificar si ya existe un registro para ese doctor y fecha
+    const existingObs = await prisma.observaciones.findFirst({
+      where: {
+        docObser: parseInt(doctorId.toString()),
+        fechaObser: new Date(fecha.toString())
+      }
+    });
+    let obs;
+    if (existingObs) {
+      // Actualizar registro existente
+      obs = await prisma.observaciones.update({
+        where: { idObser: existingObs.idObser },
+        data: {
+          textObser: observaciones,
+          estado: 'activo'
+        }
+      });
+    } else {
+      // Crear un nuevo registro
+      obs = await prisma.observaciones.create({
+        data: {
+          fechaObser: new Date(fecha.toString()),
+          textObser: observaciones,
+          estado: 'activo',
+          docObser: parseInt(doctorId.toString())
+        }
+      });
+    }
+    res.json({ message: 'Observaciones guardadas', observaciones: obs });
+  } catch (error) {
+    console.error('Error al guardar observaciones:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });

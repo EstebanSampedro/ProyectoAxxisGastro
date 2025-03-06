@@ -33,6 +33,18 @@ export class ConsultasMenuDocComponent implements OnInit {
   // Objeto que guarda los datos del formulario inline
   newCitaData: any = {};
 
+  // Mapeo de códigos de color a nombres legibles
+  colorNames: { [key: string]: string } = {
+    '#FFFFFF': 'Ninguno',
+    '#ffffff': 'Ninguno',
+    '#ffff00': 'Amarillo',
+    '#ff0000': 'Rojo',
+    '#0000ff': 'Azul',
+    '#FEBB02': 'Naranja',
+    '#00ff00': 'Verde',
+    '#8080c0': 'Gris'
+  };
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -101,7 +113,7 @@ export class ConsultasMenuDocComponent implements OnInit {
     });
   }
 
-  // Extrae la hora HH:mm:00 ignorando la zona horaria
+  // Extrae la hora en formato "HH:mm:00" de una cadena tipo "1970-01-01T08:00:00.000Z"
   extraerHora(fechaString: string): string {
     if (!fechaString) return '';
     const match = fechaString.match(/T(\d{2}:\d{2}):/);
@@ -109,7 +121,7 @@ export class ConsultasMenuDocComponent implements OnInit {
   }
 
   cargarObservaciones() {
-    const url = `http://localhost:3000/api/consultas/observaciones?doctorId=${this.idDoctor}&fecha=${this.selectedDate}`;
+    const url = `http://localhost:3000/api/citas/observaciones?doctorId=${this.idDoctor}&fecha=${this.selectedDate}`;
     this.http.get<any>(url).subscribe({
       next: (data) => {
         this.observaciones = data.observaciones || '';
@@ -121,7 +133,7 @@ export class ConsultasMenuDocComponent implements OnInit {
   }
 
   guardarObservaciones() {
-    const url = `http://localhost:3000/api/consultas/observaciones`;
+    const url = `http://localhost:3000/api/citas/observaciones`;
     const body = {
       doctorId: this.idDoctor,
       fecha: this.selectedDate,
@@ -130,6 +142,8 @@ export class ConsultasMenuDocComponent implements OnInit {
     this.http.post(url, body).subscribe({
       next: (resp) => {
         console.log('Observaciones guardadas:', resp);
+        // Vuelve a cargar las observaciones para reflejar el cambio en el textarea
+        this.cargarObservaciones();
       },
       error: (err) => {
         console.error('Error al guardar observaciones:', err);
@@ -179,7 +193,6 @@ export class ConsultasMenuDocComponent implements OnInit {
     this.http.post('http://localhost:3000/api/citas/register', body).subscribe({
       next: (resp: any) => {
         console.log('Cita agregada:', resp);
-        // Limpiar
         this.editingSlot = null;
         this.newCitaData = {};
         this.cargarConsultas();

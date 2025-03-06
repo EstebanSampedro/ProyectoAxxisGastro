@@ -41,12 +41,7 @@
 <!-- Sección de Fecha y Botón Buscar -->
 <div class="date-section">
   <label for="fecha">Fecha:</label>
-  <input
-    type="date"
-    id="fecha"
-    [(ngModel)]="selectedDate"
-    (change)="onDateChange()"
-  />
+  <input type="date" id="fecha" [(ngModel)]="selectedDate" (change)="onDateChange()" />
   <span class="formatted-date">{{ formattedDate }}</span>
   <button (click)="cargarConsultas()">Buscar</button>
 </div>
@@ -54,11 +49,7 @@
 <!-- Observaciones -->
 <div class="observaciones-section">
   <label for="observaciones">OBSERVACIONES:</label>
-  <textarea
-    id="observaciones"
-    rows="2"
-    [(ngModel)]="observaciones"
-  ></textarea>
+  <textarea id="observaciones" rows="2" [(ngModel)]="observaciones"></textarea>
   <button (click)="guardarObservaciones()">Guardar</button>
 </div>
 
@@ -80,7 +71,7 @@
   </thead>
   <tbody>
     <!-- Recorremos cada slot de tiempo (07:00:00, 07:30:00, etc.) -->
-    <tr *ngFor="let slot of timeSlots">
+    <tr *ngFor="let slot of timeSlots" [ngStyle]="{ 'background-color': getCitaBySlot(slot)?.colorCita || '' }">
       <!-- Columna 1: HORA -->
       <td>{{ slot }}</td>
 
@@ -96,8 +87,8 @@
         <td>{{ cita.seguro }}</td>
         <!-- Columna 6: OBSERVACIONES -->
         <td>{{ cita.observaciones }}</td>
-        <!-- Columna 7: COLOR -->
-        <td>{{ cita.colorCita }}</td>
+        <!-- Columna 7: COLOR (mostrando nombre en vez del código) -->
+        <td>{{ colorNames[cita.colorCita] || cita.colorCita }}</td>
         <!-- Columna 8: CONFIRMADO -->
         <td>{{ cita.confirmado }}</td>
         <!-- Columna 9: RESP (código médico) -->
@@ -105,23 +96,19 @@
         <!-- Columna 10: OPCIONES (botones en horizontal) -->
         <td>
           <div class="horizontal-btns">
-            <!-- Si está pendiente, botón de confirmar -->
-            <button
-              *ngIf="cita.confirmado==='pendiente'"
-              (click)="confirmarCita(cita)"
-            >
-              ✔
-            </button>
+            <button *ngIf="cita.confirmado==='pendiente'" (click)="confirmarCita(cita)">✔</button>
             <button (click)="editarConsulta(cita)">✏</button>
             <button (click)="eliminarConsulta(cita)">❌</button>
           </div>
         </td>
       </ng-container>
 
-      <!-- Si no existe cita, mostramos la fila de inputs o el "+" -->
+      <!-- Si no existe cita, mostramos la fila de inputs o el botón "+" -->
       <ng-template #noCita>
         <!-- Columna 2: HORA FIN -->
-        <td *ngIf="editingSlot!==slot; else editingHoraFin"></td>
+        <td *ngIf="editingSlot !== slot; else editingHoraFin">
+          <span class="placeholder-text">--:--</span>
+        </td>
         <ng-template #editingHoraFin>
           <td>
             <span class="placeholder-text">--:--</span>
@@ -129,71 +116,48 @@
         </ng-template>
 
         <!-- Columna 3: PACIENTE -->
-        <td *ngIf="editingSlot!==slot; else editingPaciente"></td>
+        <td *ngIf="editingSlot !== slot; else editingPaciente"></td>
         <ng-template #editingPaciente>
           <td>
-            <input
-              class="inline-input"
-              type="text"
-              [(ngModel)]="newCitaData.paciente"
-              placeholder="Paciente"
-            />
+            <input class="inline-input" type="text" [(ngModel)]="newCitaData.paciente" placeholder="Paciente" />
           </td>
         </ng-template>
 
-        <!-- Columna 4: TELÉFONO -->
-        <td *ngIf="editingSlot!==slot; else editingTelefono"></td>
+        <!-- Columna 4: TELEFONO -->
+        <td *ngIf="editingSlot !== slot; else editingTelefono"></td>
         <ng-template #editingTelefono>
           <td>
-            <input
-              class="inline-input"
-              type="text"
-              [(ngModel)]="newCitaData.telefono"
-              placeholder="Teléfono"
-            />
+            <input class="inline-input" type="text" [(ngModel)]="newCitaData.telefono" placeholder="Teléfono" />
           </td>
         </ng-template>
 
         <!-- Columna 5: SEGURO -->
-        <td *ngIf="editingSlot!==slot; else editingSeguro"></td>
+        <td *ngIf="editingSlot !== slot; else editingSeguro"></td>
         <ng-template #editingSeguro>
           <td>
-            <input
-              class="inline-input"
-              type="text"
-              [(ngModel)]="newCitaData.seguro"
-              placeholder="Seguro"
-            />
+            <input class="inline-input" type="text" [(ngModel)]="newCitaData.seguro" placeholder="Seguro" />
           </td>
         </ng-template>
 
         <!-- Columna 6: OBSERVACIONES -->
-        <td *ngIf="editingSlot!==slot; else editingObs"></td>
+        <td *ngIf="editingSlot !== slot; else editingObs"></td>
         <ng-template #editingObs>
           <td>
-            <input
-              class="inline-input"
-              type="text"
-              [(ngModel)]="newCitaData.observaciones"
-              placeholder="Observaciones"
-            />
+            <input class="inline-input" type="text" [(ngModel)]="newCitaData.observaciones" placeholder="Observaciones" />
           </td>
         </ng-template>
 
         <!-- Columna 7: COLOR -->
-        <td *ngIf="editingSlot!==slot; else editingColor"></td>
+        <td *ngIf="editingSlot !== slot; else editingColor"></td>
         <ng-template #editingColor>
           <td>
-            <input
-              type="color"
-              [(ngModel)]="newCitaData.colorCita"
-            />
+            <input type="color" [(ngModel)]="newCitaData.colorCita" />
           </td>
         </ng-template>
 
         <!-- Columna 8: CONFIRMADO -->
-        <td *ngIf="editingSlot!==slot; else editingConfirmado">
-          <!-- vacío -->
+        <td *ngIf="editingSlot !== slot; else editingConfirmado">
+          <span class="placeholder-text">pendiente</span>
         </td>
         <ng-template #editingConfirmado>
           <td>
@@ -206,11 +170,11 @@
 
         <!-- Columna 10: OPCIONES -->
         <td>
-          <!-- Si no estamos editando, mostramos "+" -->
-          <ng-container *ngIf="editingSlot!==slot; else editingButtons">
-            <button class="plus-btn" (click)="iniciarCita(slot)">➕</button>
+          <ng-container *ngIf="editingSlot !== slot; else editingButtons">
+            <div class="plus-container">
+              <button class="plus-btn" (click)="iniciarCita(slot)">➕</button>
+            </div>
           </ng-container>
-          <!-- Si estamos editando, mostramos Guardar/Cancelar en vertical -->
           <ng-template #editingButtons>
             <div class="vertical-btns">
               <button (click)="guardarCita(slot)">Guardar</button>
