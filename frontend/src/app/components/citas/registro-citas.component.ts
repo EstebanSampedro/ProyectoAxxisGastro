@@ -1,16 +1,14 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+
 @Component({
   selector: 'app-registro-citas',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
   templateUrl: './registro-citas.component.html',
-  styleUrls: ['./registro-citas.component.css']
+  styleUrls: ['./registro-citas.component.css'],
+  standalone: false
 })
 export class RegistroCitasComponent implements OnInit {
   selectedDate: string = '';

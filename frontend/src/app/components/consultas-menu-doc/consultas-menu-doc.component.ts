@@ -8,10 +8,9 @@ import { es } from 'date-fns/locale';
 
 @Component({
   selector: 'app-consultas-menu-doc',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
   templateUrl: './consultas-menu-doc.component.html',
-  styleUrls: ['./consultas-menu-doc.component.css']
+  styleUrls: ['./consultas-menu-doc.component.css'],
+  standalone: false
 })
 export class ConsultasMenuDocComponent implements OnInit {
   idDoctor!: string;

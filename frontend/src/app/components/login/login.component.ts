@@ -1,15 +1,14 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
-import { ApiService } from '../../services/api.service';
+import { AuthService } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-login',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
   templateUrl: './login.component.html',
-  styleUrls: ['./login.component.css']
+  styleUrls: ['./login.component.css'],
+  standalone: false
 })
 export class LoginComponent {
   // Incluimos el campo "role" para saber qué login usar
@@ -21,7 +20,7 @@ export class LoginComponent {
 
   errorMessage: string = '';
 
-  constructor(private apiService: ApiService, private router: Router) {}
+  constructor(private authService: AuthService, private router: Router) {}
 
   onSubmit(): void {
     if (!this.credentials.role) {
@@ -30,24 +29,24 @@ export class LoginComponent {
     }
 
     if (this.credentials.role === 'admin') {
-      this.apiService.loginAdmin({
+      this.authService.loginAdmin({
         username: this.credentials.username,
         password: this.credentials.password
       }).subscribe({
-        next: (res) => {
+        next: (res: { token: string; }) => {
           console.log('Login de admin exitoso:', res);
           // Guarda el token de forma segura, por ejemplo en localStorage
           localStorage.setItem('token', res.token);
           // Navega a la ruta protegida para administradores
           this.router.navigate(['/menu']);
         },
-        error: (err) => {
+        error: (err: any) => {
           console.error('Error en login admin:', err);
           this.errorMessage = 'Credenciales inválidas para administrador.';
         }
       });
     } else if (this.credentials.role === 'doctor') {
-      this.apiService.loginDoctor({
+      this.authService.loginDoctor({
         username: this.credentials.username,
         password: this.credentials.password
       }).subscribe({

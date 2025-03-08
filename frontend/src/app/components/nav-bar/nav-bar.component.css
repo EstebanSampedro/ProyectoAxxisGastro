@@ -1,0 +1,31 @@
+/* Barra de Menú */
+.navbar {
+    background-color: #333;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  .navbar ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+  }
+  
+  .navbar li {
+    position: relative;
+  }
+  
+  .navbar a {
+    display: block;
+    color: #fff;
+    text-decoration: none;
+    padding: 0.75rem 1rem;
+    transition: background-color 0.3s ease;
+  }
+  
+  .navbar a:hover {
+    background-color: #444;
+  }
+  
