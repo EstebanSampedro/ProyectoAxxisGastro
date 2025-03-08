@@ -1,14 +1,12 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-consultas',
-  standalone: true,
-  imports: [CommonModule],
   templateUrl: './consultas.component.html',
-  styleUrls: ['./consultas.component.css']
+  styleUrls: ['./consultas.component.css'],
+  standalone: false
 })
 export class ConsultasComponent implements OnInit {
 
@@ -37,32 +35,7 @@ export class ConsultasComponent implements OnInit {
     );
   }
 
-  // Métodos para la barra de menú
-  goToInicio() {
-    console.log('Ir a INICIO');
-  }
-
-  goToHistorialCitas() {
-    console.log('Ir a HISTORIAL - CITAS');
-  }
-
-  goToModificaciones() {
-    console.log('Ir a HISTORIAL - MODIFICACIONES');
-  }
-
-  goToConfirmaciones() {
-    console.log('Ir a HISTORIAL - CONFIRMACIONES');
-  }
-
-  goToConfiguraciones() {
-    console.log('Ir a CONFIGURACIONES');
-  }
-
-  goToSalir() {
-    console.log('Saliendo al menú principal...');
-    this.router.navigate(['/menu']); 
-  }
-
+  
   // Al seleccionar un doctor
   selectDoctor(doctor: any) {
     // Supongamos que la tabla doctor2 tiene nomDoctor2, userDoc, etc.
