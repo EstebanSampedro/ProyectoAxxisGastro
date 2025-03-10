@@ -85,6 +85,14 @@ model torres {
   textTorre String @db.VarChar(255)
 }
 
+model doctor2 {
+  idDoctor2     Int    @id @default(autoincrement()) @db.UnsignedInt
+  nomDoctor2    String @db.VarChar(150)
+  estadoDoctor2 String @db.VarChar(150)
+  userDoc       String @db.VarChar(150)
+  passDoc       String @db.VarChar(200)
+}
+
 enum cita_confirmado {
   si
   no
