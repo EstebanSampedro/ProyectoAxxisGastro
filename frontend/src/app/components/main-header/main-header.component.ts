@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
+import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-main-header',
@@ -8,11 +9,16 @@ import { AuthService } from '../../services/auth.service';
   standalone: false
 })
 export class MainHeaderComponent implements OnInit {
-  usuario: string = 'Invitado'; // Valor predeterminado
+  usuario: string = 'Invitado'; 
+  currentInterface: string = 'registro-citas'; 
 
-  constructor(private authService: AuthService) { }
+  constructor(private authService: AuthService,private navBarService: ApiService) { }
 
   ngOnInit(): void {
-    this.usuario = this.authService.getUsername();
+        // Suscríbete al servicio para obtener el estado actual
+        this.navBarService.currentInterface$.subscribe((interfaceName) => {
+          this.currentInterface = interfaceName;
+        });
+    this.usuario = this.authService.getUsername();   
   }
 }

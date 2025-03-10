@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
+import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-menu',
@@ -8,10 +9,11 @@ import { Router } from '@angular/router';
   standalone: false
 })
 export class MenuComponent {
-  constructor(private router: Router) {}
+  constructor(private router: Router, private interfaceService : ApiService) {}
 
   // Redirige a la ruta que se pase como parámetro
   goTo(route: string) {
+    this.interfaceService.setCurrentInterface(route);
     this.router.navigate([`/${route}`]);
   }
 

@@ -1,31 +1,96 @@
 /* Barra de Menú */
 .navbar {
-    background-color: #333;
-    margin-bottom: 1rem;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  
-  .navbar ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-  }
-  
-  .navbar li {
-    position: relative;
-  }
-  
-  .navbar a {
-    display: block;
-    color: #fff;
-    text-decoration: none;
-    padding: 0.75rem 1rem;
-    transition: background-color 0.3s ease;
-  }
-  
-  .navbar a:hover {
-    background-color: #444;
-  }
-  
+  background-color: #545454;
+  margin-bottom: 1rem;
+  border-radius: 5px;
+  overflow: hidden; /* Esta propiedad podría estar cortando los menús desplegables */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Sombra para dar profundidad */
+}
+
+.navbar ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+
+.navbar li {
+  position: relative;
+}
+
+.navbar a {
+  display: block;
+  color: #fff;
+  text-decoration: none;
+  padding: 0.75rem 1rem;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.navbar a:hover {
+  background-color: #444;
+  color: #ffd700; /* Cambia el color del texto al pasar el mouse */
+}
+
+/* Estilos para los desplegables */
+.dropdown {
+  position: relative;
+}
+
+.dropdown .dropbtn {
+  cursor: pointer;
+}
+
+.dropdown-content {
+  display: none; /* Oculta el contenido por defecto */
+  position: absolute;
+  background-color: #444;
+  min-width: 160px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+  border-radius: 4px;
+  top: 100%; /* Posiciona el desplegable debajo del botón */
+  left: 0;
+}
+
+.dropdown-content a {
+  color: #fff;
+  padding: 0.75rem 1rem;
+  text-decoration: none;
+  display: block;
+  transition: background-color 0.3s ease;
+}
+
+.dropdown-content a:hover {
+  background-color: #555;
+}
+
+/* Mostrar el desplegable al hacer hover */
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+/* Flecha indicadora en los desplegables */
+.dropdown .dropbtn::after {
+  content: '▼';
+  font-size: 0.6em;
+  margin-left: 5px;
+  vertical-align: middle;
+}
+
+/* Mejoras visuales para el botón activo */
+.navbar a.active {
+  background-color: #555;
+  color: #ffd700;
+}
+
+/* Arreglo para asegurar que los menús desplegables sean visibles */
+.navbar {
+  overflow: visible; /* Cambiado de 'hidden' a 'visible' */
+}
+
+.navbar, .navbar * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}

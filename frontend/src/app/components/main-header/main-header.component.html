@@ -1,10 +1,16 @@
 <div class="header-bar">
-    <div class="header-left">
-      <h2>SISTEMA DE REGISTRO DE CITAS</h2>
-      <span>USUARIO: {{ usuario }}</span>
-    </div>
-    <div class="header-right">
-      <img src="/assets/axxis-gastro.png" alt="Logo Axxis" />
-    </div>
+  <div class="header-left">
+    <h2>
+      <ng-container [ngSwitch]="currentInterface">
+        <span *ngSwitchCase="'registro-citas'">SISTEMA DE REGISTRO DE CITAS</span>
+        <span *ngSwitchCase="'consultas'">SISTEMA DE REGISTRO DE CONSULTAS</span>
+        <span *ngSwitchCase="'respaldo'">SISTEMA DE RESPALDOS</span>
+        <span *ngSwitchDefault>SISTEMA DE REGISTRO DE CITAS</span> <!-- Valor por defecto -->
+      </ng-container>
+    </h2>
+    <span>Usuario: {{ usuario }}</span>
   </div>
-  
+  <div class="header-right">
+    <img src="/assets/axxis-gastro.png" alt="Logo Axxis" />
+  </div>
+</div>
