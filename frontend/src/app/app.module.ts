@@ -1,5 +1,7 @@
 import { NgModule } from '@angular/core';
-import { AppRoutingModule } from './app-routing.module'; // Importa el módulo de rutas
+import { BrowserModule } from '@angular/platform-browser'; 
+import { AppRoutingModule } from './app-routing.module'; // Módulo de rutas
+import { HttpClientModule } from '@angular/common/http'; // <-- Agrega esta importación
 import { AppComponent } from './app.component';
 import { RegistroCitasComponent } from './components/citas/registro-citas.component';
 import { ConsultasComponent } from './components/consultas/consultas.component';
@@ -8,17 +10,16 @@ import { LoginComponent } from './components/login/login.component';
 import { MainHeaderComponent } from './components/main-header/main-header.component';
 import { MenuComponent } from './components/menu/menu.component';
 import { NavBarComponent } from './components/nav-bar/nav-bar.component';
-import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
-
 const routes: Routes = [
-
+  // Define tus rutas aquí
 ];
 
 @NgModule({
   declarations: [
+    AppComponent,
     RegistroCitasComponent,
     ConsultasComponent,
     ConsultasMenuDocComponent,
@@ -28,13 +29,13 @@ const routes: Routes = [
     NavBarComponent
   ],
   imports: [
-    CommonModule,
+    BrowserModule,  // Esencial para aplicaciones en el navegador
+    HttpClientModule, // <-- Agrega HttpClientModule aquí
     AppRoutingModule,
     RouterModule.forRoot(routes),
     FormsModule
   ],
-  providers: [AppComponent],
-  exports: [RouterModule]
+  providers: [], // No es necesario incluir AppComponent aquí
+  bootstrap: [AppComponent]
 })
 export class AppModule { }
-
