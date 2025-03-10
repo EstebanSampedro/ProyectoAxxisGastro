@@ -1,37 +1,26 @@
-<!-- Barra de Menú -->
 <nav class="navbar">
-    <ul>
-      <!-- INICIO -->
-      <li>
-        <!-- Si quieres navegación Angular, usa (click)="goToInicio()"; 
-             si no, puedes quitar el (click) o usar un enlace normal -->
-        <a (click)="goToInicio()">INICIO</a>
-      </li>
-  
-      <!-- HISTORIAL (dropdown) -->
-      <li class="dropdown">
-        <a href="javascript:void(0)" class="dropbtn">HISTORIAL</a>
-        <div class="dropdown-content">
-          <a (click)="goToHistorialCitas()">Citas</a>
-          <a (click)="goToModificaciones()">Modificaciones</a>
-          <a (click)="goToConfirmaciones()">Confirmaciones</a>
-        </div>
-      </li>
-  
-      <!-- CONFIGURACIONES (dropdown) -->
-      <li class="dropdown">
-        <a href="javascript:void(0)" class="dropbtn">CONFIGURACIONES</a>
-        <div class="dropdown-content">
-          <a (click)="goToUsuarios()">Usuarios</a>
-          <a (click)="goToDoctores()">Doctor</a>
-          <a (click)="goToTorres()">Torres</a>
-        </div>
-      </li>
-  
-      <!-- SALIR -->
-      <li>
-        <a (click)="goToSalir()">SALIR</a>
-      </li>
-    </ul>
-  </nav>
-  
+  <ul>
+    <li>
+      <a (click)="goToInicio()">INICIO</a>
+    </li>
+    <li class="dropdown">
+      <a href="javascript:void(0)" class="dropbtn">HISTORIAL</a>
+      <div class="dropdown-content">
+        <a (click)="goToHistorialCitas()">Citas</a>
+        <a (click)="goToModificaciones()">Modificaciones</a>
+        <a (click)="goToConfirmaciones()">Confirmaciones</a>
+      </div>
+    </li>
+    <li class="dropdown">
+      <a href="javascript:void(0)" class="dropbtn">CONFIGURACIONES</a>
+      <div class="dropdown-content">
+        <a *ngIf="currentInterface !== 'consultas'" (click)="goToUsuarios()">Usuarios</a>
+        <a (click)="goToDoctores()">Doctor</a>
+        <a *ngIf="currentInterface !== 'consultas'" (click)="goToTorres()">Torres</a>
+      </div>
+    </li>
+    <li>
+      <a (click)="goToSalir()">SALIR</a>
+    </li>
+  </ul>
+</nav>

@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-nav-bar',
@@ -10,7 +11,16 @@ import { AuthService } from '../../services/auth.service';
 })
 export class NavBarComponent {
 
-  constructor(private router: Router, private authService: AuthService) { }
+  currentInterface: string = 'registro-citas'; 
+  
+  constructor(private navBarService: ApiService, private router: Router, private authService:AuthService) {}
+
+  ngOnInit() {
+    // Suscríbete al servicio para obtener el estado actual
+    this.navBarService.currentInterface$.subscribe((interfaceName) => {
+      this.currentInterface = interfaceName;
+    });
+  }
 
   goToInicio() {
     this.router.navigate(['/inicio']);
