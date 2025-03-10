@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = "mysql://root:admin123@localhost:3306/axxis-citas"
+  url      = "mysql://axxis:axxis@localhost:3306/axxis-citas"
 }
 
 model cita {
@@ -49,16 +49,6 @@ model confirmacion {
 
   @@index([fechaCita], map: "idx_fecha_cita")
   @@index([idMedicoConfirma], map: "idx_medico_confirma")
-}
-
-model doctor2 {
-  idDoctor2     Int    @id @default(autoincrement()) @map("idDoctor2") @db.UnsignedInt
-  nomDoctor2    String @map("nomDoctor2") @db.VarChar(150)
-  estadoDoctor2 String @map("estadoDoctor2") @db.VarChar(150)
-  userDoc       String @map("userDoc") @db.VarChar(150)
-  passDoc       String @map("passDoc") @db.VarChar(200)
-
-  @@map("doctor2")
 }
 
 model logs {
