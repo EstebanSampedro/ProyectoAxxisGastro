@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-
+import {faPrint, faMagnifyingGlass} from '@fortawesome/free-solid-svg-icons'
 
 @Component({
   selector: 'app-registro-citas',
@@ -15,6 +15,8 @@ export class RegistroCitasComponent implements OnInit {
   formattedDate: string = '';
   observaciones: string = '';
   citas: any[] = [];
+  faPrint = faPrint;
+  faSearch = faMagnifyingGlass
 
   constructor(private router: Router) {}
 
