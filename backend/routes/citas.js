@@ -101,7 +101,7 @@ router.get('/', async (req, res) => {
 });
 
 // --------------------------
-// Nuevo Endpoint: Obtener observaciones para un doctor en una fecha
+// Endpoint para obtener observaciones para un doctor en una fecha
 router.get('/observaciones', async (req, res) => {
   try {
     const { doctorId, fecha } = req.query;
@@ -114,7 +114,7 @@ router.get('/observaciones', async (req, res) => {
         fechaObser: new Date(fecha.toString())
       }
     });
-    // Devolvemos un objeto con la propiedad 'observaciones'
+    // Devolver un objeto con la propiedad 'observaciones'
     if (obs) {
       res.json({ observaciones: obs.textObser });
     } else {
@@ -126,8 +126,8 @@ router.get('/observaciones', async (req, res) => {
   }
 });
 
-
-// Nuevo Endpoint: Guardar (crear o actualizar) observaciones para un doctor en una fecha
+// --------------------------
+// Endpoint para guardar (crear o actualizar) observaciones para un doctor en una fecha
 router.post('/observaciones', async (req, res) => {
   try {
     const { doctorId, fecha, observaciones } = req.body;
@@ -168,5 +168,85 @@ router.post('/observaciones', async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
+
+// --------------------------
+// Nuevo Endpoint: Editar (actualizar) una cita existente
+router.put('/:id', async (req, res) => {
+  try {
+    const idCita = parseInt(req.params.id);
+    const {
+      idDoctor_cita,
+      fecha,
+      torre,
+      hora,
+      horaTermina,
+      paciente,
+      edad,
+      telefono,
+      procedimiento,
+      imagen,
+      pedido,
+      institucion,
+      seguro,
+      estado,
+      confirmado,
+      observaciones,
+      observaciones2,
+      colorCita
+    } = req.body;
+
+    // Convertir las cadenas de hora a objetos Date
+    const horaDate = new Date(`1970-01-01T${hora}Z`);
+    const horaTerminaDate = new Date(`1970-01-01T${horaTermina}Z`);
+
+    // Actualizar la cita usando Prisma
+    const updatedCita = await prisma.cita.update({
+      where: { idCita: idCita },
+      data: {
+        idDoctor_cita,
+        fecha: new Date(fecha),
+        torre,
+        hora: horaDate,
+        horaTermina: horaTerminaDate,
+        paciente,
+        edad,
+        telefono,
+        procedimiento,
+        imagen: imagen || "",
+        pedido: pedido || "",
+        institucion: institucion || "",
+        seguro: seguro || "",
+        estado,
+        confirmado,
+        observaciones: observaciones || "",
+        observaciones2: observaciones2 || "",
+        colorCita
+      }
+    });
+
+    return res.json({ message: 'Cita actualizada exitosamente', cita: updatedCita });
+  } catch (error) {
+    console.error('Error al actualizar cita:', error);
+    return res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// --------------------------
+// Endpoint para eliminar una cita por ID
+router.delete('/:id', async (req, res) => {
+  try {
+    const idCita = parseInt(req.params.id);
+    const deletedCita = await prisma.cita.delete({
+      where: { idCita: idCita }
+    });
+    res.json({ message: 'Cita eliminada exitosamente', cita: deletedCita });
+  } catch (error) {
+    console.error('Error al eliminar cita:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+module.exports = router;
+
 
 module.exports = router;

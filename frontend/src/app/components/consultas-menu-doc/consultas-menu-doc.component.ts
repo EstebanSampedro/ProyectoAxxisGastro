@@ -26,13 +26,15 @@ export class ConsultasMenuDocComponent implements OnInit {
   // Slots de 7:00 a 20:00 (cada 30 min)
   timeSlots: string[] = [];
 
-  // Indica qué slot está en edición
+  // Para controlar el modo de edición:
+  // Si editingCitaId es null, estamos en modo creación; si tiene valor, en modo edición.
   editingSlot: string | null = null;
+  editingCitaId: number | null = null;
 
-  // Objeto que guarda los datos del formulario inline
+  // Objeto que guarda los datos del formulario inline (para nuevo registro o edición)
   newCitaData: any = {};
 
-  // Mapeo de códigos de color a nombres legibles
+  // Mapeo de códigos de color a nombres legibles (opcional para mostrar el nombre del color)
   colorNames: { [key: string]: string } = {
     '#FFFFFF': 'Ninguno',
     '#ffffff': 'Ninguno',
@@ -63,26 +65,25 @@ export class ConsultasMenuDocComponent implements OnInit {
     this.cargarObservaciones();
   }
 
-  generarTimeSlots() {
+  generarTimeSlots(): void {
     const startHour = 7;
     const endHour = 20;
     for (let hour = startHour; hour < endHour; hour++) {
       const slot1 = `${hour.toString().padStart(2, '0')}:00:00`;
       this.timeSlots.push(slot1);
-
       const slot2 = `${hour.toString().padStart(2, '0')}:30:00`;
       this.timeSlots.push(slot2);
     }
   }
 
-  onDateChange() {
+  onDateChange(): void {
     const parsedDate = parseISO(this.selectedDate);
     this.formattedDate = format(parsedDate, "EEEE, dd 'de' MMMM 'del' yyyy", { locale: es });
     this.cargarConsultas();
     this.cargarObservaciones();
   }
 
-  cargarNombreDoctor() {
+  cargarNombreDoctor(): void {
     const url = `http://localhost:3000/api/doctores/${this.idDoctor}`;
     this.http.get<any>(url).subscribe({
       next: (data) => {
@@ -95,7 +96,7 @@ export class ConsultasMenuDocComponent implements OnInit {
     });
   }
 
-  cargarConsultas() {
+  cargarConsultas(): void {
     const url = `http://localhost:3000/api/citas/filter?doctorId=${this.idDoctor}&fecha=${this.selectedDate}`;
     this.http.get<any[]>(url).subscribe({
       next: (data) => {
@@ -119,7 +120,7 @@ export class ConsultasMenuDocComponent implements OnInit {
     return match ? `${match[1]}:00` : '';
   }
 
-  cargarObservaciones() {
+  cargarObservaciones(): void {
     const url = `http://localhost:3000/api/citas/observaciones?doctorId=${this.idDoctor}&fecha=${this.selectedDate}`;
     this.http.get<any>(url).subscribe({
       next: (data) => {
@@ -131,7 +132,7 @@ export class ConsultasMenuDocComponent implements OnInit {
     });
   }
 
-  guardarObservaciones() {
+  guardarObservaciones(): void {
     const url = `http://localhost:3000/api/citas/observaciones`;
     const body = {
       doctorId: this.idDoctor,
@@ -141,7 +142,6 @@ export class ConsultasMenuDocComponent implements OnInit {
     this.http.post(url, body).subscribe({
       next: (resp) => {
         console.log('Observaciones guardadas:', resp);
-        // Vuelve a cargar las observaciones para reflejar el cambio en el textarea
         this.cargarObservaciones();
       },
       error: (err) => {
@@ -150,13 +150,14 @@ export class ConsultasMenuDocComponent implements OnInit {
     });
   }
 
-  getCitaBySlot(slot: string) {
+  getCitaBySlot(slot: string): any {
     return this.consultas.find(c => c.horaStr === slot);
   }
 
-  iniciarCita(slot: string) {
+  // Modo creación de nueva cita
+  iniciarCita(slot: string): void {
     this.editingSlot = slot;
-    // Valores iniciales para los inputs
+    this.editingCitaId = null;
     this.newCitaData = {
       paciente: '',
       telefono: '',
@@ -166,7 +167,16 @@ export class ConsultasMenuDocComponent implements OnInit {
     };
   }
 
-  guardarCita(slot: string) {
+  // Modo edición: al presionar el botón de editar (lápiz)
+  editarConsulta(cita: any): void {
+    this.editingCitaId = cita.idCita;
+    this.editingSlot = cita.horaStr;
+    // Se carga la información existente en el formulario inline; se añade la propiedad "modificado" para marcar la edición
+    this.newCitaData = { ...cita, hora: cita.horaStr, horaTermina: cita.horaFinStr, modificado: true };
+  }
+
+  // Guarda la nueva cita (creación)
+  guardarCita(slot: string): void {
     const horaFin = this.calcularFin(slot, 30); // 30 minutos por defecto
     const body = {
       idDoctor_cita: parseInt(this.idDoctor),
@@ -177,16 +187,17 @@ export class ConsultasMenuDocComponent implements OnInit {
       paciente: this.newCitaData.paciente || 'Paciente X',
       edad: 30,
       telefono: this.newCitaData.telefono || '',
-      procedimiento: '',
-      imagen: '',
-      pedido: '',
-      institucion: '',
+      procedimiento: this.newCitaData.procedimiento || '',
+      imagen: this.newCitaData.imagen || '',
+      pedido: this.newCitaData.pedido || '',
+      institucion: this.newCitaData.institucion || '',
       seguro: this.newCitaData.seguro || '',
       estado: 'activo',
       confirmado: 'pendiente',
       observaciones: this.newCitaData.observaciones || '',
       observaciones2: '',
-      colorCita: this.newCitaData.colorCita || '#FFFFFF'
+      colorCita: this.newCitaData.colorCita || '#FFFFFF',
+      modificado: false
     };
 
     this.http.post('http://localhost:3000/api/citas/register', body).subscribe({
@@ -196,13 +207,56 @@ export class ConsultasMenuDocComponent implements OnInit {
         this.newCitaData = {};
         this.cargarConsultas();
       },
-      error: err => {
+      error: (err) => {
         console.error('Error al agregar cita:', err);
       }
     });
   }
 
-  cancelarCita() {
+  // Guarda la edición de una cita existente (PUT)
+  guardarEdicion(): void {
+    const url = `http://localhost:3000/api/citas/${this.newCitaData.idCita}`;
+    const body = {
+      idDoctor_cita: parseInt(this.idDoctor),
+      fecha: this.selectedDate,
+      torre: 1,
+      hora: this.newCitaData.hora,
+      horaTermina: this.newCitaData.horaTermina,
+      paciente: this.newCitaData.paciente || 'Paciente X',
+      edad: this.newCitaData.edad || 30,
+      telefono: this.newCitaData.telefono || '',
+      procedimiento: this.newCitaData.procedimiento || '',
+      imagen: this.newCitaData.imagen || '',
+      pedido: this.newCitaData.pedido || '',
+      institucion: this.newCitaData.institucion || '',
+      seguro: this.newCitaData.seguro || '',
+      estado: this.newCitaData.estado || 'activo',
+      confirmado: this.newCitaData.confirmado || 'pendiente',
+      observaciones: this.newCitaData.observaciones || '',
+      observaciones2: this.newCitaData.observaciones2 || '',
+      colorCita: this.newCitaData.colorCita || '#FFFFFF',
+      modificado: true
+    };
+
+    this.http.put(url, body).subscribe({
+      next: (resp: any) => {
+        console.log('Cita editada:', resp);
+        this.editingCitaId = null;
+        this.newCitaData = {};
+        this.cargarConsultas();
+      },
+      error: (err) => {
+        console.error('Error al editar cita:', err);
+      }
+    });
+  }
+
+  cancelarEdicion(): void {
+    this.editingCitaId = null;
+    this.newCitaData = {};
+  }
+
+  cancelarCita(): void {
     this.editingSlot = null;
     this.newCitaData = {};
   }
@@ -212,47 +266,53 @@ export class ConsultasMenuDocComponent implements OnInit {
     const totalMin = parseInt(mm) + minutos;
     const hour = parseInt(hh) + Math.floor(totalMin / 60);
     const min = totalMin % 60;
-
     const hhFin = hour.toString().padStart(2, '0');
     const mmFin = min.toString().padStart(2, '0');
     return `${hhFin}:${mmFin}:00`;
   }
 
-  confirmarCita(cita: any) {
+  confirmarCita(cita: any): void {
     console.log('Confirmar cita:', cita);
+    // Implementa la lógica para confirmar la cita, por ejemplo haciendo un PATCH o PUT a otro endpoint
   }
 
-  editarConsulta(cita: any) {
-    console.log('Editar cita:', cita);
-  }
-
-  eliminarConsulta(cita: any) {
-    console.log('Eliminar cita:', cita);
+  eliminarConsulta(cita: any): void {
+    if (!cita || !cita.idCita) return;
+    const url = `http://localhost:3000/api/citas/${cita.idCita}`;
+    this.http.delete(url).subscribe({
+      next: (resp) => {
+        console.log('Cita eliminada:', resp);
+        this.cargarConsultas();
+      },
+      error: (err) => {
+        console.error('Error al eliminar cita:', err);
+      }
+    });
   }
 
   // Métodos de navegación del menú
-  goToInicio() {
+  goToInicio(): void {
     window.location.href = 'http://tuservidor/axxis-citas/paginas/principal';
   }
-  goToHistorialCitas() {
+  goToHistorialCitas(): void {
     this.router.navigate(['/historial-citas']);
   }
-  goToModificaciones() {
+  goToModificaciones(): void {
     this.router.navigate(['/historial-modificaciones']);
   }
-  goToConfirmaciones() {
+  goToConfirmaciones(): void {
     this.router.navigate(['/historial-confirmaciones']);
   }
-  goToUsuarios() {
+  goToUsuarios(): void {
     this.router.navigate(['/config-usuarios']);
   }
-  goToDoctores() {
+  goToDoctores(): void {
     this.router.navigate(['/config-doctores']);
   }
-  goToTorres() {
+  goToTorres(): void {
     this.router.navigate(['/config-torres']);
   }
-  goToSalir() {
+  goToSalir(): void {
     this.router.navigate(['/menu']);
   }
 }
