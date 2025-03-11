@@ -12,7 +12,7 @@ import { MenuComponent } from './components/menu/menu.component';
 import { NavBarComponent } from './components/nav-bar/nav-bar.component';
 import { RouterModule, Routes } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 const routes: Routes = [
   // Define tus rutas aquí
 ];
@@ -33,7 +33,8 @@ const routes: Routes = [
     HttpClientModule, // <-- Agrega HttpClientModule aquí
     AppRoutingModule,
     RouterModule.forRoot(routes),
-    FormsModule
+    FormsModule,
+    FontAwesomeModule
   ],
   providers: [], // No es necesario incluir AppComponent aquí
   bootstrap: [AppComponent]

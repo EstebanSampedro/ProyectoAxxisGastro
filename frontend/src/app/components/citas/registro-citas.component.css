@@ -116,7 +116,7 @@
     margin-left: 0.5rem;
   }
   
-  .buttons-section button {
+  .buttons-section fa-icon {
     margin-left: 1rem;
     padding: 0.5rem 1rem;
     background-color: #1e1e1e;
@@ -127,8 +127,10 @@
     font-weight: bold;
     transition: background-color 0.3s ease;
   }
+
   
-  .buttons-section button:hover {
+  
+  .buttons-section fa-icon:hover {
     background-color: #333333;
   }
   
