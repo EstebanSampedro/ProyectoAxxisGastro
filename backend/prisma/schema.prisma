@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = "mysql://axxis:axxis@localhost:3306/axxis-citas"
+  url      = "mysql://root:admin123@localhost:3306/axxis-citas"
 }
 
 model cita {
@@ -33,6 +33,8 @@ model cita {
   fechaConfir            DateTime?        @db.Timestamp(0)
   fechaBorra             DateTime?        @db.Timestamp(0)
   colorCita              String           @db.VarChar(20)
+  cedula                 String?          @db.VarChar(100)
+  recordatorioEnv        Boolean          @default(false)
 }
 
 model confirmacion {

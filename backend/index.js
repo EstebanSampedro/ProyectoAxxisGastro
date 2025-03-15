@@ -24,6 +24,10 @@ app.use('/api/doctores', doctorRouter);
 const citaRouter = require('./routes/citas');
 app.use('/api/citas', citaRouter);
 
+// Ruta para Whatsapp
+const whatsappRouter = require('./routes/whatsapp');
+app.use('/api/whatsapp', whatsappRouter);
+
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

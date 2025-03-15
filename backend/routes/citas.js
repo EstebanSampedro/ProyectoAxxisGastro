@@ -26,7 +26,10 @@ router.post('/register', async (req, res) => {
       confirmado,    // "si", "no" o "pendiente"
       observaciones,
       observaciones2,
-      colorCita
+      colorCita,
+      cedula,
+      recordatorioEnv,
+
     } = req.body;
 
     // Convertir las cadenas de hora a objetos Date usando una fecha base (por ejemplo, 1970-01-01)
@@ -53,7 +56,9 @@ router.post('/register', async (req, res) => {
         confirmado, // Se asume que el valor es uno de 'si', 'no' o 'pendiente'
         observaciones: observaciones || "",
         observaciones2: observaciones2 || "",
-        colorCita
+        colorCita,
+        cedula,
+        recordatorioEnv,
       }
     });
 
@@ -192,7 +197,9 @@ router.put('/:id', async (req, res) => {
       confirmado,
       observaciones,
       observaciones2,
-      colorCita
+      colorCita,
+      cedula,
+      recordatorioEnv
     } = req.body;
 
     // Convertir las cadenas de hora a objetos Date
@@ -220,7 +227,9 @@ router.put('/:id', async (req, res) => {
         confirmado,
         observaciones: observaciones || "",
         observaciones2: observaciones2 || "",
-        colorCita
+        colorCita,
+        cedula,
+        recordatorioEnv
       }
     });
 
@@ -248,5 +257,3 @@ router.delete('/:id', async (req, res) => {
 
 module.exports = router;
 
-
-module.exports = router;
