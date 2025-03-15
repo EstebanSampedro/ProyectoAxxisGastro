@@ -34,7 +34,7 @@ export class ConsultasMenuDocComponent implements OnInit {
   // Objeto que guarda los datos del formulario inline (para nuevo registro o edición)
   newCitaData: any = {};
 
-  // Mapeo de códigos de color a nombres legibles (opcional para mostrar el nombre del color)
+  // Mapeo de códigos de color a nombres legibles
   colorNames: { [key: string]: string } = {
     '#FFFFFF': 'Ninguno',
     '#ffffff': 'Ninguno',
@@ -103,7 +103,13 @@ export class ConsultasMenuDocComponent implements OnInit {
         this.consultas = data.map(cita => {
           const horaStr = this.extraerHora(cita.hora);
           const horaFinStr = this.extraerHora(cita.horaTermina);
-          return { ...cita, horaStr, horaFinStr };
+          return { 
+            ...cita, 
+            horaStr, 
+            horaFinStr, 
+            cedula: cita.cedula || '',
+            recordatorioEnv: cita.recordatorioEnv || false
+          };
         });
         console.log('Consultas:', this.consultas);
       },
@@ -163,7 +169,9 @@ export class ConsultasMenuDocComponent implements OnInit {
       telefono: '',
       seguro: '',
       observaciones: '',
-      colorCita: '#FFFFFF'
+      colorCita: '#FFFFFF',
+      cedula: '',
+      recordatorioEnv: false
     };
   }
 
@@ -171,8 +179,14 @@ export class ConsultasMenuDocComponent implements OnInit {
   editarConsulta(cita: any): void {
     this.editingCitaId = cita.idCita;
     this.editingSlot = cita.horaStr;
-    // Se carga la información existente en el formulario inline; se añade la propiedad "modificado" para marcar la edición
-    this.newCitaData = { ...cita, hora: cita.horaStr, horaTermina: cita.horaFinStr, modificado: true };
+    this.newCitaData = { 
+      ...cita, 
+      hora: cita.horaStr, 
+      horaTermina: cita.horaFinStr, 
+      cedula: cita.cedula || '',
+      recordatorioEnv: cita.recordatorioEnv || false,
+      modificado: true
+    };
   }
 
   // Guarda la nueva cita (creación)
@@ -197,7 +211,8 @@ export class ConsultasMenuDocComponent implements OnInit {
       observaciones: this.newCitaData.observaciones || '',
       observaciones2: '',
       colorCita: this.newCitaData.colorCita || '#FFFFFF',
-      modificado: false
+      cedula: this.newCitaData.cedula || '',
+      recordatorioEnv: false
     };
 
     this.http.post('http://localhost:3000/api/citas/register', body).subscribe({
@@ -235,7 +250,8 @@ export class ConsultasMenuDocComponent implements OnInit {
       observaciones: this.newCitaData.observaciones || '',
       observaciones2: this.newCitaData.observaciones2 || '',
       colorCita: this.newCitaData.colorCita || '#FFFFFF',
-      modificado: true
+      cedula: this.newCitaData.cedula || '',
+      recordatorioEnv: this.newCitaData.recordatorioEnv || false
     };
 
     this.http.put(url, body).subscribe({
@@ -273,19 +289,111 @@ export class ConsultasMenuDocComponent implements OnInit {
 
   confirmarCita(cita: any): void {
     console.log('Confirmar cita:', cita);
-    // Implementa la lógica para confirmar la cita, por ejemplo haciendo un PATCH o PUT a otro endpoint
+    // Lógica para confirmar la cita (por ejemplo, PATCH o PUT a otro endpoint)
   }
 
   eliminarConsulta(cita: any): void {
-    if (!cita || !cita.idCita) return;
+    const respuesta = window.confirm(`¿Está seguro de eliminar la cita del paciente "${cita.paciente}"?`);
+    if (!respuesta) {
+      return;
+    }
     const url = `http://localhost:3000/api/citas/${cita.idCita}`;
     this.http.delete(url).subscribe({
-      next: (resp) => {
+      next: (resp: any) => {
         console.log('Cita eliminada:', resp);
         this.cargarConsultas();
       },
       error: (err) => {
         console.error('Error al eliminar cita:', err);
+      }
+    });
+  }
+
+  enviarWhatsApp(cita: any): void {
+    let phoneNumber = cita.telefono.trim();
+    if (phoneNumber.startsWith('0')) {
+      phoneNumber = phoneNumber.substring(1);
+    }
+    if (!phoneNumber.startsWith('+')) {
+      phoneNumber = '+593' + phoneNumber;
+    }
+    const mensaje = `Hola Mundo, tu cita es el día ${this.selectedDate}. Paciente: ${cita.paciente}`;
+    this.http.post('http://localhost:3000/api/whatsapp/send', {
+      phone: phoneNumber,
+      message: mensaje
+    }).subscribe({
+      next: (resp: any) => {
+        console.log('Mensaje enviado:', resp);
+        alert('Mensaje de WhatsApp enviado con éxito');
+      },
+      error: (err) => {
+        console.error('Error al enviar WhatsApp:', err);
+        alert('No se pudo enviar el mensaje de WhatsApp');
+      }
+    });
+  }
+  
+  // Nuevo método para enviar recordatorio (botón WA2)
+  enviarRecordatorio(cita: any): void {
+    if (cita.recordatorioEnv) {
+      alert('El recordatorio ya fue enviado.');
+      return;
+    }
+    if (!confirm(`¿Está seguro de enviar el recordatorio al paciente "${cita.paciente}"?`)) {
+      return;
+    }
+    let phoneNumber = cita.telefono.trim();
+    if (phoneNumber.startsWith('0')) {
+      phoneNumber = phoneNumber.substring(1);
+    }
+    if (!phoneNumber.startsWith('+')) {
+      phoneNumber = '+593' + phoneNumber;
+    }
+    const mensaje = `Recordatorio: Se le recuerda que su cita es el día ${this.selectedDate}. Paciente: ${cita.paciente}. Por favor confirme su asistencia.`;
+    this.http.post('http://localhost:3000/api/whatsapp/send', {
+      phone: phoneNumber,
+      message: mensaje
+    }).subscribe({
+      next: (resp: any) => {
+        console.log('Recordatorio enviado:', resp);
+        alert('Recordatorio de WhatsApp enviado con éxito');
+        // Construir el objeto de actualización usando los valores en formato string para hora
+        const updateBody = {
+          idDoctor_cita: cita.idDoctor_cita,
+          fecha: cita.fecha, // se espera que ya esté en formato adecuado
+          torre: cita.torre,
+          hora: cita.horaStr,
+          horaTermina: cita.horaFinStr,
+          paciente: cita.paciente,
+          edad: cita.edad,
+          telefono: cita.telefono,
+          procedimiento: cita.procedimiento,
+          imagen: cita.imagen || "",
+          pedido: cita.pedido || "",
+          institucion: cita.institucion || "",
+          seguro: cita.seguro || "",
+          estado: cita.estado,
+          confirmado: cita.confirmado,
+          observaciones: cita.observaciones || "",
+          observaciones2: cita.observaciones2 || "",
+          colorCita: cita.colorCita,
+          cedula: cita.cedula,
+          recordatorioEnv: true
+        };
+        const url = `http://localhost:3000/api/citas/${cita.idCita}`;
+        this.http.put(url, updateBody).subscribe({
+          next: (resp: any) => {
+            console.log('Cita actualizada con recordatorio:', resp);
+            this.cargarConsultas();
+          },
+          error: (err) => {
+            console.error('Error al actualizar cita con recordatorio:', err);
+          }
+        });
+      },
+      error: (err) => {
+        console.error('Error al enviar recordatorio:', err);
+        alert('No se pudo enviar el recordatorio de WhatsApp');
       }
     });
   }

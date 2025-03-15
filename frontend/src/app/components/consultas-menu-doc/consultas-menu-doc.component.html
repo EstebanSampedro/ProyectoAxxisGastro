@@ -68,6 +68,7 @@
     <tr>
       <th>HORA</th>
       <th>HORA FIN</th>
+      <th>CEDULA</th>
       <th>PACIENTE</th>
       <th>TELÉFONO</th>
       <th>SEGURO</th>
@@ -87,7 +88,7 @@
       <!-- Columna 1: HORA -->
       <td>{{ slot }}</td>
 
-      <!-- Si existe una cita en este slot -->
+      <!-- Verificamos si hay una cita en este slot -->
       <ng-container *ngIf="getCitaBySlot(slot) as cita; else sinCita">
         <!-- MODO EDICIÓN DE CITA EXISTENTE -->
         <ng-container *ngIf="editingCitaId === cita.idCita; else modoLectura">
@@ -97,6 +98,13 @@
               type="text"
               [(ngModel)]="newCitaData.horaTermina"
               placeholder="HH:mm:00"
+            />
+          </td>
+          <td>
+            <input
+              type="text"
+              [(ngModel)]="newCitaData.cedula"
+              placeholder="Cedula"
             />
           </td>
           <td>
@@ -157,6 +165,7 @@
         <!-- MODO LECTURA DE CITA EXISTENTE -->
         <ng-template #modoLectura>
           <td>{{ cita.horaFinStr }}</td>
+          <td>{{ cita.cedula }}</td>
           <td>{{ cita.paciente }}</td>
           <td>{{ cita.telefono }}</td>
           <td>{{ cita.seguro }}</td>
@@ -166,6 +175,10 @@
           <td>{{ cita.codigoMedico }}</td>
           <td>
             <div class="horizontal-btns">
+              <!-- Botón 1: WhatsApp "Hola Mundo" -->
+              <button (click)="enviarWhatsApp(cita)">WA1</button>
+              
+              <button (click)="enviarRecordatorio(cita)">WA2</button>
               <!-- Botón confirmar si está pendiente -->
               <button *ngIf="cita.confirmado === 'pendiente'" (click)="confirmarCita(cita)">✔</button>
               <!-- Botón editar -->
@@ -185,6 +198,13 @@
           <td>
             <!-- HORA FIN placeholder -->
             <span class="placeholder-text">--:--</span>
+          </td>
+          <td>
+            <input
+              type="text"
+              [(ngModel)]="newCitaData.cedula"
+              placeholder="Cedula"
+            />
           </td>
           <td>
             <input
@@ -243,15 +263,17 @@
 
         <!-- Modo vacío: no se está creando nada en este slot -->
         <ng-template #modoVacio>
-          <td><span class="placeholder-text">--:--</span></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td> <!-- Columna de COLOR (vacío) -->
+          <!-- Deben ser 10 celdas aquí, ya que la primera (HORA) está fuera del ng-container -->
+          <td><span class="placeholder-text">--:--</span></td> <!-- HORA FIN -->
+          <td></td>        <!-- CEDULA -->
+          <td></td>        <!-- PACIENTE -->
+          <td></td>        <!-- TELÉFONO -->
+          <td></td>        <!-- SEGURO -->
+          <td></td>        <!-- OBSERVACIONES -->
+          <td></td>        <!-- COLOR -->
           <td><span class="placeholder-text">pendiente</span></td> <!-- CONF. -->
-          <td></td> <!-- RESP. -->
-          <td>
+          <td></td>        <!-- RESP. -->
+          <td>             <!-- OPCIONES -->
             <button class="plus-btn" (click)="iniciarCita(slot)">➕</button>
           </td>
         </ng-template>
