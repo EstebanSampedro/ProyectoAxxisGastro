@@ -176,13 +176,13 @@
           <td>
             <div class="horizontal-btns">
               <!-- Botón 1: WhatsApp "Hola Mundo" -->
-              <button (click)="enviarWhatsApp(cita)">WA1</button>
+              <button (click)="enviarWhatsApp(cita)">📞​​</button>
               
-              <button (click)="enviarRecordatorio(cita)">WA2</button>
+              <button (click)="enviarRecordatorio(cita)">🔔​</button>
               <!-- Botón confirmar si está pendiente -->
               <button *ngIf="cita.confirmado === 'pendiente'" (click)="confirmarCita(cita)">✔</button>
               <!-- Botón editar -->
-              <button (click)="editarConsulta(cita)">✏</button>
+              <button (click)="editarConsulta(cita)">✏️​</button>
               <!-- Botón eliminar -->
               <button (click)="eliminarConsulta(cita)">❌</button>
             </div>
