@@ -63,4 +63,11 @@ export class AuthService {
   getUsername(): string {
     return this.currentUserValue?.user || 'Invitado';
   }
+
+  getAdminId(): number {
+    if (this.currentUserValue && this.currentUserValue.idmedico) {
+      return this.currentUserValue.idmedico;
+    }
+    return 0;
+  }
 }
