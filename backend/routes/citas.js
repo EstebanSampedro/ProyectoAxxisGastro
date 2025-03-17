@@ -255,5 +255,72 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// backend/routes/citas.js
+
+router.post('/confirmacion', async (req, res) => {
+  try {
+    const {
+      fechaCita,
+      idMedicoConfirma,
+      fechaConfirma,
+      confTorre1,
+      confDoctor,
+      estado
+    } = req.body;
+
+    // Convertir cadenas a Date, si vienen como string
+    const fechaCitaDate = new Date(fechaCita);
+    const fechaConfirmaDate = new Date(fechaConfirma);
+
+    // 1) Verificar si ya existe confirmación para este "confDoctor" en esa "fechaCita"
+    const existing = await prisma.confirmacion.findFirst({
+      where: {
+        fechaCita: fechaCitaDate,
+        confDoctor: parseInt(confDoctor)  // parsear a entero
+      }
+    });
+
+    if (existing) {
+      // 2) Si existe, actualizar
+      const updated = await prisma.confirmacion.update({
+        where: { idConfirmacion: existing.idConfirmacion },
+        data: {
+          idMedicoConfirma: parseInt(idMedicoConfirma),
+          fechaConfirma: fechaConfirmaDate,
+          confTorre1: confTorre1 || "",
+          confTorre2: "",
+          confTorre3: "",
+          confTorre4: "",
+          estado: estado || "confirmado"
+        }
+      });
+      return res.json({ message: "Confirmación actualizada", confirmacion: updated });
+
+    } else {
+      // 3) Si no existe, crear
+      const nuevaConf = await prisma.confirmacion.create({
+        data: {
+          fechaCita: fechaCitaDate,
+          idMedicoConfirma: parseInt(idMedicoConfirma),
+          fechaConfirma: fechaConfirmaDate,
+          confTorre1: confTorre1 || "",
+          confTorre2: "",
+          confTorre3: "",
+          confTorre4: "",
+          confDoctor: parseInt(confDoctor),
+          estado: estado || "confirmado"
+        }
+      });
+      return res.json({ message: "Confirmación creada", confirmacion: nuevaConf });
+    }
+
+  } catch (error) {
+    console.error("Error al crear/actualizar confirmación:", error);
+    return res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+
+
 module.exports = router;
 

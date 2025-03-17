@@ -180,7 +180,7 @@
               
               <button (click)="enviarRecordatorio(cita)">🔔​</button>
               <!-- Botón confirmar si está pendiente -->
-              <button *ngIf="cita.confirmado === 'pendiente'" (click)="confirmarCita(cita)">✔</button>
+              <button (click)="confirmarCita(cita)">✔</button>
               <!-- Botón editar -->
               <button (click)="editarConsulta(cita)">✏️​</button>
               <!-- Botón eliminar -->
@@ -281,3 +281,34 @@
     </tr>
   </tbody>
 </table>
+
+<!-- Modal de Confirmación -->
+<div *ngIf="showConfirmModal" class="modal-overlay">
+  <div class="modal">
+    <h3>Confirmar cita para {{ citaToConfirm?.paciente }}</h3>
+    <p>Seleccione una opción:</p>
+    <div class="modal-buttons">
+      <!-- Botón Confirmar (SI) -->
+      <button class="btn-confirm" (click)="handleConfirmOption('si')">
+        Confirmar (SI)
+      </button>
+
+      <!-- Botón Denegar (NO) -->
+      <button class="btn-deny" (click)="handleConfirmOption('no')">
+        Denegar (NO)
+      </button>
+
+      <!-- Botón Pendiente -->
+      <button class="btn-pending" (click)="handleConfirmOption('pendiente')">
+        Pendiente
+      </button>
+
+      <!-- Botón Cancelar -->
+      <button class="btn-cancel" (click)="handleConfirmOption('cancelar')">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
+
