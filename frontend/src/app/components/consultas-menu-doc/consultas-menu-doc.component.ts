@@ -5,7 +5,9 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { AuthService } from '../../services/auth.service';  
+import { AuthService } from '../../services/auth.service'; 
+import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+
 
 
 @Component({
@@ -28,8 +30,7 @@ export class ConsultasMenuDocComponent implements OnInit {
   // Slots de 7:00 a 20:00 (cada 30 min)
   timeSlots: string[] = [];
 
-  // Para controlar el modo de edición:
-  // Si editingCitaId es null, estamos en modo creación; si tiene valor, en modo edición.
+  // Para controlar el modo de edición
   editingSlot: string | null = null;
   editingCitaId: number | null = null;
 
@@ -329,8 +330,7 @@ export class ConsultasMenuDocComponent implements OnInit {
       return;
     }
   
-    // Construir el body para PUT /api/citas/:id
-    // Evitar "Invalid Date": reusar cita.horaStr y cita.horaFinStr
+    
     const updateBody = {
       idDoctor_cita: this.citaToConfirm.idDoctor_cita,
       fecha: this.citaToConfirm.fecha,
@@ -360,7 +360,7 @@ export class ConsultasMenuDocComponent implements OnInit {
       next: (resp: any) => {
         console.log('Cita actualizada:', resp);
   
-        // 3) Registrar/actualizar la confirmación para SI, NO, o PENDIENTE
+        
         this.crearOActualizarConfirmacion(
           this.citaToConfirm,
           nuevoEstado  // "confirmado" | "denegado" | "pendiente"
@@ -378,7 +378,6 @@ export class ConsultasMenuDocComponent implements OnInit {
     });
   }
   
-  // Método para crear/actualizar la confirmación
   crearOActualizarConfirmacion(cita: any, estado: string): void {
     // ID del admin que está confirmando
     const adminId = this.authService.getAdminId();
@@ -505,6 +504,53 @@ export class ConsultasMenuDocComponent implements OnInit {
       error: (err) => {
         console.error('Error al enviar recordatorio:', err);
         alert('No se pudo enviar el recordatorio de WhatsApp');
+      }
+    });
+  }
+
+  drop(event: CdkDragDrop<any[]>): void {
+    // Suponemos que el elemento arrastrado tiene asignado en su propiedad "data" el objeto "cita"
+    const draggedCita = event.item.data;
+    
+    // Determinamos el nuevo slot basándonos en la posición a la que se soltó el elemento.
+    // Por ejemplo, suponemos que el índice del contenedor corresponde al índice en el array "timeSlots".
+    const newSlot = this.timeSlots[event.currentIndex]; // formato "HH:mm:00"
+    const newHora = newSlot;
+    const newHoraFin = this.calcularFin(newSlot, 30);
+  
+    // Actualizamos el objeto para enviarlo al backend.
+    const updateBody = {
+      idDoctor_cita: draggedCita.idDoctor_cita,
+      fecha: draggedCita.fecha, // se asume que ya está en formato adecuado
+      torre: draggedCita.torre || 1,
+      hora: newHora,
+      horaTermina: newHoraFin,
+      paciente: draggedCita.paciente,
+      edad: draggedCita.edad,
+      telefono: draggedCita.telefono,
+      procedimiento: draggedCita.procedimiento || '',
+      imagen: draggedCita.imagen || '',
+      pedido: draggedCita.pedido || '',
+      institucion: draggedCita.institucion || '',
+      seguro: draggedCita.seguro || '',
+      estado: draggedCita.estado || 'activo',
+      confirmado: draggedCita.confirmado || 'pendiente',
+      observaciones: draggedCita.observaciones || '',
+      observaciones2: draggedCita.observaciones2 || '',
+      colorCita: draggedCita.colorCita,
+      cedula: draggedCita.cedula,
+      recordatorioEnv: draggedCita.recordatorioEnv || false
+    };
+  
+    // Realizamos el PUT para actualizar la cita con los nuevos horarios.
+    const url = `http://localhost:3000/api/citas/${draggedCita.idCita}`;
+    this.http.put(url, updateBody).subscribe({
+      next: (resp: any) => {
+        console.log('Cita actualizada tras drop:', resp);
+        this.cargarConsultas();
+      },
+      error: (err) => {
+        console.error('Error al actualizar cita tras drop:', err);
       }
     });
   }
