@@ -2,10 +2,9 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const pool = require('../database');
 const router = express.Router();
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require("../../prisma/prismaClient");
+
 /**
  * Endpoint para registrar un nuevo administrador.
  * Recibe en el body:
