@@ -1,37 +1,5 @@
-<!-- Encabezado Superior -->
-<div class="header-bar">
-  <div class="header-left">
-    <h2>SISTEMA DE REGISTRO DE CONSULTAS</h2>
-    <span>USUARIO: ADMINISTRADOR</span>
-  </div>
-  <div class="header-right">
-    <img src="assets/axxis-gastro.png" alt="Logo Axxis" />
-  </div>
-</div>
-
-<!-- Barra de Menú -->
-<nav class="navbar">
-  <ul>
-    <li><a (click)="goToInicio()">INICIO</a></li>
-    <li class="dropdown">
-      <a href="javascript:void(0)" class="dropbtn">HISTORIAL</a>
-      <div class="dropdown-content">
-        <a (click)="goToHistorialCitas()">Citas</a>
-        <a (click)="goToModificaciones()">Modificaciones</a>
-        <a (click)="goToConfirmaciones()">Confirmaciones</a>
-      </div>
-    </li>
-    <li class="dropdown">
-      <a href="javascript:void(0)" class="dropbtn">CONFIGURACIONES</a>
-      <div class="dropdown-content">
-        <a (click)="goToUsuarios()">Usuarios</a>
-        <a (click)="goToDoctores()">Doctor</a>
-        <a (click)="goToTorres()">Torres</a>
-      </div>
-    </li>
-    <li><a (click)="goToSalir()">SALIR</a></li>
-  </ul>
-</nav>
+<app-main-header></app-main-header>
+<app-nav-bar></app-nav-bar>
 
 <!-- Encabezado del Doctor -->
 <div class="header-doc">
