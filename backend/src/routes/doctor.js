@@ -1,13 +1,8 @@
 // backend/routes/doctor.js
 const express = require('express');
 const router = express.Router();
-<<<<<<< HEAD:backend/src/routes/doctor.js
 const prisma = require("../../prisma/prismaClient");
-=======
-const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcrypt');
-const prisma = new PrismaClient();
->>>>>>> main:backend/routes/doctor.js
 
 // GET /api/doctores - Devuelve todos los doctores
 router.get('/', async (req, res) => {
@@ -32,13 +27,7 @@ router.get('/:idDoctor', async (req, res) => {
   const { idDoctor } = req.params;
   try {
     const doctor = await prisma.doctor2.findUnique({
-<<<<<<< HEAD:backend/src/routes/doctor.js
-      where: {
-        idDoctor2: parseInt(idDoctor)  // Convertimos a número ya que los params vienen como string
-      },
-=======
       where: { idDoctor2: parseInt(idDoctor) },
->>>>>>> main:backend/routes/doctor.js
       select: {
         idDoctor2: true,
         nomDoctor2: true,
@@ -46,10 +35,6 @@ router.get('/:idDoctor', async (req, res) => {
         userDoc: true
       }
     });
-<<<<<<< HEAD:backend/src/routes/doctor.js
-    
-=======
->>>>>>> main:backend/routes/doctor.js
     if (doctor) {
       res.json(doctor);
     } else {
@@ -61,9 +46,6 @@ router.get('/:idDoctor', async (req, res) => {
   }
 });
 
-<<<<<<< HEAD:backend/src/routes/doctor.js
-module.exports = router;
-=======
 // POST /api/doctores - Crear un nuevo doctor
 router.post('/', async (req, res) => {
   try {
@@ -124,4 +106,3 @@ router.delete('/:idDoctor', async (req, res) => {
 });
 
 module.exports = router;
->>>>>>> main:backend/routes/doctor.js
