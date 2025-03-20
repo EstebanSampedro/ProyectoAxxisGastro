@@ -5,9 +5,9 @@
   align-items: center;
   background-color: #1e1e1e;
   color: #ffc107;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 1rem; /* reduje un poco */
   border-radius: 8px;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem; /* reduje un poco */
 }
 
 .header-left {
@@ -18,22 +18,22 @@
 
 .header-left h2 {
   margin: 0;
-  font-size: 1.4rem;
+  font-size: 1.2rem; /* antes 1.4rem */
 }
 
 .header-left span {
-  font-size: 0.9rem;
+  font-size: 0.85rem; /* antes 0.9rem */
   font-weight: bold;
 }
 
 .header-right img {
-  max-height: 50px;
+  max-height: 45px; /* antes 50px */
 }
 
 /* ===================== BARRA DE MENÚ (NAV) ===================== */
 .navbar {
   background-color: #333;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem; /* reduje un poco */
   border-radius: 8px;
   overflow: hidden;
 }
@@ -53,7 +53,7 @@
   display: block;
   color: #fff;
   text-decoration: none;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem; /* reduje un poco */
   transition: background-color 0.3s ease;
 }
 
@@ -83,7 +83,7 @@
 
 .dropdown-content a {
   display: block;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.75rem; /* reduje un poco */
   color: #fff;
 }
 
@@ -94,11 +94,11 @@
 /* ===================== ENCABEZADO DEL DOCTOR ===================== */
 .header-doc {
   text-align: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem; /* reduje un poco */
 }
 
 .header-doc h1 {
-  font-size: 1.5rem;
+  font-size: 1.3rem; /* antes 1.5rem */
   color: #333;
 }
 
@@ -106,22 +106,22 @@
 .date-section {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: 0.4rem; /* reduje un poco */
+  margin-bottom: 0.75rem; /* reduje un poco */
 }
 
 .formatted-date {
   font-weight: bold;
   color: #333;
-  margin-left: 0.5rem;
+  margin-left: 0.4rem;
 }
 
 /* ===================== OBSERVACIONES ===================== */
 .observaciones-section {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
 }
 
 .observaciones-section label {
@@ -139,7 +139,7 @@
   border: none;
   border-radius: 4px;
   color: #121212;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.8rem; /* reduje un poco */
   cursor: pointer;
   font-weight: bold;
   transition: background-color 0.3s ease;
@@ -150,11 +150,15 @@
 }
 
 /* ===================== TABLA DE CONSULTAS ===================== */
+/* 1) Disminuir font-size general. 
+   2) Menos padding en celdas.
+   3) Table-layout: fixed para anchos fijos. */
 .consultas-table {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 2rem;
-  table-layout: fixed; /* Para que las columnas tengan ancho fijo */
+  table-layout: fixed; 
+  font-size: 0.8rem; /* antes 0.9rem */
 }
 
 .consultas-table thead {
@@ -163,10 +167,9 @@
 
 .consultas-table th,
 .consultas-table td {
-  padding: 0.75rem;
+  padding: 0.3rem; /* antes 0.75rem */
   text-align: center;
-  border: 1px solid #ccc; /* Borde más visible */
-  font-size: 0.9rem;
+  border: 1px solid #ccc;
   word-wrap: break-word;
 }
 
@@ -179,18 +182,15 @@
   background-color: #d9f2ff;
 }
 
-/* Inputs para creación de cita */
-.inline-input {
-  width: 90px; /* Ajusta a tu gusto */
-  max-width: 90px;
-  padding: 0.25rem;
-  font-size: 0.85rem;
-  box-sizing: border-box;
+/* Ajustar tamaño de botones en la columna de OPCIONES */
+.horizontal-btns {
+  display: inline-flex;
+  gap: 2px; /* menos separación */
 }
 
-.placeholder-text {
-  color: #999;
-  font-style: italic;
+.horizontal-btns button {
+  font-size: 0.6rem; /* más pequeño */
+  padding: 0.2rem 0.3rem; /* más compacto */
 }
 
 /* Botón "+" centrado */
@@ -199,15 +199,139 @@
   display: block;
 }
 
-/* Botones Confirmar, Editar, Eliminar en horizontal */
-.horizontal-btns {
-  display: inline-flex; /* para que estén en la misma línea */
-  gap: 4px;            /* separación entre botones */
-}
-
-/* Botones Guardar/Cancelar en vertical */
+/* Botones Guardar/Cancelar en vertical (si fuera el caso) */
 .vertical-btns {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+/* ===================== AJUSTE DE INPUTS/SELECT EN EDICIÓN ===================== */
+/* Para que los <input> y <select> dentro de la tabla ocupen el ancho de la celda */
+.consultas-table td input[type="text"],
+.consultas-table td select {
+  width: 100%;          /* ocupa todo el ancho de la celda */
+  box-sizing: border-box;
+  font-size: 0.8rem;
+  padding: 0.2rem;
+  margin: 0;
+}
+
+/* Opcional: alinear verticalmente al centro */
+.consultas-table td {
+  vertical-align: middle;
+}
+
+/* Placeholder para celdas vacías */
+.placeholder-text {
+  color: #999;
+  font-style: italic;
+}
+
+/* ==================================
+   Modal Overlay (fondo semitransparente)
+================================== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* ==================================
+   Contenedor del Modal
+================================== */
+.modal {
+  background: #fff;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  min-width: 300px;
+  max-width: 400px;
+}
+
+.modal h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.modal p {
+  margin: 0.5rem 0;
+  color: #333;
+}
+
+/* ==================================
+   Botones del Modal
+================================== */
+.modal-buttons {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap; /* Para que en pantallas pequeñas pasen a otra línea */
+  gap: 0.5rem;
+}
+
+/* Estilos base para todos los botones del modal */
+.modal-buttons button {
+  flex: 1 1 auto;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+  color: #fff; /* color de texto blanco por defecto */
+}
+
+/* =====================
+   Botón Confirmar (SI)
+===================== */
+.btn-confirm {
+  background-color: #28a745; /* Verde */
+}
+
+.btn-confirm:hover {
+  background-color: #218838;
+}
+
+/* =====================
+   Botón Denegar (NO)
+===================== */
+.btn-deny {
+  background-color: #dc3545; /* Rojo */
+}
+
+.btn-deny:hover {
+  background-color: #c82333;
+}
+
+/* =====================
+   Botón Pendiente
+===================== */
+.btn-pending {
+  background-color: #ffc107; /* Amarillo */
+  color: #212529;            /* Texto oscuro para contraste */
+}
+
+.btn-pending:hover {
+  background-color: #e0a800;
+}
+
+/* =====================
+   Botón Cancelar
+===================== */
+.btn-cancel {
+  background-color: #6c757d; /* Gris */
+}
+
+.btn-cancel:hover {
+  background-color: #5a6268;
 }

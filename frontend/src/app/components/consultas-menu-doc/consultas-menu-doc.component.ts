@@ -5,6 +5,10 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { AuthService } from '../../services/auth.service'; 
+import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+
+
 
 @Component({
   selector: 'app-consultas-menu-doc',
@@ -26,8 +30,7 @@ export class ConsultasMenuDocComponent implements OnInit {
   // Slots de 7:00 a 20:00 (cada 30 min)
   timeSlots: string[] = [];
 
-  // Para controlar el modo de edición:
-  // Si editingCitaId es null, estamos en modo creación; si tiene valor, en modo edición.
+  // Para controlar el modo de edición
   editingSlot: string | null = null;
   editingCitaId: number | null = null;
 
@@ -49,7 +52,9 @@ export class ConsultasMenuDocComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private http: HttpClient
+    private http: HttpClient,
+    private authService: AuthService 
+
   ) {}
 
   ngOnInit(): void {
@@ -287,11 +292,116 @@ export class ConsultasMenuDocComponent implements OnInit {
     return `${hhFin}:${mmFin}:00`;
   }
 
-  confirmarCita(cita: any): void {
-    console.log('Confirmar cita:', cita);
-    // Lógica para confirmar la cita (por ejemplo, PATCH o PUT a otro endpoint)
-  }
+  // Propiedades nuevas para controlar el modal de confirmación
+  showConfirmModal: boolean = false;
+  citaToConfirm: any = null;
 
+  confirmarCita(cita: any): void {
+    // Abre el modal que muestra 4 botones: SI, NO, PENDIENTE, CANCELAR
+    this.citaToConfirm = cita;
+    this.showConfirmModal = true; 
+  }
+  
+  // Cuando el usuario elige una opción en el modal:
+  handleConfirmOption(opcion: string): void {
+    if (opcion === 'cancelar') {
+      // Cerrar modal sin hacer nada
+      this.showConfirmModal = false;
+      this.citaToConfirm = null;
+      return;
+    }
+  
+    // Dependiendo la opción, definimos "nuevoConfirmado" en la tabla cita
+    // y "nuevoEstado" en la tabla confirmacion
+    let nuevoConfirmado: string;
+    let nuevoEstado: string;
+    if (opcion === 'si') {
+      nuevoConfirmado = 'si';
+      nuevoEstado = 'confirmado';
+    } else if (opcion === 'no') {
+      nuevoConfirmado = 'no';
+      nuevoEstado = 'denegado';
+    } else if (opcion === 'pendiente') {
+      nuevoConfirmado = 'pendiente';
+      nuevoEstado = 'pendiente';
+    } else {
+      // Opción desconocida
+      console.log('Opción inválida');
+      return;
+    }
+  
+    
+    const updateBody = {
+      idDoctor_cita: this.citaToConfirm.idDoctor_cita,
+      fecha: this.citaToConfirm.fecha,
+      torre: this.citaToConfirm.torre || 1,
+      hora: this.citaToConfirm.horaStr,        // "HH:mm:00"
+      horaTermina: this.citaToConfirm.horaFinStr, // "HH:mm:00"
+      paciente: this.citaToConfirm.paciente,
+      edad: this.citaToConfirm.edad,
+      telefono: this.citaToConfirm.telefono,
+      procedimiento: this.citaToConfirm.procedimiento || '',
+      imagen: this.citaToConfirm.imagen || '',
+      pedido: this.citaToConfirm.pedido || '',
+      institucion: this.citaToConfirm.institucion || '',
+      seguro: this.citaToConfirm.seguro || '',
+      estado: this.citaToConfirm.estado || 'activo',
+      confirmado: nuevoConfirmado,  // "si" | "no" | "pendiente"
+      observaciones: this.citaToConfirm.observaciones || '',
+      observaciones2: this.citaToConfirm.observaciones2 || '',
+      colorCita: this.citaToConfirm.colorCita || '#FFFFFF',
+      cedula: this.citaToConfirm.cedula || '',
+      recordatorioEnv: this.citaToConfirm.recordatorioEnv || false
+    };
+  
+    // PUT a la cita
+    const urlCita = `http://localhost:3000/api/citas/${this.citaToConfirm.idCita}`;
+    this.http.put(urlCita, updateBody).subscribe({
+      next: (resp: any) => {
+        console.log('Cita actualizada:', resp);
+  
+        
+        this.crearOActualizarConfirmacion(
+          this.citaToConfirm,
+          nuevoEstado  // "confirmado" | "denegado" | "pendiente"
+        );
+  
+        // Recargar la tabla y cerrar el modal
+        this.cargarConsultas();
+        this.showConfirmModal = false;
+        this.citaToConfirm = null;
+      },
+      error: (err) => {
+        console.error('Error al actualizar cita:', err);
+        alert('No se pudo actualizar la cita');
+      }
+    });
+  }
+  
+  crearOActualizarConfirmacion(cita: any, estado: string): void {
+    // ID del admin que está confirmando
+    const adminId = this.authService.getAdminId();
+  
+    const body = {
+      fechaCita: cita.fecha,            // "YYYY-MM-DD"
+      idMedicoConfirma: adminId,        // ID admin
+      confDoctor: cita.idDoctor_cita,   // ID del doctor
+      confTorre1: 'OK',
+      fechaConfirma: new Date().toISOString(),
+      estado // "confirmado" | "denegado" | "pendiente"
+    };
+  
+    this.http.post('http://localhost:3000/api/citas/confirmacion', body).subscribe({
+      next: (resp: any) => {
+        console.log('Registro de confirmacion:', resp);
+      },
+      error: (err) => {
+        console.error('Error al crear/actualizar confirmacion:', err);
+      }
+    });
+  }
+  
+  
   eliminarConsulta(cita: any): void {
     const respuesta = window.confirm(`¿Está seguro de eliminar la cita del paciente "${cita.paciente}"?`);
     if (!respuesta) {
@@ -333,7 +443,7 @@ export class ConsultasMenuDocComponent implements OnInit {
     });
   }
   
-  // Nuevo método para enviar recordatorio (botón WA2)
+  // Método para enviar recordatorio (botón WA2)
   enviarRecordatorio(cita: any): void {
     if (cita.recordatorioEnv) {
       alert('El recordatorio ya fue enviado.');
@@ -357,10 +467,10 @@ export class ConsultasMenuDocComponent implements OnInit {
       next: (resp: any) => {
         console.log('Recordatorio enviado:', resp);
         alert('Recordatorio de WhatsApp enviado con éxito');
-        // Construir el objeto de actualización usando los valores en formato string para hora
+     
         const updateBody = {
           idDoctor_cita: cita.idDoctor_cita,
-          fecha: cita.fecha, // se espera que ya esté en formato adecuado
+          fecha: cita.fecha, 
           torre: cita.torre,
           hora: cita.horaStr,
           horaTermina: cita.horaFinStr,
@@ -394,6 +504,53 @@ export class ConsultasMenuDocComponent implements OnInit {
       error: (err) => {
         console.error('Error al enviar recordatorio:', err);
         alert('No se pudo enviar el recordatorio de WhatsApp');
+      }
+    });
+  }
+
+  drop(event: CdkDragDrop<any[]>): void {
+    // Suponemos que el elemento arrastrado tiene asignado en su propiedad "data" el objeto "cita"
+    const draggedCita = event.item.data;
+    
+    // Determinamos el nuevo slot basándonos en la posición a la que se soltó el elemento.
+    // Por ejemplo, suponemos que el índice del contenedor corresponde al índice en el array "timeSlots".
+    const newSlot = this.timeSlots[event.currentIndex]; // formato "HH:mm:00"
+    const newHora = newSlot;
+    const newHoraFin = this.calcularFin(newSlot, 30);
+  
+    // Actualizamos el objeto para enviarlo al backend.
+    const updateBody = {
+      idDoctor_cita: draggedCita.idDoctor_cita,
+      fecha: draggedCita.fecha, // se asume que ya está en formato adecuado
+      torre: draggedCita.torre || 1,
+      hora: newHora,
+      horaTermina: newHoraFin,
+      paciente: draggedCita.paciente,
+      edad: draggedCita.edad,
+      telefono: draggedCita.telefono,
+      procedimiento: draggedCita.procedimiento || '',
+      imagen: draggedCita.imagen || '',
+      pedido: draggedCita.pedido || '',
+      institucion: draggedCita.institucion || '',
+      seguro: draggedCita.seguro || '',
+      estado: draggedCita.estado || 'activo',
+      confirmado: draggedCita.confirmado || 'pendiente',
+      observaciones: draggedCita.observaciones || '',
+      observaciones2: draggedCita.observaciones2 || '',
+      colorCita: draggedCita.colorCita,
+      cedula: draggedCita.cedula,
+      recordatorioEnv: draggedCita.recordatorioEnv || false
+    };
+  
+    // Realizamos el PUT para actualizar la cita con los nuevos horarios.
+    const url = `http://localhost:3000/api/citas/${draggedCita.idCita}`;
+    this.http.put(url, updateBody).subscribe({
+      next: (resp: any) => {
+        console.log('Cita actualizada tras drop:', resp);
+        this.cargarConsultas();
+      },
+      error: (err) => {
+        console.error('Error al actualizar cita tras drop:', err);
       }
     });
   }

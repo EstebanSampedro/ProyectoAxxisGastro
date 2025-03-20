@@ -1,37 +1,5 @@
-<!-- Encabezado Superior -->
-<div class="header-bar">
-  <div class="header-left">
-    <h2>SISTEMA DE REGISTRO DE CONSULTAS</h2>
-    <span>USUARIO: ADMINISTRADOR</span>
-  </div>
-  <div class="header-right">
-    <img src="assets/axxis-gastro.png" alt="Logo Axxis" />
-  </div>
-</div>
-
-<!-- Barra de Menú -->
-<nav class="navbar">
-  <ul>
-    <li><a (click)="goToInicio()">INICIO</a></li>
-    <li class="dropdown">
-      <a href="javascript:void(0)" class="dropbtn">HISTORIAL</a>
-      <div class="dropdown-content">
-        <a (click)="goToHistorialCitas()">Citas</a>
-        <a (click)="goToModificaciones()">Modificaciones</a>
-        <a (click)="goToConfirmaciones()">Confirmaciones</a>
-      </div>
-    </li>
-    <li class="dropdown">
-      <a href="javascript:void(0)" class="dropbtn">CONFIGURACIONES</a>
-      <div class="dropdown-content">
-        <a (click)="goToUsuarios()">Usuarios</a>
-        <a (click)="goToDoctores()">Doctor</a>
-        <a (click)="goToTorres()">Torres</a>
-      </div>
-    </li>
-    <li><a (click)="goToSalir()">SALIR</a></li>
-  </ul>
-</nav>
+<app-main-header></app-main-header>
+<app-nav-bar></app-nav-bar>
 
 <!-- Encabezado del Doctor -->
 <div class="header-doc">
@@ -79,61 +47,38 @@
       <th>OPCIONES</th>
     </tr>
   </thead>
-  <tbody>
-    <!-- Recorremos cada slot de tiempo -->
-    <tr
-      *ngFor="let slot of timeSlots"
-      [ngStyle]="{ 'background-color': getCitaBySlot(slot)?.colorCita || '' }"
-    >
+  <!-- Se agrega cdkDropList al tbody -->
+  <tbody cdkDropList (cdkDropListDropped)="drop($event)">
+    <!-- Cada fila es draggable y se le asigna el dato de la cita (si existe) -->
+    <tr *ngFor="let slot of timeSlots" 
+        cdkDrag 
+        [cdkDragData]="getCitaBySlot(slot)" 
+        [ngStyle]="{ 'background-color': getCitaBySlot(slot)?.colorCita || '' }">
       <!-- Columna 1: HORA -->
       <td>{{ slot }}</td>
-
-      <!-- Verificamos si hay una cita en este slot -->
+      
+      <!-- Verificamos si existe una cita en este slot -->
       <ng-container *ngIf="getCitaBySlot(slot) as cita; else sinCita">
         <!-- MODO EDICIÓN DE CITA EXISTENTE -->
         <ng-container *ngIf="editingCitaId === cita.idCita; else modoLectura">
           <!-- Inputs en línea para edición -->
           <td>
-            <input
-              type="text"
-              [(ngModel)]="newCitaData.horaTermina"
-              placeholder="HH:mm:00"
-            />
+            <input type="text" [(ngModel)]="newCitaData.horaTermina" placeholder="HH:mm:00" />
           </td>
           <td>
-            <input
-              type="text"
-              [(ngModel)]="newCitaData.cedula"
-              placeholder="Cedula"
-            />
+            <input type="text" [(ngModel)]="newCitaData.cedula" placeholder="Cedula" />
           </td>
           <td>
-            <input
-              type="text"
-              [(ngModel)]="newCitaData.paciente"
-              placeholder="Paciente"
-            />
+            <input type="text" [(ngModel)]="newCitaData.paciente" placeholder="Paciente" />
           </td>
           <td>
-            <input
-              type="text"
-              [(ngModel)]="newCitaData.telefono"
-              placeholder="Teléfono"
-            />
+            <input type="text" [(ngModel)]="newCitaData.telefono" placeholder="Teléfono" />
           </td>
           <td>
-            <input
-              type="text"
-              [(ngModel)]="newCitaData.seguro"
-              placeholder="Seguro"
-            />
+            <input type="text" [(ngModel)]="newCitaData.seguro" placeholder="Seguro" />
           </td>
           <td>
-            <input
-              type="text"
-              [(ngModel)]="newCitaData.observaciones"
-              placeholder="Observaciones"
-            />
+            <input type="text" [(ngModel)]="newCitaData.observaciones" placeholder="Observaciones" />
           </td>
           <td>
             <select [(ngModel)]="newCitaData.colorCita">
@@ -147,11 +92,9 @@
             </select>
           </td>
           <td>
-            <!-- Campo de 'confirmado' deshabilitado -->
             <input type="text" [(ngModel)]="newCitaData.confirmado" disabled />
           </td>
           <td>
-            <!-- Campo de 'codigoMedico' deshabilitado -->
             <input type="text" [(ngModel)]="newCitaData.codigoMedico" disabled />
           </td>
           <td>
@@ -161,7 +104,6 @@
             </div>
           </td>
         </ng-container>
-
         <!-- MODO LECTURA DE CITA EXISTENTE -->
         <ng-template #modoLectura>
           <td>{{ cita.horaFinStr }}</td>
@@ -175,64 +117,37 @@
           <td>{{ cita.codigoMedico }}</td>
           <td>
             <div class="horizontal-btns">
-              <!-- Botón 1: WhatsApp "Hola Mundo" -->
-              <button (click)="enviarWhatsApp(cita)">WA1</button>
-              
-              <button (click)="enviarRecordatorio(cita)">WA2</button>
-              <!-- Botón confirmar si está pendiente -->
-              <button *ngIf="cita.confirmado === 'pendiente'" (click)="confirmarCita(cita)">✔</button>
-              <!-- Botón editar -->
-              <button (click)="editarConsulta(cita)">✏</button>
-              <!-- Botón eliminar -->
+              <button (click)="enviarWhatsApp(cita)">📞</button>
+              <button (click)="enviarRecordatorio(cita)">🔔</button>
+              <button (click)="confirmarCita(cita)">✔</button>
+              <button (click)="editarConsulta(cita)">✏️</button>
               <button (click)="eliminarConsulta(cita)">❌</button>
             </div>
           </td>
         </ng-template>
       </ng-container>
-
+      
       <!-- SIN CITA (slot vacío) -->
       <ng-template #sinCita>
-        <!-- ¿Estamos creando en este slot? -->
         <ng-container *ngIf="editingSlot === slot; else modoVacio">
           <!-- Formulario de creación en la misma fila -->
           <td>
-            <!-- HORA FIN placeholder -->
             <span class="placeholder-text">--:--</span>
           </td>
           <td>
-            <input
-              type="text"
-              [(ngModel)]="newCitaData.cedula"
-              placeholder="Cedula"
-            />
+            <input type="text" [(ngModel)]="newCitaData.cedula" placeholder="Cedula" />
           </td>
           <td>
-            <input
-              type="text"
-              [(ngModel)]="newCitaData.paciente"
-              placeholder="Paciente"
-            />
+            <input type="text" [(ngModel)]="newCitaData.paciente" placeholder="Paciente" />
           </td>
           <td>
-            <input
-              type="text"
-              [(ngModel)]="newCitaData.telefono"
-              placeholder="Teléfono"
-            />
+            <input type="text" [(ngModel)]="newCitaData.telefono" placeholder="Teléfono" />
           </td>
           <td>
-            <input
-              type="text"
-              [(ngModel)]="newCitaData.seguro"
-              placeholder="Seguro"
-            />
+            <input type="text" [(ngModel)]="newCitaData.seguro" placeholder="Seguro" />
           </td>
           <td>
-            <input
-              type="text"
-              [(ngModel)]="newCitaData.observaciones"
-              placeholder="Observaciones"
-            />
+            <input type="text" [(ngModel)]="newCitaData.observaciones" placeholder="Observaciones" />
           </td>
           <td>
             <select [(ngModel)]="newCitaData.colorCita">
@@ -246,11 +161,9 @@
             </select>
           </td>
           <td>
-            <!-- CONFIRMADO por defecto "pendiente" (no editable aquí) -->
             <span class="placeholder-text">pendiente</span>
           </td>
           <td>
-            <!-- RESP. vacío -->
             <span class="placeholder-text"></span>
           </td>
           <td>
@@ -260,20 +173,17 @@
             </div>
           </td>
         </ng-container>
-
-        <!-- Modo vacío: no se está creando nada en este slot -->
         <ng-template #modoVacio>
-          <!-- Deben ser 10 celdas aquí, ya que la primera (HORA) está fuera del ng-container -->
-          <td><span class="placeholder-text">--:--</span></td> <!-- HORA FIN -->
-          <td></td>        <!-- CEDULA -->
-          <td></td>        <!-- PACIENTE -->
-          <td></td>        <!-- TELÉFONO -->
-          <td></td>        <!-- SEGURO -->
-          <td></td>        <!-- OBSERVACIONES -->
-          <td></td>        <!-- COLOR -->
-          <td><span class="placeholder-text">pendiente</span></td> <!-- CONF. -->
-          <td></td>        <!-- RESP. -->
-          <td>             <!-- OPCIONES -->
+          <td><span class="placeholder-text">--:--</span></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td><span class="placeholder-text">pendiente</span></td>
+          <td></td>
+          <td>
             <button class="plus-btn" (click)="iniciarCita(slot)">➕</button>
           </td>
         </ng-template>
@@ -281,3 +191,35 @@
     </tr>
   </tbody>
 </table>
+
+
+<!-- Modal de Confirmación -->
+<div *ngIf="showConfirmModal" class="modal-overlay">
+  <div class="modal">
+    <h3>Confirmar cita para {{ citaToConfirm?.paciente }}</h3>
+    <p>Seleccione una opción:</p>
+    <div class="modal-buttons">
+      <!-- Botón Confirmar (SI) -->
+      <button class="btn-confirm" (click)="handleConfirmOption('si')">
+        Confirmar (SI)
+      </button>
+
+      <!-- Botón Denegar (NO) -->
+      <button class="btn-deny" (click)="handleConfirmOption('no')">
+        Denegar (NO)
+      </button>
+
+      <!-- Botón Pendiente -->
+      <button class="btn-pending" (click)="handleConfirmOption('pendiente')">
+        Pendiente
+      </button>
+
+      <!-- Botón Cancelar -->
+      <button class="btn-cancel" (click)="handleConfirmOption('cancelar')">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
+
