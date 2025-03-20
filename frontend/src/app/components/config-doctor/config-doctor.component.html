@@ -1,0 +1,47 @@
+<app-main-header></app-main-header>
+<app-nav-bar></app-nav-bar>
+
+<div class="config-doctor-container">
+  <h2>Configuración de Doctores</h2>
+  
+  <!-- LISTADO DE DOCTORES -->
+  <div class="doctor-list">
+    <h3>Lista de Doctores</h3>
+    <ul>
+      <li 
+        *ngFor="let doc of doctors"
+        [class.selected]="selectedDoctor?.idDoctor2 === doc.idDoctor2"
+        (click)="selectDoctor(doc)">
+        {{ doc.nomDoctor2 }} - <strong>{{ doc.estadoDoctor2 }}</strong>
+      </li>
+    </ul>
+  </div>
+  
+  <!-- FORMULARIO PARA CREAR / EDITAR DOCTOR -->
+  <div class="doctor-form">
+    <h3>Datos del Doctor</h3>
+  
+    <label for="nomDoctor2">Nombre</label>
+    <input id="nomDoctor2" type="text" [(ngModel)]="doctorForm.nomDoctor2" />
+  
+    <label for="userDoc">Usuario</label>
+    <input id="userDoc" type="text" [(ngModel)]="doctorForm.userDoc" />
+  
+    <label for="passDoc">Password</label>
+    <input id="passDoc" type="password" [(ngModel)]="doctorForm.passDoc" />
+  
+    <label for="estadoDoctor2">Estado</label>
+    <select id="estadoDoctor2" [(ngModel)]="doctorForm.estadoDoctor2">
+      <option value="activo">activo</option>
+      <option value="inactivo">inactivo</option>
+    </select>
+  
+    <!-- BOTONES -->
+    <div class="btns">
+        <button class="btn-nuevo" (click)="newDoctor()">Nuevo</button>
+        <button class="btn-crear" (click)="createDoctor()" [disabled]="selectedDoctor">Crear</button>
+        <button class="btn-modificar" (click)="updateDoctor()" [disabled]="!selectedDoctor">Modificar</button>
+        <button class="btn-borrar" (click)="deleteDoctor()" [disabled]="!selectedDoctor">Borrar</button>
+      </div>      
+  </div>
+</div>
