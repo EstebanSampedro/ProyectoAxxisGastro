@@ -190,3 +190,4 @@ build/
 # Archivos de configuración de usuario
 .npmrc
 .yarnrc
+backend/prisma/schema.prisma

@@ -1,9 +1,8 @@
 // backend/routes/doctor.js
 const express = require('express');
 const router = express.Router();
-const { PrismaClient } = require('@prisma/client');
+const prisma = require("../../prisma/prismaClient");
 const bcrypt = require('bcrypt');
-const prisma = new PrismaClient();
 
 // GET /api/doctores - Devuelve todos los doctores
 router.get('/', async (req, res) => {
