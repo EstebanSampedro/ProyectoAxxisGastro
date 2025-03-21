@@ -1,0 +1,66 @@
+/* Contenedor principal */
+.date-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  margin: 0 40px; /* Espacio para las flechas externas */
+}
+
+/* Estilos para los botones de flecha */
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: #333;
+}
+
+.icon-button:hover {
+  color: #007bff;
+}
+
+/* Estilos para las flechas externas */
+.external-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 24px; /* Tamaño más grande para las flechas externas */
+}
+
+.external-arrow:first-child {
+  left: 10px; /* Flecha izquierda */
+}
+
+.external-arrow:last-child {
+  right: 10px; /* Flecha derecha */
+}
+
+/* Estilos para el input de fecha */
+input[type="date"] {
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Estilos para la fecha formateada */
+.formatted-date {
+  font-weight: bold;
+  color: #555;
+}
+
+/* Estilos para el botón de búsqueda */
+.search-button {
+  padding: 5px 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.search-button:hover {
+  background-color: #0056b3;
+}

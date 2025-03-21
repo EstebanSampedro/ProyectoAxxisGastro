@@ -1,24 +1,11 @@
 <app-main-header></app-main-header>
 <app-nav-bar></app-nav-bar>
-  <!-- Interfaz de Registro de Citas -->
-  <div class="actions-bar">
-    <div class="date-section">
-      <label for="fecha">Fecha:</label>
-      <input
-        type="date"
-        id="fecha"
-        [(ngModel)]="selectedDate"
-        (change)="onDateChange()"
-      />
-      <span class="formatted-date">{{ formattedDate }}</span>
-    </div>
-  
-    <div class="buttons-section">
-      <fa-icon (click)="buscar()" [icon]="faSearch"></fa-icon>
-      <fa-icon (click)="imprimir()" [icon]="faPrint"></fa-icon>
-    </div>
-  </div>
-  
+<app-date-picker></app-date-picker>
+
+<div class="buttons-section">
+  <fa-icon (click)="buscar()" [icon]="faSearch"></fa-icon>
+  <fa-icon (click)="imprimir()" [icon]="faPrint"></fa-icon>
+</div>
   <div class="observaciones-section">
     <label for="observaciones">OBSERVACIONES:</label>
     <textarea
@@ -28,36 +15,91 @@
     ></textarea>
     <button (click)="guardarObservaciones()">Guardar</button>
   </div>
-  
-  <table class="citas-table">
-    <thead>
-      <tr>
-        <th>HORA INICIO</th>
-        <th>HORA FIN</th>
-        <th>TORRE</th>
-        <th>PACIENTE</th>
-        <th>PROCEDIMIENTO</th>
-        <th>TELEFONO</th>
-        <th>SEGURO</th>
-        <th>CONF.</th>
-        <th>OBSERVACIONES</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr
-        *ngFor="let cita of citas"
-        [ngStyle]="{ 'background-color': cita.colorCita || '#FFFFFF' }"
-      >
-        <td>{{ cita.horaInicio }}</td>
-        <td>{{ cita.horaFin }}</td>
-        <td>{{ cita.torre }}</td>
+
+<!-- Tabla de Citas -->
+<table class="citas-table">
+  <thead>
+    <tr>
+      <th>HORA</th>
+      <th>MÉDICO</th>
+      <th>PACIENTE</th>
+      <th>EDAD</th>
+      <th>TELÉFONO</th>
+      <th>PROCEDIMIENTO</th>
+      <th>IMAGEN</th>
+      <th>SOLICITADO</th>
+      <th>INSTITUCIÓN</th>
+      <th>SEGURO</th>
+      <th>OBSERVACIONES</th>
+      <th>COLOR</th>
+      <th>CONFIR.</th>
+      <th>RESP.</th>
+      <th>OPCIONES</th>
+    </tr>
+  </thead>
+  <tbody cdkDropList (cdkDropListDropped)="drop($event)">
+    <tr *ngFor="let cita of citas" 
+        cdkDrag 
+        [cdkDragData]="cita" 
+        [ngStyle]="{ 'background-color': cita.colorCita || '' }">
+      
+      <td>{{ cita.hora }}</td>
+
+      <ng-container *ngIf="editingCitaId === cita.idCita; else modoLectura">
+        <td><input type="text" [(ngModel)]="newCitaData.medico" placeholder="Médico" /></td>
+        <td><input type="text" [(ngModel)]="newCitaData.paciente" placeholder="Paciente" /></td>
+        <td><input type="number" [(ngModel)]="newCitaData.edad" placeholder="Edad" /></td>
+        <td><input type="text" [(ngModel)]="newCitaData.telefono" placeholder="Teléfono" /></td>
+        <td><input type="text" [(ngModel)]="newCitaData.procedimiento" placeholder="Procedimiento" /></td>
+        <td><input type="file" (change)="subirImagen($event)" /></td>
+        <td><input type="text" [(ngModel)]="newCitaData.solicitado" placeholder="Solicitado" /></td>
+        <td><input type="text" [(ngModel)]="newCitaData.institucion" placeholder="Institución" /></td>
+        <td><input type="text" [(ngModel)]="newCitaData.seguro" placeholder="Seguro" /></td>
+        <td><input type="text" [(ngModel)]="newCitaData.observaciones" placeholder="Observaciones" /></td>
+        <td>
+          <select [(ngModel)]="newCitaData.colorCita">
+            <option value="#FFFFFF">Ninguno</option>
+            <option value="#ffff00">Amarillo</option>
+            <option value="#ff0000">Rojo</option>
+            <option value="#0000ff">Azul</option>
+            <option value="#FEBB02">Naranja</option>
+            <option value="#00ff00">Verde</option>
+            <option value="#8080c0">Gris</option>
+          </select>
+        </td>
+        <td><input type="checkbox" [(ngModel)]="newCitaData.confirmado" /></td>
+        <td><input type="text" [(ngModel)]="newCitaData.responsable" /></td>
+        <td>
+          <div class="horizontal-btns">
+            <button (click)="guardarEdicion()">Guardar</button>
+            <button (click)="cancelarEdicion()">Cancelar</button>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-template #modoLectura>
+        <td>{{ cita.idDoctor_cita }}</td>
         <td>{{ cita.paciente }}</td>
-        <td>{{ cita.procedimiento }}</td>
+        <td>{{ cita.edad }}</td>
         <td>{{ cita.telefono }}</td>
+        <td>{{ cita.procedimiento }}</td>
+        <td><img [src]="cita.imagen" alt="Imagen" class="imagen-cita"></td>
+        <td>{{ cita.pedido }}</td>
+        <td>{{ cita.institucion }}</td>
         <td>{{ cita.seguro }}</td>
-        <td>{{ cita.confirmado === 'si' ? 'CONFIRMADO' : 'PENDIENTE' }}</td>
         <td>{{ cita.observaciones }}</td>
-      </tr>
-    </tbody>
-  </table>
-  
+        <td>{{ colorNames[cita.colorCita] || cita.colorCita }}</td>
+        <td>{{ cita.confirmado ? 'Sí' : 'No' }}</td>
+        <td>{{ cita.idDoctor_cita}}</td>
+        <td>
+          <div class="horizontal-btns">
+            <!-- <button (click)="enviarWhatsApp(cita)">📞</button>
+            <button (click)="confirmarCita(cita)">✔</button>
+            <button (click)="editarCita(cita)">✏️</button>
+            <button (click)="eliminarCita(cita)">❌</button> -->
+          </div>
+        </td>
+      </ng-template>
+    </tr>
+  </tbody>
+</table>

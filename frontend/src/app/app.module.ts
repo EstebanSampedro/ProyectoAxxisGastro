@@ -16,7 +16,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { DragDropModule } from '@angular/cdk/drag-drop';
-
+import { DatePickerComponent } from './components/date-picker/date-picker.component';
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import { faChevronLeft } from '@fortawesome/free-solid-svg-icons';
 const routes: Routes = [
   // Define tus rutas aquí
 ];
@@ -31,7 +34,8 @@ const routes: Routes = [
     LoginComponent,
     MainHeaderComponent,
     MenuComponent,
-    NavBarComponent
+    NavBarComponent,
+    DatePickerComponent
   ],
   imports: [
     BrowserModule,  // Esencial para aplicaciones en el navegador
@@ -46,4 +50,10 @@ const routes: Routes = [
   providers: [], // No es necesario incluir AppComponent aquí
   bootstrap: [AppComponent]
 })
-export class AppModule { }
+export class AppModule { 
+  constructor(
+    
+  ){
+    library.add(faChevronLeft, faChevronRight)
+  }
+}
