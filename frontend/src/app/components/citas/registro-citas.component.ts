@@ -8,6 +8,9 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 import { Cita } from '../../interfaces/cita';
 import { CitaService } from '../../services/cita.service';
+import { Observacion } from '../../interfaces/observacion.general';
+import { ObservacionService } from '../../services/observaciones.generales.service';
+
 
 @Component({
   selector: 'app-registro-citas',
@@ -17,34 +20,25 @@ import { CitaService } from '../../services/cita.service';
 })
 export class RegistroCitasComponent implements OnInit {
 
-  selectedDate: Date = '';
-  formattedDate: string = '';
-  observaciones: string = '';
-  citas: Cita[] = [];
-  faPrint = faPrint;
-  faSearch = faMagnifyingGlass
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private http: HttpClient,
     private authService: AuthService,
-    private citaService : CitaService
+    private citaService : CitaService,
+    private observacionService : ObservacionService
 
   ) {}
-  ngOnInit(): void {
-    this.idDoctor = this.route.snapshot.paramMap.get('idDoctor') || '';
-    this.generarTimeSlots();
 
-    const hoy = new Date();
-    this.selectedDate = hoy.toISOString().split('T')[0];
-    this.onDateChange();
+  selectedDate: Date = new Date();
+  formattedDate: string = '';
+  observaciones: string = '';
+  citas: Cita[] = [];
+  faPrint = faPrint;
+  faSearch = faMagnifyingGlass
 
-    this.cargarNombreDoctor();
-    this.cargarConsultas();
-    this.cargarObservaciones();
-  }
-
- idDoctor!: string;
+  idDoctor: number = 0;
    doctorName: string = '';
  
    // Lista de citas (transformadas con horaStr y horaFinStr)
@@ -73,27 +67,71 @@ export class RegistroCitasComponent implements OnInit {
    };
  
 
- 
+  ngOnInit(): void {
+    this.idDoctor = parseInt(this.route.snapshot.paramMap.get('idDoctor') || '');
+    this.generarTimeSlots();
+    this.cargarNombreDoctor();
+    this.cargarCitas();
+    this.cargarObservaciones();
+  }
 
  
+  onDateChange(): void {
+    const parsedDate = typeof this.selectedDate === 'string' ? parseISO(this.selectedDate) : this.selectedDate;
+    this.formattedDate = format(parsedDate, "EEEE, dd 'de' MMMM 'del' yyyy", { locale: es });
+    this.cargarCitas();
+    this.cargarObservaciones();
+  }
    generarTimeSlots(): void {
-     const startHour = 7;
-     const endHour = 20;
-     for (let hour = startHour; hour < endHour; hour++) {
-       const slot1 = `${hour.toString().padStart(2, '0')}:00:00`;
-       this.timeSlots.push(slot1);
-       const slot2 = `${hour.toString().padStart(2, '0')}:30:00`;
-       this.timeSlots.push(slot2);
-     }
-   }
+    const startHour = 7;
+    const endHour = 20;
+    for (let hour = startHour; hour < endHour; hour++) {
+      const slot1 = `${hour.toString().padStart(2, '0')}:00:00`;
+      this.timeSlots.push(slot1);
+      const slot2 = `${hour.toString().padStart(2, '0')}:30:00`;
+      this.timeSlots.push(slot2);
+    }
+  }
+  
+   cargarObservaciones(): void {
  
-   onDateChange(): void {
-     const parsedDate = parseISO(this.selectedDate);
-     this.formattedDate = format(parsedDate, "EEEE, dd 'de' MMMM 'del' yyyy", { locale: es });
-     this.cargarConsultas();
-     this.cargarObservaciones();
-   }
+    this.observacionService.filterObservaciones(this.idDoctor, this.selectedDate).subscribe({
+      next: (data: Observacion[]) => {
+        if (data && data.length > 0) {
+          // Asume que solo quieres mostrar el texto de la primera observación encontrada
+          this.observaciones = data[0].textObser;
+        } else {
+          this.observaciones = ''; // Limpia las observaciones si no se encuentran
+        }
+      },
+      error: (err) => {
+        console.error('Error al obtener observaciones:', err);
+      }
+    });
+  }
  
+   guardarObservaciones(): void {
+    const fechaFormateada = format(this.selectedDate, 'yyyy-MM-dd');
+    const nuevaObservacion: Observacion = {
+      idObser: 0, // No es necesario, se generará automáticamente en el backend
+      fechaObser: new Date(),
+      textObser: this.observaciones,
+      estado: 'Pendiente', // Reemplaza con el estado adecuado
+      docObser: this.idDoctor
+    };
+
+    this.observacionService.registerObservacion(nuevaObservacion).subscribe({
+      next: (resp) => {
+        console.log('Observaciones guardadas:', resp);
+        this.cargarObservaciones(); // Llama a la función para recargar las observaciones
+      },
+      error: (err) => {
+        console.error('Error al guardar observaciones:', err);
+      }
+    });
+  }
+
+
    cargarNombreDoctor(): void {
      const url = `http://localhost:3000/api/doctores/${this.idDoctor}`;
      this.http.get<any>(url).subscribe({
@@ -108,8 +146,9 @@ export class RegistroCitasComponent implements OnInit {
    }
  
    cargarCitas(): void {
-    const doctorId = parseInt(this.idDoctor); // Asegúrate de que `idDoctor` sea un número
-    this.citaService.getCitasByDoctorAndDate(doctorId, this.selectedDate).subscribe({
+    const doctorId = this.idDoctor; // Asegúrate de que `idDoctor` sea un número
+    const fechaFormateada = format(this.selectedDate, 'yyyy-MM-dd');
+    this.citaService.getCitasByDoctorAndDate(doctorId, fechaFormateada).subscribe({
       next: (data: Cita[]) => {
         this.consultas = data.map((cita) => {
           const horaStr = this.extraerHora(cita.hora);
@@ -135,37 +174,8 @@ export class RegistroCitasComponent implements OnInit {
      const match = fechaString.match(/T(\d{2}:\d{2}):/);
      return match ? `${match[1]}:00` : '';
    }
- 
-   cargarObservaciones(): void {
-     const url = `http://localhost:3000/api/citas/observaciones?doctorId=${this.idDoctor}&fecha=${this.selectedDate}`;
-     this.http.get<any>(url).subscribe({
-       next: (data) => {
-         this.observaciones = data.observaciones || '';
-       },
-       error: (err) => {
-         console.error('Error al obtener observaciones:', err);
-       }
-     });
-   }
- 
-   guardarObservaciones(): void {
-     const url = `http://localhost:3000/api/citas/observaciones`;
-     const body = {
-       doctorId: this.idDoctor,
-       fecha: this.selectedDate,
-       observaciones: this.observaciones
-     };
-     this.http.post(url, body).subscribe({
-       next: (resp) => {
-         console.log('Observaciones guardadas:', resp);
-         this.cargarObservaciones();
-       },
-       error: (err) => {
-         console.error('Error al guardar observaciones:', err);
-       }
-     });
-   }
- 
+
+
    getCitaBySlot(slot: string): any {
      return this.consultas.find(c => c.horaStr === slot);
    }
@@ -202,7 +212,7 @@ export class RegistroCitasComponent implements OnInit {
    guardarCita(slot: string): void {
     const horaFin = this.calcularFin(slot, 30); // 30 minutos por defecto
     const cita: Cita = {
-      idDoctor_cita: parseInt(this.idDoctor),
+      idDoctor_cita: this.idDoctor,
       fecha: this.selectedDate,
       torre: "1",
       hora: slot,
@@ -229,7 +239,7 @@ export class RegistroCitasComponent implements OnInit {
         console.log('Cita agregada:', resp);
         this.editingSlot = null;
         this.newCitaData = {};
-        this.cargarConsultas();
+        this.cargarCitas();
       },
       error: (err) => {
         console.error('Error al agregar cita:', err);
@@ -240,9 +250,9 @@ export class RegistroCitasComponent implements OnInit {
   guardarEdicion(): void {
     const cita: Cita = {
       idCita: this.newCitaData.idCita,
-      idDoctor_cita: parseInt(this.idDoctor),
+      idDoctor_cita: this.idDoctor,
       fecha: this.selectedDate,
-      torre: 1,
+      torre: "1",
       hora: this.newCitaData.hora,
       horaTermina: this.newCitaData.horaTermina,
       paciente: this.newCitaData.paciente || 'Paciente X',
@@ -267,7 +277,7 @@ export class RegistroCitasComponent implements OnInit {
         console.log('Cita editada:', resp);
         this.editingCitaId = null;
         this.newCitaData = {};
-        this.cargarConsultas();
+        this.cargarCitas();
       },
       error: (err) => {
         console.error('Error al editar cita:', err);
@@ -370,7 +380,7 @@ export class RegistroCitasComponent implements OnInit {
          );
    
          // Recargar la tabla y cerrar el modal
-         this.cargarConsultas();
+         this.cargarCitas();
          this.showConfirmModal = false;
          this.citaToConfirm = null;
        },
@@ -414,7 +424,7 @@ export class RegistroCitasComponent implements OnInit {
      this.http.delete(url).subscribe({
        next: (resp: any) => {
          console.log('Cita eliminada:', resp);
-         this.cargarConsultas();
+         this.cargarCitas();
        },
        error: (err) => {
          console.error('Error al eliminar cita:', err);
@@ -497,7 +507,7 @@ export class RegistroCitasComponent implements OnInit {
          this.http.put(url, updateBody).subscribe({
            next: (resp: any) => {
              console.log('Cita actualizada con recordatorio:', resp);
-             this.cargarConsultas();
+             this.cargarCitas();
            },
            error: (err) => {
              console.error('Error al actualizar cita con recordatorio:', err);
@@ -550,7 +560,7 @@ export class RegistroCitasComponent implements OnInit {
      this.http.put(url, updateBody).subscribe({
        next: (resp: any) => {
          console.log('Cita actualizada tras drop:', resp);
-         this.cargarConsultas();
+         this.cargarCitas();
        },
        error: (err) => {
          console.error('Error al actualizar cita tras drop:', err);

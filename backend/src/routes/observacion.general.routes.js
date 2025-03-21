@@ -5,7 +5,7 @@ const {
   getAllObservaciones,
   updateObservacion,
   deleteObservacion,
-} = require("../controllers/observacion.controller");
+} = require("../controllers/observacion.general.controller");
 
 const router = express.Router();
 

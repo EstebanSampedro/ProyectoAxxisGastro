@@ -1,0 +1,26 @@
+<!-- Flecha izquierda fuera del calendario -->
+<button (click)="previousDay()" class="icon-button external-arrow">
+  <fa-icon [icon]="['fas', 'chevron-left']"></fa-icon>
+</button>
+
+<div class="date-section">
+  <button (click)="previousDay()" class="icon-button">
+    <fa-icon [icon]="['fas', 'chevron-left']"></fa-icon>
+  </button>
+
+  <label for="fecha">Fecha:</label>
+  <input
+    type="date"
+    id="fecha"
+    [ngModel]="selectedDate | date: 'yyyy-MM-dd'"
+    (ngModelChange)="selectedDate = $event; onDateChange()"
+  />
+  <span class="formatted-date">{{ formattedDate }}</span>
+  <button (click)="previousDay()" class="icon-button">
+    <fa-icon [icon]="chevronLeft"></fa-icon>
+  </button>
+  <button (click)="nextDay()" class="icon-button">
+    <fa-icon  [icon]="chevronRight"></fa-icon>
+  </button>
+  <button (click)="cargarCitas()" class="search-button">Buscar</button>
+</div>

@@ -1,17 +1,11 @@
 <app-main-header></app-main-header>
 <app-nav-bar></app-nav-bar>
-  <div class="date-section">
-    <label for="fecha">Fecha:</label>
-    <input
-      type="date"
-      id="fecha"
-      [(ngModel)]="selectedDate"
-      (change)="onDateChange()"
-    />
-    <span class="formatted-date">{{ formattedDate }}</span>
-    <button (click)="cargarCitas()">Buscar</button>
-  </div>
-  
+<app-date-picker></app-date-picker>
+
+<div class="buttons-section">
+  <fa-icon (click)="buscar()" [icon]="faSearch"></fa-icon>
+  <fa-icon (click)="imprimir()" [icon]="faPrint"></fa-icon>
+</div>
   <div class="observaciones-section">
     <label for="observaciones">OBSERVACIONES:</label>
     <textarea
@@ -21,6 +15,7 @@
     ></textarea>
     <button (click)="guardarObservaciones()">Guardar</button>
   </div>
+
 <!-- Tabla de Citas -->
 <table class="citas-table">
   <thead>
@@ -83,61 +78,28 @@
       </ng-container>
 
       <ng-template #modoLectura>
-        <td>{{ cita.medico }}</td>
+        <td>{{ cita.idDoctor_cita }}</td>
         <td>{{ cita.paciente }}</td>
         <td>{{ cita.edad }}</td>
         <td>{{ cita.telefono }}</td>
         <td>{{ cita.procedimiento }}</td>
-        <td><img [src]="cita.imagenUrl" alt="Imagen" class="imagen-cita"></td>
-        <td>{{ cita.solicitado }}</td>
+        <td><img [src]="cita.imagen" alt="Imagen" class="imagen-cita"></td>
+        <td>{{ cita.pedido }}</td>
         <td>{{ cita.institucion }}</td>
         <td>{{ cita.seguro }}</td>
         <td>{{ cita.observaciones }}</td>
         <td>{{ colorNames[cita.colorCita] || cita.colorCita }}</td>
         <td>{{ cita.confirmado ? 'Sí' : 'No' }}</td>
-        <td>{{ cita.responsable }}</td>
+        <td>{{ cita.idDoctor_cita}}</td>
         <td>
           <div class="horizontal-btns">
-            <button (click)="enviarWhatsApp(cita)">📞</button>
+            <!-- <button (click)="enviarWhatsApp(cita)">📞</button>
             <button (click)="confirmarCita(cita)">✔</button>
             <button (click)="editarCita(cita)">✏️</button>
-            <button (click)="eliminarCita(cita)">❌</button>
+            <button (click)="eliminarCita(cita)">❌</button> -->
           </div>
         </td>
       </ng-template>
     </tr>
   </tbody>
 </table>
-
-<!-- Modal de Confirmación -->
-<div *ngIf="showConfirmModal" class="modal-overlay">
-  <div class="modal">
-    <h3>Confirmar cita para {{ citaToConfirm?.paciente }}</h3>
-    <p>Seleccione una opción:</p>
-    <div class="modal-buttons">
-      <!-- Botón Confirmar (SI) -->
-      <button class="btn-confirm" (click)="handleConfirmOption('si')">
-        Confirmar (SI)
-      </button>
-
-      <!-- Botón Denegar (NO) -->
-      <button class="btn-deny" (click)="handleConfirmOption('no')">
-        Denegar (NO)
-      </button>
-
-      <!-- Botón Pendiente -->
-      <button class="btn-pending" (click)="handleConfirmOption('pendiente')">
-        Pendiente
-      </button>
-
-      <!-- Botón Cancelar -->
-      <button class="btn-cancel" (click)="handleConfirmOption('cancelar')">
-        Cancelar
-      </button>
-    </div>
-  </div>
-</div>
-
-
-
-  

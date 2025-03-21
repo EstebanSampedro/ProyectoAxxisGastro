@@ -12,6 +12,14 @@
         "getAll": "/citas",
         "update": "/citas/update",
         "delete": "/citas/delete"
+      },
+      "observaciones": {
+        "base": "/observaciones",
+        "register": "/observaciones/register",
+        "filter": "/observaciones/filter",
+        "getAll": "/observaciones",
+        "update": "/observaciones/:id",
+        "delete": "/observaciones/:id"
       }
     }
   }

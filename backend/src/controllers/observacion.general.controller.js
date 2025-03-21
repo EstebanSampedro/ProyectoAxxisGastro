@@ -1,5 +1,5 @@
 const prisma = require("../../prisma/prismaClient");
-const Observacion = require("../models/observacion.model");
+const Observacion = require("../models/observacion.general.model");
 
 /**
  * Registrar una nueva observación
