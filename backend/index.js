@@ -30,6 +30,7 @@ loadRoute('./src/routes/auth.js', '/api/auth');
 loadRoute('./src/routes/doctor.js', '/api/doctores');
 loadRoute('./src/routes/citas.routes.js', '/api/citas');
 loadRoute('./src/routes/whatsapp.js', '/api/whatsapp');
+loadRoute('./src/routes/observacion.general.routes.js', '/api/observaciones'); // Agrega esta línea
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;

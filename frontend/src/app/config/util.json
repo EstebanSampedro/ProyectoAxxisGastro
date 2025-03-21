@@ -1,11 +1,18 @@
 {
-    "api": {
-      "baseUrl": "http://localhost:3000/api",
-      "endpoints": {
-        "doctores": "/doctores",
-        "authAdmin":"/auth/admin",
-        "authDoctor":"/auth/doctor"
-
+  "api": {
+    "baseUrl": "http://localhost:3000/api",
+    "endpoints": {
+      "doctores": "/doctores",
+      "authAdmin": "/auth/admin",
+      "authDoctor": "/auth/doctor",
+      "citas": {
+        "base": "/citas",
+        "register": "/citas/register",
+        "filter": "/citas/filter",
+        "getAll": "/citas",
+        "update": "/citas/update",
+        "delete": "/citas/delete"
       }
     }
   }
+}
