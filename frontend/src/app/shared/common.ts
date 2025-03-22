@@ -33,7 +33,7 @@ export function formatDate(date: Date): string {
 
 
   export function obtenerIdDoctorDesdeSessionStorage(): number {
-    const user = sessionStorage.getItem('currentUser');
+    const user = localStorage.getItem('currentUser');
     if (user) {
       try {
         const userData = JSON.parse(user);

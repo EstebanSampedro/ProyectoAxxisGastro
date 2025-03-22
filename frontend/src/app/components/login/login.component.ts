@@ -50,7 +50,7 @@ export class LoginComponent {
         next: (res) => {
           console.log('Login de doctor exitoso:', res);
           sessionStorage.setItem('token', res.token);
-          sessionStorage.setItem('idDoctor', res.user.idDoctor2)
+          localStorage.setItem('idDoctor', res.user.idDoctor2)
           // Navega a la ruta protegida para doctores
           this.router.navigate(['/doctor/dashboard']);
         },
