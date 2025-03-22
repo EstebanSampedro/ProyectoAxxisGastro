@@ -1,67 +1,4 @@
-/* ===================== ENCABEZADO SUPERIOR ===================== */
-.header-bar {
-    display: flex;
-    justify-content: space-between; /* Logo a la derecha, texto a la izquierda */
-    align-items: center;
-    background-color: #1e1e1e;
-    color: #ffc107; /* Color amarillo similar al login */
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-  }
-  
-  .header-left {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-  
-  .header-left h2 {
-    margin: 0;
-    font-size: 1.4rem;
-  }
-  
-  .header-left span {
-    font-size: 0.9rem;
-    font-weight: bold;
-  }
-  
-  .header-right img {
-    max-height: 50px;
-  }
-  
-  /* ===================== BARRA DE MENÚ (NAV) ===================== */
-  .navbar {
-    background-color: #333;
-    margin-bottom: 1rem;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  
-  .navbar ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex; /* Menú horizontal */
-  }
-  
-  .navbar li {
-    position: relative; /* Para el dropdown */
-  }
-  
-  .navbar a {
-    display: block;
-    color: #fff;
-    text-decoration: none;
-    padding: 0.75rem 1rem;
-    transition: background-color 0.3s ease;
-  }
-  
-  /* Hover en las opciones principales del menú */
-  .navbar a:hover {
-    background-color: #444;
-  }
-  
+
   /* ===================== DROPDOWN ===================== */
   /* El contenedor con clase .dropdown es el que tiene submenú */
   .dropdown .dropbtn {
@@ -97,25 +34,7 @@
   }
   
   /* ===================== SECCIÓN DE ACCIONES (FECHA, BOTONES) ===================== */
-  .actions-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-  }
-  
-  .date-section {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  
-  .formatted-date {
-    font-weight: bold;
-    color: #333;
-    margin-left: 0.5rem;
-  }
-  
+
   .buttons-section fa-icon {
     margin-left: 1rem;
     padding: 0.5rem 1rem;
@@ -332,7 +251,7 @@
   resize: vertical;
 }
 
-.observaciones-section button {
+.btn {
   background-color: #ffc107;
   border: none;
   border-radius: 4px;
@@ -341,10 +260,11 @@
   cursor: pointer;
   font-weight: bold;
   transition: background-color 0.3s ease;
+  margin: 5px;
 }
 
-.observaciones-section button:hover {
-  background-color: #e6b800;
+.btn:hover {
+  opacity: 0.4;
 }
 
 /* ===================== TABLA DE CONSULTAS ===================== */
@@ -532,4 +452,72 @@
 
 .btn-cancel:hover {
   background-color: #5a6268;
+}
+/* =====================
+  RESPONSIVE Y FLEX
+===================== */
+
+/* Contenedor principal responsive */
+.container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Layout de dos columnas con flexbox */
+.flex-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  width: 100%;
+  gap: 20px;
+  align-items: center;
+}
+
+.flex-column {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+}
+
+/* Media Queries para hacerlo responsive */
+
+/* Para pantallas pequeñas (móviles) */
+@media (max-width: 767px) {
+  .flex-row {
+    flex-direction: column; /* Cambia a columna en móviles */
+    align-items: stretch; /* Estira los elementos para ocupar todo el ancho */
+  }
+
+  .flex-column {
+    width: 100%; /* Asegura que las columnas ocupen todo el ancho */
+  }
+
+  .container {
+    padding: 10px; /* Reduce el padding en móviles */
+  }
+}
+
+/* Para tablets (pantallas medianas) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .flex-row {
+    flex-direction: row; /* Mantiene la fila en tablets */
+  }
+
+  .flex-column {
+    width: 50%; /* Divide el ancho en dos columnas en tablets */
+  }
+}
+
+/* Para pantallas grandes (desktops) */
+@media (min-width: 1024px) {
+  .flex-row {
+    flex-direction: row; /* Mantiene la fila en desktops */
+  }
+
+  .flex-column {
+    width: 50%; /* Divide el ancho en dos columnas en desktops */
+  }
 }

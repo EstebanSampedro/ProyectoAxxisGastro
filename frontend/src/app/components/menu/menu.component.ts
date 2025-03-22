@@ -19,7 +19,7 @@ export class MenuComponent {
 
   // Lógica para cerrar sesión: limpia el token y redirige a login
   logout() {
-    localStorage.removeItem('token'); // Limpia el token o cualquier dato de sesión
+    sessionStorage.removeItem('token'); // Limpia el token o cualquier dato de sesión
     this.router.navigate(['/login']);
   }
 }

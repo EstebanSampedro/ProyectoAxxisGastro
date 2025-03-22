@@ -33,11 +33,8 @@ export class LoginComponent {
         username: this.credentials.username,
         password: this.credentials.password
       }).subscribe({
-        next: (res: { token: string; }) => {
+        next: (res) => {
           console.log('Login de admin exitoso:', res);
-          // Guarda el token de forma segura, por ejemplo en localStorage
-          localStorage.setItem('token', res.token);
-          // Navega a la ruta protegida para administradores
           this.router.navigate(['/menu']);
         },
         error: (err: any) => {
@@ -52,7 +49,8 @@ export class LoginComponent {
       }).subscribe({
         next: (res) => {
           console.log('Login de doctor exitoso:', res);
-          localStorage.setItem('token', res.token);
+          sessionStorage.setItem('token', res.token);
+          sessionStorage.setItem('idDoctor', res.user.idDoctor2)
           // Navega a la ruta protegida para doctores
           this.router.navigate(['/doctor/dashboard']);
         },

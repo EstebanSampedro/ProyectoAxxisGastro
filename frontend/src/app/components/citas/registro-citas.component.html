@@ -1,20 +1,41 @@
 <app-main-header></app-main-header>
 <app-nav-bar></app-nav-bar>
-<app-date-picker></app-date-picker>
-
-<div class="buttons-section">
-  <fa-icon (click)="buscar()" [icon]="faSearch"></fa-icon>
-  <fa-icon (click)="imprimir()" [icon]="faPrint"></fa-icon>
-</div>
-  <div class="observaciones-section">
-    <label for="observaciones">OBSERVACIONES:</label>
-    <textarea
-      id="observaciones"
-      rows="2"
-      [(ngModel)]="observaciones"
-    ></textarea>
-    <button (click)="guardarObservaciones()">Guardar</button>
+<div class="container">
+  <div class="flex-row">
+    <div class="flex-column">
+      <app-date-picker></app-date-picker>
+    </div>
+    <div class="flex-column">
+      <div class="action-icons">
+        <button class="btn icon-btn" title="Buscar" (click)="cargarCitas()">
+          Buscar
+          <fa-icon [icon]="faSearch"></fa-icon>
+        </button>
+        
+        <button class="btn icon-btn" title="Imprimir" (click)="imprimir()">
+          Imprimir
+          <fa-icon [icon]="faPrint"></fa-icon>
+        </button>
+      </div>
+    </div>
   </div>
+</div>
+<div class="observaciones-section container">
+  <button *ngIf="flagObservaciones" title="Existen observaciones" (click)="verObservaciones()" >
+    <fa-icon   [icon]="faWarning"></fa-icon>
+  </button>
+  <label for="observaciones">OBSERVACIONES:</label>
+  <textarea
+    id="observaciones"
+    rows="2"
+    [(ngModel)]="observaciones"
+    class="responsive-textarea"
+  ></textarea>
+  <button (click)="guardarObservaciones()" class="btn">Guardar
+    <fa-icon [icon]="faSave">
+    </fa-icon>
+  </button>
+</div>
 
 <!-- Tabla de Citas -->
 <table class="citas-table">

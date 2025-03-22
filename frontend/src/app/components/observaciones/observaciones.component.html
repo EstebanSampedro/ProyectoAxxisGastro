@@ -1,0 +1,25 @@
+<app-main-header></app-main-header>
+<app-nav-bar></app-nav-bar>
+<div class="observaciones-container">
+    <h2>OBSERVACIONES DE DOCTORES - {{ selectedDate | date:'yyyy-MM-dd' }}</h2>
+    <table class="observaciones-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>FECHA</th>
+          <th>OBSERVACIÓN</th>
+          <th>ESTADO</th>
+          <th>DOCTOR</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let obs of observaciones">
+          <td>{{ obs.idObser }}</td>
+          <td>{{ obs.fechaObser | date:'yyyy-MM-dd' }}</td>
+          <td>{{ obs.textObser }}</td>
+          <td>{{ obs.estado }}</td>
+          <td>{{ obs.docObser }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
