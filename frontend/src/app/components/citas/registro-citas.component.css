@@ -482,6 +482,51 @@
   width: 100%;
 }
 
+
+/* Estilos para las pestañas */
+.tab-container {
+  display: flex;
+  border-bottom: 2px solid #ccc;
+  margin-bottom: 20px;
+}
+
+.tab {
+  padding: 10px 20px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  border-bottom: none;
+  margin-right: 5px;
+  background-color: #f9f9f9;
+  border-radius: 5px 5px 0 0;
+}
+
+.tab.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+/* Estilos para la tabla de citas */
+.citas-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.citas-table th,
+.citas-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.citas-table th {
+  background-color: #f2f2f2;
+}
+
+.imagen-cita {
+  max-width: 100px;
+  max-height: 100px;
+}
 /* Media Queries para hacerlo responsive */
 
 /* Para pantallas pequeñas (móviles) */

@@ -36,91 +36,131 @@
     </fa-icon>
   </button>
 </div>
+<!-- Pestañas de torres -->
+<div class="tab-container">
+  <div
+    *ngFor="let torre of torres"
+    class="tab"
+    [class.active]="selectedTorreId === torre.idTorre"
+    (click)="selectTorre(torre.idTorre)"
+  >
+    {{ torre.textTorre }}
+  </div>
+</div>
 
 <!-- Tabla de Citas -->
-<table class="citas-table">
-  <thead>
-    <tr>
-      <th>HORA</th>
-      <th>MÉDICO</th>
-      <th>PACIENTE</th>
-      <th>EDAD</th>
-      <th>TELÉFONO</th>
-      <th>PROCEDIMIENTO</th>
-      <th>IMAGEN</th>
-      <th>SOLICITADO</th>
-      <th>INSTITUCIÓN</th>
-      <th>SEGURO</th>
-      <th>OBSERVACIONES</th>
-      <th>COLOR</th>
-      <th>CONFIR.</th>
-      <th>RESP.</th>
-      <th>OPCIONES</th>
-    </tr>
-  </thead>
-  <tbody cdkDropList (cdkDropListDropped)="drop($event)">
-    <tr *ngFor="let cita of citas" 
-        cdkDrag 
-        [cdkDragData]="cita" 
-        [ngStyle]="{ 'background-color': cita.colorCita || '' }">
-      
-      <td>{{ cita.hora }}</td>
+<div *ngIf="selectedTorreId !== null">
+  <table class="citas-table">
+    <thead>
+      <tr>
+        <th>HORA</th>
+        <th>MÉDICO</th>
+        <th>PACIENTE</th>
+        <th>EDAD</th>
+        <th>TELÉFONO</th>
+        <th>PROCEDIMIENTO</th>
+        <th>IMAGEN</th>
+        <th>SOLICITADO</th>
+        <th>INSTITUCIÓN</th>
+        <th>SEGURO</th>
+        <th>OBSERVACIONES</th>
+        <th>COLOR</th>
+        <th>CONFIR.</th>
+        <th>RESP.</th>
+        <th>OPCIONES</th>
+      </tr>
+    </thead>
+    <tbody cdkDropList (cdkDropListDropped)="drop($event)">
+      <tr
+        *ngFor="let cita of citas"
+        cdkDrag
+        [cdkDragData]="cita"
+        [ngStyle]="{ 'background-color': cita.colorCita || '' }"
+      >
+        <td>{{ cita.hora }}</td>
 
-      <ng-container *ngIf="editingCitaId === cita.idCita; else modoLectura">
-        <td><input type="text" [(ngModel)]="newCitaData.medico" placeholder="Médico" /></td>
-        <td><input type="text" [(ngModel)]="newCitaData.paciente" placeholder="Paciente" /></td>
-        <td><input type="number" [(ngModel)]="newCitaData.edad" placeholder="Edad" /></td>
-        <td><input type="text" [(ngModel)]="newCitaData.telefono" placeholder="Teléfono" /></td>
-        <td><input type="text" [(ngModel)]="newCitaData.procedimiento" placeholder="Procedimiento" /></td>
-        <td><input type="file" (change)="subirImagen($event)" /></td>
-        <td><input type="text" [(ngModel)]="newCitaData.solicitado" placeholder="Solicitado" /></td>
-        <td><input type="text" [(ngModel)]="newCitaData.institucion" placeholder="Institución" /></td>
-        <td><input type="text" [(ngModel)]="newCitaData.seguro" placeholder="Seguro" /></td>
-        <td><input type="text" [(ngModel)]="newCitaData.observaciones" placeholder="Observaciones" /></td>
-        <td>
-          <select [(ngModel)]="newCitaData.colorCita">
-            <option value="#FFFFFF">Ninguno</option>
-            <option value="#ffff00">Amarillo</option>
-            <option value="#ff0000">Rojo</option>
-            <option value="#0000ff">Azul</option>
-            <option value="#FEBB02">Naranja</option>
-            <option value="#00ff00">Verde</option>
-            <option value="#8080c0">Gris</option>
-          </select>
-        </td>
-        <td><input type="checkbox" [(ngModel)]="newCitaData.confirmado" /></td>
-        <td><input type="text" [(ngModel)]="newCitaData.responsable" /></td>
-        <td>
-          <div class="horizontal-btns">
-            <button (click)="guardarEdicion()">Guardar</button>
-            <button (click)="cancelarEdicion()">Cancelar</button>
-          </div>
-        </td>
-      </ng-container>
+        <ng-container *ngIf="editingCitaId === cita.idCita; else modoLectura">
+          <td>
+            <input type="text" [(ngModel)]="newCitaData.medico" placeholder="Médico" />
+          </td>
+          <td>
+            <input type="text" [(ngModel)]="newCitaData.paciente" placeholder="Paciente" />
+          </td>
+          <td>
+            <input type="number" [(ngModel)]="newCitaData.edad" placeholder="Edad" />
+          </td>
+          <td>
+            <input type="text" [(ngModel)]="newCitaData.telefono" placeholder="Teléfono" />
+          </td>
+          <td>
+            <input type="text" [(ngModel)]="newCitaData.procedimiento" placeholder="Procedimiento" />
+          </td>
+          <td>
+            <input type="file" (change)="subirImagen($event)" />
+          </td>
+          <td>
+            <input type="text" [(ngModel)]="newCitaData.solicitado" placeholder="Solicitado" />
+          </td>
+          <td>
+            <input type="text" [(ngModel)]="newCitaData.institucion" placeholder="Institución" />
+          </td>
+          <td>
+            <input type="text" [(ngModel)]="newCitaData.seguro" placeholder="Seguro" />
+          </td>
+          <td>
+            <input type="text" [(ngModel)]="newCitaData.observaciones" placeholder="Observaciones" />
+          </td>
+          <td>
+            <select [(ngModel)]="newCitaData.colorCita">
+              <option value="#FFFFFF">Ninguno</option>
+              <option value="#ffff00">Amarillo</option>
+              <option value="#ff0000">Rojo</option>
+              <option value="#0000ff">Azul</option>
+              <option value="#FEBB02">Naranja</option>
+              <option value="#00ff00">Verde</option>
+              <option value="#8080c0">Gris</option>
+            </select>
+          </td>
+          <td>
+            <input type="checkbox" [(ngModel)]="newCitaData.confirmado" />
+          </td>
+          <td>
+            <input type="text" [(ngModel)]="newCitaData.responsable" />
+          </td>
+          <td>
+            <div class="horizontal-btns">
+              <button (click)="guardarEdicion()">Guardar</button>
+              <button (click)="cancelarEdicion()">Cancelar</button>
+            </div>
+          </td>
+        </ng-container>
 
-      <ng-template #modoLectura>
-        <td>{{ cita.idDoctor_cita }}</td>
-        <td>{{ cita.paciente }}</td>
-        <td>{{ cita.edad }}</td>
-        <td>{{ cita.telefono }}</td>
-        <td>{{ cita.procedimiento }}</td>
-        <td><img [src]="cita.imagen" alt="Imagen" class="imagen-cita"></td>
-        <td>{{ cita.pedido }}</td>
-        <td>{{ cita.institucion }}</td>
-        <td>{{ cita.seguro }}</td>
-        <td>{{ cita.observaciones }}</td>
-        <td>{{ colorNames[cita.colorCita] || cita.colorCita }}</td>
-        <td>{{ cita.confirmado ? 'Sí' : 'No' }}</td>
-        <td>{{ cita.idDoctor_cita}}</td>
-        <td>
-          <div class="horizontal-btns">
-            <!-- <button (click)="enviarWhatsApp(cita)">📞</button>
-            <button (click)="confirmarCita(cita)">✔</button>
-            <button (click)="editarCita(cita)">✏️</button>
-            <button (click)="eliminarCita(cita)">❌</button> -->
-          </div>
-        </td>
-      </ng-template>
-    </tr>
-  </tbody>
-</table>
+        <ng-template #modoLectura>
+          <td>{{ cita.idDoctor_cita }}</td>
+          <td>{{ cita.paciente }}</td>
+          <td>{{ cita.edad }}</td>
+          <td>{{ cita.telefono }}</td>
+          <td>{{ cita.procedimiento }}</td>
+          <td>
+            <img [src]="cita.imagen" alt="Imagen" class="imagen-cita" />
+          </td>
+          <td>{{ cita.pedido }}</td>
+          <td>{{ cita.institucion }}</td>
+          <td>{{ cita.seguro }}</td>
+          <td>{{ cita.observaciones }}</td>
+          <td>{{ colorNames[cita.colorCita] || cita.colorCita }}</td>
+          <td>{{ cita.confirmado ? 'Sí' : 'No' }}</td>
+          <td>{{ cita.idDoctor_cita }}</td>
+          <td>
+            <div class="horizontal-btns">
+              <!-- <button (click)="enviarWhatsApp(cita)">📞</button>
+              <button (click)="confirmarCita(cita)">✔</button>
+              <button (click)="editarCita(cita)">✏️</button>
+              <button (click)="eliminarCita(cita)">❌</button> -->
+            </div>
+          </td>
+        </ng-template>
+      </tr>
+    </tbody>
+  </table>
+</div>

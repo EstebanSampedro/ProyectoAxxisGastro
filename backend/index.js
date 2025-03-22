@@ -25,12 +25,13 @@ app.get('/', (req, res) => {
   res.send('Bienvenido al backend de AxxisGastroV1');
 });
 
-// Corrige las rutas para que coincidan con la estructura de archivos
+// Cargar rutas
 loadRoute('./src/routes/auth.js', '/api/auth');
 loadRoute('./src/routes/doctor.js', '/api/doctores');
 loadRoute('./src/routes/citas.routes.js', '/api/citas');
 loadRoute('./src/routes/whatsapp.js', '/api/whatsapp');
-loadRoute('./src/routes/observacion.general.routes.js', '/api/observaciones'); // Agrega esta línea
+loadRoute('./src/routes/observacion.general.routes.js', '/api/observaciones');
+loadRoute('./src/routes/torre.routes.js', '/api/torres'); 
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
