@@ -11,7 +11,9 @@
         "filter": "/citas/filter",
         "getAll": "/citas",
         "update": "/citas/update",
-        "delete": "/citas/delete"
+        "delete": "/citas/delete",
+        "filterByDate":"/citas/byDate",
+        "filterByDateAndTower":"/citas/byDateAndTower"
       },
       "observaciones": {
         "base": "/observaciones",

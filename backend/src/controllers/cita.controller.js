@@ -41,6 +41,72 @@ const filterCitas = async (req, res) => {
 };
 
 /**
+ * Filtrar citas por fecha
+ */
+const filterCitasByDate = async (req, res) => {
+  try {
+    const { fecha } = req.query;
+
+    // Validar que la fecha esté presente
+    if (!fecha) {
+      return res.status(400).json({ error: "fecha es requerida." });
+    }
+
+    // Obtener citas filtradas por fecha
+    const citas = await prisma.cita.findMany({
+      where: {
+        fecha: new Date(fecha), // Filtrar por fecha
+      },
+      orderBy: { hora: "asc" }, // Ordenar por hora ascendente
+    });
+
+    // Enviar la respuesta con las citas filtradas
+    res.json(citas);
+  } catch (error) {
+    console.error("Error al obtener citas:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
+
+
+/**
+ * Filtrar citas por fecha y torre
+ */
+const filterCitasByDateAndTower = async (req, res) => {
+  try {
+    const { fecha, torre } = req.query;
+
+    // Validar que la fecha y la torre estén presentes
+    if (!fecha || !torre) {
+      return res.status(400).json({ error: "fecha y torre son requeridos." });
+    }
+
+    // Convertir torre a número entero
+    const torreId = parseInt(torre, 10);
+
+    // Validar que torre sea un número válido
+    if (isNaN(torreId)) {
+      return res.status(400).json({ error: "torre debe ser un número válido." });
+    }
+
+    // Obtener citas filtradas por fecha y torre
+    const citas = await prisma.cita.findMany({
+      where: {
+        fecha: new Date(fecha), // Filtrar por fecha
+        torre: torreId, // Filtrar por torre (convertido a número entero)
+      },
+      orderBy: { hora: "asc" }, // Ordenar por hora ascendente
+    });
+
+    // Enviar la respuesta con las citas filtradas
+    res.json(citas);
+  } catch (error) {
+    console.error("Error al obtener citas:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
+
+/**
  * Obtener todas las citas
  */
 const getAllCitas = async (req, res) => {
@@ -95,4 +161,6 @@ module.exports = {
   getAllCitas,
   updateCita,
   deleteCita,
+  filterCitasByDate,
+  filterCitasByDateAndTower
 };
