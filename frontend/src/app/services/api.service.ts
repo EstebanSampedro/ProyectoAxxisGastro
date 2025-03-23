@@ -9,7 +9,7 @@ import  config from '../config/util.json';
 export class ApiService {
   constructor(private http: HttpClient) {}
   private baseUrl: string = config.api.baseUrl;
-  private currentInterface = new BehaviorSubject<string>('registro-citas'); // Valor inicial
+  private currentInterface = new BehaviorSubject<string>('registro-citas');
  // Observable para que otros componentes puedan suscribirse
  currentInterface$ = this.currentInterface.asObservable();
 

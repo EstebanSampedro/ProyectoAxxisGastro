@@ -39,6 +39,21 @@ export class ObservacionService {
     );
   }
 
+  
+  /**
+   * Filtrar observaciones por fecha
+   */
+  filterObservacionesByDate(fecha: Date): Observable<Observacion[]> {
+    // Formatear la fecha a YYYY-MM-DD
+    const fechaFormateada = this.formatDate(fecha);
+    console.log("fechaFormateada", fechaFormateada);
+
+    // Usar el nuevo endpoint byDate
+    return this.http.get<Observacion[]>(
+      `${this.apiUrl}${this.endpoints.byDate}?fecha=${fechaFormateada}`
+    );
+  }
+
    /**
    * Formatear fecha a YYYY-MM-DD
    */

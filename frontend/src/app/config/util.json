@@ -19,7 +19,8 @@
         "filter": "/observaciones/filter",
         "getAll": "/observaciones",
         "update": "/observaciones/:id",
-        "delete": "/observaciones/:id"
+        "delete": "/observaciones/:id",
+        "byDate": "/observaciones/byDate" 
       },
       "torres": {
         "base": "/torres",

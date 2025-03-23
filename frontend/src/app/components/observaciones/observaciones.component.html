@@ -5,20 +5,14 @@
     <table class="observaciones-table">
       <thead>
         <tr>
-          <th>ID</th>
-          <th>FECHA</th>
-          <th>OBSERVACIÓN</th>
-          <th>ESTADO</th>
           <th>DOCTOR</th>
+          <th>OBSERVACIÓN</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let obs of observaciones">
-          <td>{{ obs.idObser }}</td>
-          <td>{{ obs.fechaObser | date:'yyyy-MM-dd' }}</td>
-          <td>{{ obs.textObser }}</td>
-          <td>{{ obs.estado }}</td>
           <td>{{ obs.docObser }}</td>
+          <td>{{ obs.textObser }}</td>
         </tr>
       </tbody>
     </table>
