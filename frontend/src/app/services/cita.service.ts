@@ -27,6 +27,22 @@ export class CitaService {
     return this.http.get<Cita[]>(`${this.apiUrl}${this.endpoints.filter}?doctorId=${doctorId}&fecha=${fecha}`);
   }
 
+
+  /**
+ * Filtrar citas por doctor y fecha
+ */
+  getCitasByDate( fecha: string): Observable<Cita[]> {
+    return this.http.get<Cita[]>(`${this.apiUrl}${this.endpoints.filterByDate}?fecha=${fecha}`);
+  }
+
+  /**
+   * Filtrar citas por fecha y torre
+   */
+  getCitasByDateAndTower(fecha: string, torre: number): Observable<Cita[]> {
+    return this.http.get<Cita[]>(
+      `${this.apiUrl}${this.endpoints.filterByDateAndTower}?fecha=${fecha}&torre=${torre}`
+    );
+  }
   /**
    * Registrar una nueva cita
    */

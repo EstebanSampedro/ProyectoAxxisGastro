@@ -47,41 +47,43 @@
     {{ torre.textTorre }}
   </div>
 </div>
-
-<!-- Tabla de Citas -->
-<div *ngIf="selectedTorreId !== null">
-  <table class="citas-table">
-    <thead>
-      <tr>
-        <th>HORA</th>
-        <th>MÉDICO</th>
-        <th>PACIENTE</th>
-        <th>EDAD</th>
-        <th>TELÉFONO</th>
-        <th>PROCEDIMIENTO</th>
-        <th>IMAGEN</th>
-        <th>SOLICITADO</th>
-        <th>INSTITUCIÓN</th>
-        <th>SEGURO</th>
-        <th>OBSERVACIONES</th>
-        <th>COLOR</th>
-        <th>CONFIR.</th>
-        <th>RESP.</th>
-        <th>OPCIONES</th>
-      </tr>
-    </thead>
-    <tbody cdkDropList (cdkDropListDropped)="drop($event)">
-      <tr
-        *ngFor="let cita of citas"
-        cdkDrag
-        [cdkDragData]="cita"
-        [ngStyle]="{ 'background-color': cita.colorCita || '' }"
-      >
-        <td>{{ cita.hora }}</td>
-
+<!-- Tabla de Consultas -->
+<table class="consultas-table">
+  <thead>
+    <tr>
+      <th>HORA</th>
+      <th>MEDICO</th>
+      <th>PACIENTE</th>
+      <th>EDAD</th>
+      <th>TELEFONO</th>
+      <th>PROCEDIMIENTO</th>
+      <th>IMAGEN</th>
+      <th>SOLICITADO</th>
+      <th>INSTITUCION</th>
+      <th>SEGURO</th>
+      <th>OBSERVACIONES</th>
+      <th>COLOR</th>
+      <th>CONFIR.</th>
+      <th>RESP.</th>
+      <th>OPCIONES</th>
+    </tr>
+  </thead>
+  <!-- Se agrega cdkDropList al tbody -->
+  <tbody cdkDropList (cdkDropListDropped)="drop($event)">
+    <!-- Cada fila es draggable y se le asigna el dato de la cita (si existe) -->
+    <tr *ngFor="let slot of timeSlots" 
+        cdkDrag 
+        [cdkDragData]="getCitaBySlot(slot)" 
+        [ngStyle]="{ 'background-color': getCitaBySlot(slot)?.colorCita || '' }">
+      <!-- Columna 1: HORA -->
+      <td>{{ slot }}</td>
+      
+      <!-- Verificamos si existe una cita en este slot -->
+      <ng-container *ngIf="getCitaBySlot(slot) as cita; else sinCita">
         <ng-container *ngIf="editingCitaId === cita.idCita; else modoLectura">
+          <!-- Inputs en línea para edición -->
           <td>
-            <input type="text" [(ngModel)]="newCitaData.medico" placeholder="Médico" />
+            <input type="text" [(ngModel)]="newCitaData.codigoMedico" placeholder="Médico" />
           </td>
           <td>
             <input type="text" [(ngModel)]="newCitaData.paciente" placeholder="Paciente" />
@@ -96,10 +98,10 @@
             <input type="text" [(ngModel)]="newCitaData.procedimiento" placeholder="Procedimiento" />
           </td>
           <td>
-            <input type="file" (change)="subirImagen($event)" />
+            <input type="text" [(ngModel)]="newCitaData.imagen" placeholder="Imagen" />
           </td>
           <td>
-            <input type="text" [(ngModel)]="newCitaData.solicitado" placeholder="Solicitado" />
+            <input type="text" [(ngModel)]="newCitaData.pedido" placeholder="Solicitado" />
           </td>
           <td>
             <input type="text" [(ngModel)]="newCitaData.institucion" placeholder="Institución" />
@@ -122,10 +124,10 @@
             </select>
           </td>
           <td>
-            <input type="checkbox" [(ngModel)]="newCitaData.confirmado" />
+            <input type="text" [(ngModel)]="newCitaData.confirmado" disabled />
           </td>
           <td>
-            <input type="text" [(ngModel)]="newCitaData.responsable" />
+            <input type="text" [(ngModel)]="newCitaData.responsable" placeholder="Responsable" />
           </td>
           <td>
             <div class="horizontal-btns">
@@ -134,33 +136,177 @@
             </div>
           </td>
         </ng-container>
-
-        <ng-template #modoLectura>
-          <td>{{ cita.idDoctor_cita }}</td>
-          <td>{{ cita.paciente }}</td>
-          <td>{{ cita.edad }}</td>
-          <td>{{ cita.telefono }}</td>
-          <td>{{ cita.procedimiento }}</td>
-          <td>
-            <img [src]="cita.imagen" alt="Imagen" class="imagen-cita" />
-          </td>
-          <td>{{ cita.pedido }}</td>
-          <td>{{ cita.institucion }}</td>
-          <td>{{ cita.seguro }}</td>
-          <td>{{ cita.observaciones }}</td>
-          <td>{{ colorNames[cita.colorCita] || cita.colorCita }}</td>
-          <td>{{ cita.confirmado ? 'Sí' : 'No' }}</td>
-          <td>{{ cita.idDoctor_cita }}</td>
-          <td>
-            <div class="horizontal-btns">
-              <!-- <button (click)="enviarWhatsApp(cita)">📞</button>
-              <button (click)="confirmarCita(cita)">✔</button>
-              <button (click)="editarCita(cita)">✏️</button>
-              <button (click)="eliminarCita(cita)">❌</button> -->
-            </div>
-          </td>
+          <ng-template #modoLectura>
+            <td>{{ cita.codigoMedico }}</td>
+            <td>{{ cita.paciente }}</td>
+            <td>{{ cita.edad }}</td>
+            <td>{{ cita.telefono }}</td>
+            <td>{{ cita.procedimiento }}</td>
+            <td>{{ cita.imagen }}</td>
+            <td>{{ cita.pedido }}</td>
+            <td>{{ cita.institucion }}</td>
+            <td>{{ cita.seguro }}</td>
+            <td>{{ cita.observaciones }}</td>
+            <td>{{ colorNames[cita.colorCita] || cita.colorCita }}</td>
+            <td>{{ cita.confirmado }}</td>
+            <td>{{ cita.responsable }}</td>
+            <td>
+              <div class="horizontal-btns">
+                <button (click)="enviarWhatsApp(cita)" title="Enviar WhatsApp">
+                  <fa-icon [icon]="faPhone"></fa-icon>
+                </button>
+                <button (click)="enviarRecordatorio(cita)" title="Enviar recordatorio">
+                  <fa-icon [icon]="faBell"></fa-icon>
+                </button>
+                <button (click)="confirmarCita(cita)" title="Confirmar cita">
+                  <fa-icon [icon]="faCheck"></fa-icon>
+                </button>
+                <button (click)="editarCita(cita)" title="Editar cita">
+                  <fa-icon [icon]="faPencil"></fa-icon>
+                </button>
+                <button (click)="eliminarCita(cita)" title="Eliminar cita">
+                  <fa-icon [icon]="faXmark"></fa-icon>
+                </button>
+              </div>
+            </td>
+          </ng-template>
+        </ng-container>
+        
+        <!-- SIN CITA (slot vacío) -->
+        <ng-template #sinCita>
+          <ng-container *ngIf="editingSlot === slot; else modoVacio">
+            <!-- Formulario de creación en la misma fila -->
+            <!-- MEDICO -->
+            <td>
+              <input type="text" [(ngModel)]="newCitaData.codigoMedico" placeholder="Médico" />
+            </td>
+            
+            <!-- PACIENTE -->
+            <td>
+              <input type="text" [(ngModel)]="newCitaData.paciente" placeholder="Paciente" />
+            </td>
+            
+            <!-- EDAD -->
+            <td>
+              <input type="number" [(ngModel)]="newCitaData.edad" placeholder="Edad" />
+            </td>
+            
+            <!-- TELEFONO -->
+            <td>
+              <input type="text" [(ngModel)]="newCitaData.telefono" placeholder="Teléfono" />
+            </td>
+            
+            <!-- PROCEDIMIENTO -->
+            <td>
+              <input type="text" [(ngModel)]="newCitaData.procedimiento" placeholder="Procedimiento" />
+            </td>
+            
+            <!-- IMAGEN -->
+            <td>
+              <input type="text" [(ngModel)]="newCitaData.imagen" placeholder="Imagen" />
+            </td>
+            
+            <!-- SOLICITADO -->
+            <td>
+              <input type="text" [(ngModel)]="newCitaData.pedido" placeholder="Solicitado" />
+            </td>
+            
+            <!-- INSTITUCION -->
+            <td>
+              <input type="text" [(ngModel)]="newCitaData.institucion" placeholder="Institución" />
+            </td>
+            
+            <!-- SEGURO -->
+            <td>
+              <input type="text" [(ngModel)]="newCitaData.seguro" placeholder="Seguro" />
+            </td>
+            
+            <!-- OBSERVACIONES -->
+            <td>
+              <input type="text" [(ngModel)]="newCitaData.observaciones" placeholder="Observaciones" />
+            </td>
+            
+            <!-- COLOR -->
+            <td>
+              <select [(ngModel)]="newCitaData.colorCita">
+                <option value="#FFFFFF">Ninguno</option>
+                <option value="#ffff00">Amarillo</option>
+                <option value="#ff0000">Rojo</option>
+                <option value="#0000ff">Azul</option>
+                <option value="#FEBB02">Naranja</option>
+                <option value="#00ff00">Verde</option>
+                <option value="#8080c0">Gris</option>
+              </select>
+            </td>
+            
+            <!-- CONFIR. -->
+            <td>
+              <input type="text" [(ngModel)]="newCitaData.confirmado" placeholder="Pendiente" />
+            </td>
+            
+            <!-- RESP. -->
+            <td>
+              <input type="text" [(ngModel)]="newCitaData.responsable" placeholder="Responsable" />
+            </td>
+            
+            <!-- OPCIONES -->
+            <td>
+              <div class="horizontal-btns">
+                <button (click)="guardarCita(slot)">Guardar</button>
+                <button (click)="cancelarCita()">Cancelar</button>
+              </div>
+            </td>
+          </ng-container>
+          <ng-template #modoVacio>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>     
+            <td><span class="placeholder-text">pendiente</span></td>
+            <td></td>
+            <td>
+              <button class="plus-btn" (click)="iniciarCita(slot)">➕</button>
+            </td>
+          </ng-template>
         </ng-template>
       </tr>
     </tbody>
-  </table>
+</table>
+
+<!-- Modal de Confirmación -->
+<div *ngIf="showConfirmModal" class="modal-overlay">
+  <div class="modal">
+    <h3>Confirmar cita para {{ citaToConfirm.paciente }}</h3>
+    <p>Seleccione una opción:</p>
+    <div class="modal-buttons">
+      <!-- Botón Confirmar (SI) -->
+      <button class="btn-confirm" (click)="handleConfirmOption('si')">
+        Confirmar (SI)
+      </button>
+
+      <!-- Botón Denegar (NO) -->
+      <button class="btn-deny" (click)="handleConfirmOption('no')">
+        Denegar (NO)
+      </button>
+
+      <!-- Botón Pendiente -->
+      <button class="btn-pending" (click)="handleConfirmOption('pendiente')">
+        Pendiente
+      </button>
+
+      <!-- Botón Cancelar -->
+      <button class="btn-cancel" (click)="handleConfirmOption('cancelar')">
+        Cancelar
+      </button>
+    </div>
+  </div>
 </div>
+
+
