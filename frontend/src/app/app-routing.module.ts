@@ -6,6 +6,7 @@ import { RegistroCitasComponent } from './components/citas/registro-citas.compon
 import { ConsultasComponent } from './components/consultas/consultas.component';
 import { ConsultasMenuDocComponent } from './components/consultas-menu-doc/consultas-menu-doc.component';
 import { ConfigDoctorComponent } from './components/config-doctor/config-doctor.component';
+import { ObservacionesComponent } from './components/observaciones/observaciones.component';
 
 ConfigDoctorComponent
 
@@ -16,7 +17,8 @@ const routes: Routes = [
   { path: 'registro-citas', component: RegistroCitasComponent },
   { path: 'consultas', component: ConsultasComponent },
   { path: 'consultas-menu-doc/:idDoctor', component: ConsultasMenuDocComponent },
-  { path: 'configuraciones/doctores', component: ConfigDoctorComponent }
+  { path: 'configuraciones/doctores', component: ConfigDoctorComponent },
+  {path:'observaciones', component:ObservacionesComponent}
 ];
 
 @NgModule({

@@ -20,6 +20,7 @@ import { DatePickerComponent } from './components/date-picker/date-picker.compon
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faChevronRight } from '@fortawesome/free-solid-svg-icons';
 import { faChevronLeft } from '@fortawesome/free-solid-svg-icons';
+import { ObservacionesComponent } from './components/observaciones/observaciones.component';
 const routes: Routes = [
   // Define tus rutas aquí
 ];
@@ -35,7 +36,8 @@ const routes: Routes = [
     MainHeaderComponent,
     MenuComponent,
     NavBarComponent,
-    DatePickerComponent
+    DatePickerComponent,
+    ObservacionesComponent
   ],
   imports: [
     BrowserModule,  // Esencial para aplicaciones en el navegador

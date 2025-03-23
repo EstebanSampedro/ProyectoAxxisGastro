@@ -15,7 +15,7 @@ export class AuthService {
 
   constructor(private http: HttpClient, private router: Router) {
     this.currentUserSubject = new BehaviorSubject<any>(
-      localStorage.getItem('currentUser') ? JSON.parse(localStorage.getItem('currentUser')!) : null
+      localStorage.getItem('currentUser') ? JSON.parse(sessionStorage.getItem('currentUser')!) : null
     );
     this.currentUser = this.currentUserSubject.asObservable();
   }
@@ -31,7 +31,7 @@ export class AuthService {
     }).pipe(
       tap(response => {
         localStorage.setItem('currentUser', JSON.stringify(response.user));
-        localStorage.setItem('token', response.token);
+        sessionStorage.setItem('token', response.token);
         this.currentUserSubject.next(response.user);
       })
     );
@@ -44,7 +44,7 @@ export class AuthService {
     }).pipe(
       tap(response => {
         localStorage.setItem('currentUser', JSON.stringify(response.user));
-        localStorage.setItem('token', response.token);
+        sessionStorage.setItem('token', response.token);
         this.currentUserSubject.next(response.user);
       })
     );

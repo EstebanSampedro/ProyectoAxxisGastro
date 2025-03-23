@@ -1,7 +1,7 @@
 // observacion.model.ts
 
 export interface Observacion {
-    idObser: number;
+    idObser?:number;
     fechaObser: Date;
     textObser: string;
     estado: string;

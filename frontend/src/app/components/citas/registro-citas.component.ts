@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {faPrint, faMagnifyingGlass} from '@fortawesome/free-solid-svg-icons'
+import {faPrint, faMagnifyingGlass,faSave, faWarning} from '@fortawesome/free-solid-svg-icons'
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
@@ -10,6 +10,9 @@ import { Cita } from '../../interfaces/cita';
 import { CitaService } from '../../services/cita.service';
 import { Observacion } from '../../interfaces/observacion.general';
 import { ObservacionService } from '../../services/observaciones.generales.service';
+import { formatDate, obtenerIdDoctorDesdeSessionStorage } from '../../shared/common';
+import { Torre } from '../../interfaces/torre';
+import { TorreService } from '../../services/torres.service';
 
 
 @Component({
@@ -27,7 +30,8 @@ export class RegistroCitasComponent implements OnInit {
     private http: HttpClient,
     private authService: AuthService,
     private citaService : CitaService,
-    private observacionService : ObservacionService
+    private observacionService : ObservacionService,
+    private torreService: TorreService
 
   ) {}
 
@@ -37,9 +41,16 @@ export class RegistroCitasComponent implements OnInit {
   citas: Cita[] = [];
   faPrint = faPrint;
   faSearch = faMagnifyingGlass
-
+  faSave = faSave;
+  faWarning = faWarning
   idDoctor: number = 0;
    doctorName: string = '';
+ 
+
+   flagObservaciones: boolean = false;
+   torres: Torre[] = []; // Lista de torres
+   selectedTorreId: number = 1; // ID de la torre seleccionada
+ 
  
    // Lista de citas (transformadas con horaStr y horaFinStr)
    consultas: any[] = [];
@@ -68,14 +79,39 @@ export class RegistroCitasComponent implements OnInit {
  
 
   ngOnInit(): void {
-    this.idDoctor = parseInt(this.route.snapshot.paramMap.get('idDoctor') || '');
-    this.generarTimeSlots();
-    this.cargarNombreDoctor();
-    this.cargarCitas();
+    this.idDoctor=obtenerIdDoctorDesdeSessionStorage();
     this.cargarObservaciones();
+    this.cargarTorres();
+    console.log("idDoctor", this.idDoctor);
+    console.log("OBSERVACIONES",this.observaciones);
   }
 
- 
+    // Cargar todas las torres
+  cargarTorres(): void {
+    this.torreService.getAllTorres().subscribe(
+      (data) => {
+        this.torres = data;
+        if (this.torres.length > 0) {
+          this.selectedTorreId = this.torres[0].idTorre; // Seleccionar la primera torre por defecto
+          this.cargarCitas(); // Cargar citas de la primera torre
+        }
+      },
+      (error) => console.error('Error al cargar torres:', error)
+    );
+  }
+
+
+
+  verObservaciones(): void {
+    // Formatea la fecha
+    const formattedDate = formatDate(this.selectedDate);
+    // Guarda la fecha formateada en sessionStorage
+    sessionStorage.setItem('selectedDate', formattedDate);
+    console.log('Fecha guardada:', formattedDate);
+    // Navega a la ruta 'observaciones' sin recargar la página
+    this.router.navigate(['/observaciones']);
+  }
+
   onDateChange(): void {
     const parsedDate = typeof this.selectedDate === 'string' ? parseISO(this.selectedDate) : this.selectedDate;
     this.formattedDate = format(parsedDate, "EEEE, dd 'de' MMMM 'del' yyyy", { locale: es });
@@ -93,15 +129,19 @@ export class RegistroCitasComponent implements OnInit {
     }
   }
   
-   cargarObservaciones(): void {
- 
+  cargarObservaciones(): void {
     this.observacionService.filterObservaciones(this.idDoctor, this.selectedDate).subscribe({
       next: (data: Observacion[]) => {
-        if (data && data.length > 0) {
-          // Asume que solo quieres mostrar el texto de la primera observación encontrada
-          this.observaciones = data[0].textObser;
+        console.log("DATA", data); // Verifica la estructura de la respuesta
+        if (Array.isArray(data) && data.length > 0) {
+          // Asegúrate de que data es un array y tiene al menos un elemento
+          this.observaciones = data[0].textObser; // Asigna el valor de textObser
+          this.flagObservaciones = true;
+          console.log("Observaciones cargadas:", this.observaciones); // Verifica el valor asignado
         } else {
-          this.observaciones = ''; // Limpia las observaciones si no se encuentran
+          this.observaciones = ''; 
+          this.flagObservaciones = false;
+          console.log("No hay observaciones para mostrar.");
         }
       },
       error: (err) => {
@@ -109,17 +149,14 @@ export class RegistroCitasComponent implements OnInit {
       }
     });
   }
- 
+
    guardarObservaciones(): void {
-    const fechaFormateada = format(this.selectedDate, 'yyyy-MM-dd');
     const nuevaObservacion: Observacion = {
-      idObser: 0, // No es necesario, se generará automáticamente en el backend
       fechaObser: new Date(),
       textObser: this.observaciones,
-      estado: 'Pendiente', // Reemplaza con el estado adecuado
+      estado: 'Pendiente', 
       docObser: this.idDoctor
     };
-
     this.observacionService.registerObservacion(nuevaObservacion).subscribe({
       next: (resp) => {
         console.log('Observaciones guardadas:', resp);
@@ -131,42 +168,39 @@ export class RegistroCitasComponent implements OnInit {
     });
   }
 
+  selectTorre(torreId: number): void {
+    this.selectedTorreId = torreId;
+    this.cargarCitas();
+  }
 
-   cargarNombreDoctor(): void {
-     const url = `http://localhost:3000/api/doctores/${this.idDoctor}`;
-     this.http.get<any>(url).subscribe({
-       next: (data) => {
-         this.doctorName = data.nomDoctor2 || 'DR. SIN NOMBRE';
-       },
-       error: (err) => {
-         console.error('Error al obtener nombre del doctor:', err);
-         this.doctorName = 'DR. SIN NOMBRE';
-       }
-     });
-   }
- 
-   cargarCitas(): void {
-    const doctorId = this.idDoctor; // Asegúrate de que `idDoctor` sea un número
-    const fechaFormateada = format(this.selectedDate, 'yyyy-MM-dd');
-    this.citaService.getCitasByDoctorAndDate(doctorId, fechaFormateada).subscribe({
-      next: (data: Cita[]) => {
-        this.consultas = data.map((cita) => {
-          const horaStr = this.extraerHora(cita.hora);
-          const horaFinStr = this.extraerHora(cita.horaTermina);
-          return {
-            ...cita,
-            horaStr,
-            horaFinStr,
-            cedula: cita.cedula || '',
-            recordatorioEnv: cita.recordatorioEnv || false,
-          };
-        });
-        console.log('Consultas:', this.consultas);
-      },
-      error: (err) => {
-        console.error('Error al obtener consultas:', err);
-      },
-    });
+  cargarCitas(): void {
+    if (this.selectedTorreId !== null) {
+      const doctorId = this.idDoctor; // Asegúrate de que `idDoctor` sea un número
+      const fechaFormateada = format(this.selectedDate, 'yyyy-MM-dd');
+  
+      // Obtener las citas por torre, doctor y fecha
+      this.citaService.getCitasByDoctorAndDate( doctorId, fechaFormateada).subscribe({
+        next: (data: Cita[]) => {
+          this.consultas = data.map((cita) => {
+            const horaStr = this.extraerHora(cita.hora);
+            const horaFinStr = this.extraerHora(cita.horaTermina);
+            return {
+              ...cita,
+              horaStr,
+              horaFinStr,
+              cedula: cita.cedula || '',
+              recordatorioEnv: cita.recordatorioEnv || false,
+            };
+          });
+          console.log('Consultas:', this.consultas);
+        },
+        error: (err) => {
+          console.error('Error al obtener consultas:', err);
+        },
+      });
+    } else {
+      console.error('No se ha seleccionado una torre.');
+    }
   }
    // Extrae la hora en formato "HH:mm:00" de una cadena tipo "1970-01-01T08:00:00.000Z"
    extraerHora(fechaString: string): string {

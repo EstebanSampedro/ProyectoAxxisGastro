@@ -40,6 +40,49 @@ const filterObservaciones = async (req, res) => {
   }
 };
 
+
+
+/**
+ * Filtrar observaciones por fecha y hacer JOIN con la tabla de doctores
+ */
+const filterObservacionesByDate = async (req, res) => {
+  try {
+    const { fecha } = req.query;
+
+    // Validar que la fecha esté presente
+    if (!fecha) {
+      return res.status(400).json({ error: "fecha es requerido." });
+    }
+
+    // Obtener las observaciones con el JOIN a la tabla de doctores
+    const observaciones = await prisma.observaciones.findMany({
+      where: {
+        fechaObser: new Date(fecha), // Filtrar por fecha
+      },
+      include: {
+        doctor: { // Relación con la tabla doctor2
+          select: {
+            nomDoctor2: true, // Seleccionar solo el nombre del doctor
+          },
+        },
+      },
+      orderBy: { fechaObser: "asc" }, // Ordenar por fecha
+    });
+
+    // Formatear la respuesta para incluir el nombre del doctor
+    const observacionesFormateadas = observaciones.map((obs) => ({
+      ...obs,
+      nomDoctor2: obs.doctor.nomDoctor2, // Agregar el nombre del doctor
+    }));
+
+    // Enviar la respuesta
+    res.json(observacionesFormateadas);
+  } catch (error) {
+    console.error("Error al obtener observaciones:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
+
 /**
  * Obtener todas las observaciones
  */
@@ -95,4 +138,5 @@ module.exports = {
   getAllObservaciones,
   updateObservacion,
   deleteObservacion,
+  filterObservacionesByDate
 };

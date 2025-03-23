@@ -28,10 +28,40 @@ export class ObservacionService {
   }
 
   /**
-   * Filtrar observaciones por doctor y fecha
-   */
+     * Filtrar observaciones por doctor y fecha
+     */
   filterObservaciones(doctorId: number, fecha: Date): Observable<Observacion[]> {
-    return this.http.get<Observacion[]>(`${this.apiUrl}${this.endpoints.filter}?doctorId=${doctorId}&fecha=${fecha.toISOString()}`);
+    // Formatear la fecha a YYYY-MM-DD
+    const fechaFormateada = this.formatDate(fecha);
+    console.log("fechaFormateada", fechaFormateada);
+    return this.http.get<Observacion[]>(
+      `${this.apiUrl}${this.endpoints.filter}?doctorId=${doctorId}&fecha=${fechaFormateada}`
+    );
+  }
+
+  
+  /**
+   * Filtrar observaciones por fecha
+   */
+  filterObservacionesByDate(fecha: Date): Observable<Observacion[]> {
+    // Formatear la fecha a YYYY-MM-DD
+    const fechaFormateada = this.formatDate(fecha);
+    console.log("fechaFormateada", fechaFormateada);
+
+    // Usar el nuevo endpoint byDate
+    return this.http.get<Observacion[]>(
+      `${this.apiUrl}${this.endpoints.byDate}?fecha=${fechaFormateada}`
+    );
+  }
+
+   /**
+   * Formatear fecha a YYYY-MM-DD
+   */
+   private formatDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = ('0' + (date.getMonth() + 1)).slice(-2); // Añade un 0 al principio si es necesario
+    const day = ('0' + date.getDate()).slice(-2); // Añade un 0 al principio si es necesario
+    return `${year}-${month}-${day}`;
   }
 
   /**
