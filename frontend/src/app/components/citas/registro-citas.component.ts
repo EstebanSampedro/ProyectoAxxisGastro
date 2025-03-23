@@ -95,6 +95,7 @@ export class RegistroCitasComponent implements OnInit {
 
   ngOnInit(): void {
     this.idDoctor=obtenerIdDoctorDesdeSessionStorage();
+    this.cargarTorres();
     this.generarTimeSlots();
     this.onDateChange();
     this.cargarCitas();
