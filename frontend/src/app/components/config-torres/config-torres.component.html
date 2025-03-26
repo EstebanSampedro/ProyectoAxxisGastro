@@ -1,0 +1,34 @@
+<app-main-header></app-main-header>
+<app-nav-bar></app-nav-bar>
+
+<div class="config-torre-container">
+  <h2>Configuración de Torres</h2>
+  
+  <!-- LISTADO DE TORRES -->
+  <div class="torre-list">
+    <h3>Lista de Torres</h3>
+    <ul>
+      <li *ngFor="let torre of torres"
+          [class.selected]="selectedTorre?.idTorre === torre.idTorre"
+          (click)="selectTorre(torre)">
+        {{ torre.textTorre }}
+      </li>
+    </ul>
+  </div>
+  
+  <!-- FORMULARIO PARA CREAR / EDITAR TORRE -->
+  <div class="torre-form">
+    <h3>Datos de la Torre</h3>
+  
+    <label for="textTorre">Nombre de la Torre</label>
+    <input id="textTorre" type="text" [(ngModel)]="torreForm.textTorre" />
+  
+    <!-- BOTONES -->
+    <div class="btns">
+      <button class="btn-nuevo" (click)="newTorre()">Nuevo</button>
+      <button class="btn-crear" (click)="createTorre()" [disabled]="selectedTorre">Crear</button>
+      <button class="btn-modificar" (click)="updateTorre()" [disabled]="!selectedTorre">Modificar</button>
+      <button class="btn-borrar" (click)="deleteTorre()" [disabled]="!selectedTorre">Borrar</button>
+    </div>
+  </div>
+</div>

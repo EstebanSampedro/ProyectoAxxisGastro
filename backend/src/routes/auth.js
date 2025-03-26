@@ -5,30 +5,25 @@ const bcrypt = require('bcrypt');
 const router = express.Router();
 const prisma = require("../../prisma/prismaClient");
 
+// ------------------------------------------
+// LOGIN & REGISTROS BÁSICOS (YA EXISTENTES)
+// ------------------------------------------
+
 /**
- * Endpoint para registrar un nuevo administrador.
- * Recibe en el body:
- * - user: nombre de usuario
- * - password: contraseña en texto plano
- * - nombreMedico: nombre completo del administrador
- * - cedulaMedico: cédula del administrador
- * - codigoMedico: (opcional) código o identificador
- * - permiso: (opcional) permiso, por defecto se asigna 'ADMINISTRADOR'
- * - empresa: (opcional) nombre de la empresa
+ * Endpoint para registrar un nuevo administrador (tabla "medico").
  */
 router.post('/register/admin', async (req, res) => {
   try {
     const { user, password, nombreMedico, cedulaMedico, codigoMedico, permiso, empresa } = req.body;
 
-    // Validación de campos requeridos
     if (!user || !password || !nombreMedico || !cedulaMedico) {
       return res.status(400).json({ error: 'Faltan campos requeridos.' });
     }
 
-    // Generar el hash de la contraseña
+    // Hashear contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insertar el nuevo administrador en la tabla "medico"
+    // Crear nuevo registro en "medico"
     const nuevoMedico = await prisma.medico.create({
       data: {
         nombreMedico,
@@ -41,131 +36,224 @@ router.post('/register/admin', async (req, res) => {
       }
     });
 
-
-    return res.json({ message: 'Administrador registrado exitosamente', id: nuevoMedico.id });
+    return res.json({ message: 'Administrador registrado exitosamente', id: nuevoMedico.idmedico });
   } catch (error) {
     console.error('Error en registro admin:', error);
     return res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
-
 /**
- * Endpoint para registrar un nuevo doctor.
- * Recibe en el body:
- * - userDoc: nombre de usuario para el doctor
- * - password: contraseña en texto plano
- * - nomDoctor2: nombre completo del doctor
- * - estadoDoctor2: (opcional) estado del doctor, por defecto 'activo'
+ * Endpoint para registrar un nuevo doctor (tabla "doctor2").
+ * (Dejo tu lógica tal cual, si así lo usas)
  */
 router.post('/register/doctor', async (req, res) => {
   try {
-    // Ajustamos los nombres para que coincidan con la petición y la base de datos
     const { userDoc, passDoc, nomDoctor2, estadoDoctor2 } = req.body;
-
-    // Validación de campos requeridos
     if (!userDoc || !passDoc || !nomDoctor2) {
       return res.status(400).json({ error: 'Faltan campos requeridos.' });
     }
-
-    // Generar el hash de la contraseña
     const hashedPassword = await bcrypt.hash(passDoc, 10);
 
-    // Insertar el nuevo doctor en la tabla "doctor2" usando Prisma
     const newDoctor = await prisma.doctor2.create({
       data: {
         nomDoctor2,
         estadoDoctor2: estadoDoctor2 || 'activo',
         userDoc,
-        passDoc: hashedPassword // Importante: usar passDoc, no pass
+        passDoc: hashedPassword
       }
     });
 
-    return res.json({
-      message: 'Doctor registrado exitosamente',
-      id: newDoctor.idDoctor2
-    });
+    return res.json({ message: 'Doctor registrado exitosamente', id: newDoctor.idDoctor2 });
   } catch (error) {
     console.error('Error en registro doctor:', error);
     return res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
-
 /**
  * Endpoint de login para Admin (tabla "medico")
  */
 router.post('/admin', async (req, res) => {
   const { user, password } = req.body;
-
   try {
-    // Buscar al admin en la tabla "medico" usando Prisma
-    const admin = await prisma.medico.findFirst({
-      where: { user }
-    });
-
-    // Si no existe el usuario
+    const admin = await prisma.medico.findFirst({ where: { user } });
     if (!admin) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
-
-    // Verificar la contraseña hasheada con bcrypt
     const passwordValid = await bcrypt.compare(password, admin.pass);
     if (!passwordValid) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
-
-    // Generar el token JWT
     const token = jwt.sign(
-      { id: admin.id, role: admin.permiso },
+      { id: admin.idmedico, role: admin.permiso },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
-
     return res.json({ token, user: admin });
-
   } catch (error) {
     console.error('Error en login admin:', error);
     return res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
+/**
+ * Endpoint de login para Doctor (tabla "doctor2")
+ */
 router.post('/doctor', async (req, res) => {
   const { user, password } = req.body;
-
   try {
-    // Buscar al doctor en la tabla "doctor2" usando Prisma
-    const doctor = await prisma.doctor2.findFirst({
-      where: { userDoc: user }
-    });
-
-    // Si no existe el usuario
+    const doctor = await prisma.doctor2.findFirst({ where: { userDoc: user } });
     if (!doctor) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
-
-    // Verificar la contraseña hasheada con bcrypt
     const passwordValid = await bcrypt.compare(password, doctor.passDoc);
     if (!passwordValid) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
-
-    // Generar el token JWT
     const token = jwt.sign(
       { id: doctor.idDoctor2, role: 'doctor' },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
-
     return res.json({ token, user: doctor });
-
   } catch (error) {
     console.error('Error en login doctor:', error);
     return res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
+// ------------------------------------------
+// CRUD DE USUARIOS (tabla "medico")
+// ------------------------------------------
+
+/**
+ * GET /api/auth/usuarios
+ * Devuelve todos los usuarios (tabla "medico")
+ */
+router.get('/usuarios', async (req, res) => {
+  try {
+    const medicos = await prisma.medico.findMany({
+      select: {
+        idmedico: true,
+        nombreMedico: true,
+        cedulaMedico: true,
+        codigoMedico: true, // iniciales
+        user: true,
+        pass: true,
+        permiso: true,
+        empresa: true
+      }
+    });
+    res.json(medicos);
+  } catch (error) {
+    console.error('Error al obtener usuarios:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+/**
+ * POST /api/auth/usuarios
+ * Crear un nuevo usuario en tabla "medico"
+ */
+router.post('/usuarios', async (req, res) => {
+  try {
+    const {
+      nombreMedico,
+      cedulaMedico,
+      codigoMedico,  // iniciales
+      user,
+      pass,
+      permiso,
+      empresa
+    } = req.body;
+
+    // Validación básica de campos requeridos
+    if (!nombreMedico || !cedulaMedico || !user || !pass) {
+      return res.status(400).json({ error: 'Faltan campos requeridos.' });
+    }
+
+    // Hashear la contraseña
+    const hashedPassword = await bcrypt.hash(pass, 10);
+
+    // Crear el nuevo usuario en la tabla "medico"
+    const nuevo = await prisma.medico.create({
+      data: {
+        nombreMedico,
+        cedulaMedico,
+        codigoMedico: codigoMedico || '',
+        user,
+        pass: hashedPassword,
+        permiso: permiso || 'USUARIO',
+        empresa: empresa || ''
+      }
+    });
+    res.json({ message: 'Usuario creado', usuario: nuevo });
+  } catch (error) {
+    console.error('Error al crear usuario:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+/**
+ * PUT /api/auth/usuarios/:id
+ * Actualizar un usuario existente
+ */
+router.put('/usuarios/:id', async (req, res) => {
+  const id = parseInt(req.params.id);
+  try {
+    const {
+      nombreMedico,
+      cedulaMedico,
+      codigoMedico,
+      user,
+      pass,
+      permiso,
+      empresa
+    } = req.body;
+
+    // Armamos el objeto de datos a actualizar
+    let dataToUpdate = {
+      nombreMedico,
+      cedulaMedico,
+      codigoMedico: codigoMedico || '',
+      user,
+      permiso,
+      empresa
+    };
+
+    // Si se envía una nueva contraseña, la hasheamos y la incluimos en la actualización
+    if (pass) {
+      const hashedPassword = await bcrypt.hash(pass, 10);
+      dataToUpdate.pass = hashedPassword;
+    }
+
+    const actualizado = await prisma.medico.update({
+      where: { idmedico: id },
+      data: dataToUpdate
+    });
+    res.json({ message: 'Usuario actualizado', usuario: actualizado });
+  } catch (error) {
+    console.error('Error al actualizar usuario:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
 
 
+/**
+ * DELETE /api/auth/usuarios/:id
+ * Eliminar un usuario (tabla "medico")
+ */
+router.delete('/usuarios/:id', async (req, res) => {
+  const id = parseInt(req.params.id);
+  try {
+    const eliminado = await prisma.medico.delete({
+      where: { idmedico: id }
+    });
+    res.json({ message: 'Usuario eliminado', usuario: eliminado });
+  } catch (error) {
+    console.error('Error al eliminar usuario:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
 
 module.exports = router;
