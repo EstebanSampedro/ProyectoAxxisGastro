@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = "mysql://axxis:axxis@localhost:3306/axxis-citas"
+  url      = "mysql://root:admin123@localhost:3306/axxis-citas"
 }
 
 model cita {
@@ -79,8 +79,7 @@ model observaciones {
   fechaObser DateTime @db.Date
   textObser  String   @db.Text
   estado     String   @db.VarChar(50)
-  docObser   Int      @db.UnsignedInt
-  doctor     doctor2  @relation(fields: [docObser], references: [idDoctor2]) 
+  docObser   Int
 }
 
 model torres {
@@ -94,7 +93,6 @@ model doctor2 {
   estadoDoctor2 String @db.VarChar(150)
   userDoc       String @db.VarChar(150)
   passDoc       String @db.VarChar(200)
-  observaciones observaciones[] 
 }
 
 enum cita_confirmado {

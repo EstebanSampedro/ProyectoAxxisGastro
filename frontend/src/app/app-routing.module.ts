@@ -5,8 +5,11 @@ import { MenuComponent } from './components/menu/menu.component';
 import { RegistroCitasComponent } from './components/citas/registro-citas.component';
 import { ConsultasComponent } from './components/consultas/consultas.component';
 import { ConsultasMenuDocComponent } from './components/consultas-menu-doc/consultas-menu-doc.component';
+import { ConfigUsuariosComponent } from './components/config-usuarios/config-usuarios.component';
 import { ConfigDoctorComponent } from './components/config-doctor/config-doctor.component';
+import { ConfigTorreComponent } from './components/config-torres/config-torres.component';
 import { ObservacionesComponent } from './components/observaciones/observaciones.component';
+
 
 ConfigDoctorComponent
 
@@ -18,7 +21,9 @@ const routes: Routes = [
   { path: 'consultas', component: ConsultasComponent },
   { path: 'consultas-menu-doc/:idDoctor', component: ConsultasMenuDocComponent },
   { path: 'configuraciones/doctores', component: ConfigDoctorComponent },
-  {path:'observaciones', component:ObservacionesComponent}
+  { path: 'configuraciones/usuarios', component: ConfigUsuariosComponent },
+  { path: 'configuraciones/torres', component: ConfigTorreComponent },
+  { path:'observaciones', component:ObservacionesComponent}
 ];
 
 @NgModule({

@@ -6,7 +6,9 @@ import { AppComponent } from './app.component';
 import { RegistroCitasComponent } from './components/citas/registro-citas.component';
 import { ConsultasComponent } from './components/consultas/consultas.component';
 import { ConsultasMenuDocComponent } from './components/consultas-menu-doc/consultas-menu-doc.component';
+import { ConfigUsuariosComponent } from './components/config-usuarios/config-usuarios.component';
 import { ConfigDoctorComponent } from './components/config-doctor/config-doctor.component';
+import { ConfigTorreComponent } from './components/config-torres/config-torres.component';
 import { LoginComponent } from './components/login/login.component';
 import { MainHeaderComponent } from './components/main-header/main-header.component';
 import { MenuComponent } from './components/menu/menu.component';
@@ -31,7 +33,9 @@ const routes: Routes = [
     RegistroCitasComponent,
     ConsultasComponent,
     ConsultasMenuDocComponent,
+    ConfigUsuariosComponent,
     ConfigDoctorComponent,
+    ConfigTorreComponent,
     LoginComponent,
     MainHeaderComponent,
     MenuComponent,

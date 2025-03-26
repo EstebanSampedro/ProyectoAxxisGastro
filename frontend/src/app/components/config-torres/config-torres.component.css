@@ -1,0 +1,109 @@
+.config-torre-container {
+    display: flex;
+    gap: 2rem;
+    padding: 1rem;
+    font-family: Arial, sans-serif;
+  }
+  
+  .torre-list,
+  .torre-form {
+    flex: 1;
+    border: 1px solid #ccc;
+    padding: 1rem;
+    border-radius: 8px;
+    min-width: 250px;
+  }
+  
+  /* LISTA DE TORRES */
+  .torre-list ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .torre-list li {
+    padding: 0.5rem;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .torre-list li:hover {
+    background-color: #f2f2f2;
+  }
+  
+  .torre-list li.selected {
+    background-color: #cce5ff;
+  }
+  
+  /* FORMULARIO */
+  .torre-form label {
+    display: block;
+    font-weight: bold;
+    margin-top: 0.5rem;
+  }
+  
+  .torre-form input[type="text"] {
+    width: 100%;
+    padding: 0.4rem;
+    margin-bottom: 0.5rem;
+    box-sizing: border-box;
+  }
+  
+  /* BOTONES */
+  .btns {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  
+  .btns button {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+  }
+  
+  /* Botón Nuevo: Amarillo */
+  .btn-nuevo {
+    background-color: #ffc107;
+    color: #121212;
+  }
+  .btn-nuevo:hover {
+    background-color: #e0a800;
+  }
+  
+  /* Botón Crear: Verde */
+  .btn-crear {
+    background-color: #28a745;
+    color: #fff;
+  }
+  .btn-crear:hover {
+    background-color: #218838;
+  }
+  
+  /* Botón Modificar: Gris neutro */
+  .btn-modificar {
+    background-color: #6c757d;
+    color: #fff;
+  }
+  .btn-modificar:hover {
+    background-color: #5a6268;
+  }
+  
+  /* Botón Borrar: Rojo */
+  .btn-borrar {
+    background-color: #dc3545;
+    color: #fff;
+  }
+  .btn-borrar:hover {
+    background-color: #c82333;
+  }
+  
+  /* Botones deshabilitados */
+  .btns button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  

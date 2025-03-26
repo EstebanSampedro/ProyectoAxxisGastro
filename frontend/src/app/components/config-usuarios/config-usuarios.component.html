@@ -1,0 +1,53 @@
+<app-main-header></app-main-header>
+<app-nav-bar></app-nav-bar>
+
+<div class="config-usuario-container">
+  <h2>Configuración de Usuarios</h2>
+
+  <!-- LISTADO DE USUARIOS -->
+  <div class="usuario-list">
+    <h3>Lista de Usuarios</h3>
+    <ul>
+      <li 
+        *ngFor="let usuario of usuarios"
+        [class.selected]="selectedUsuario?.idmedico === usuario.idmedico"
+        (click)="selectUsuario(usuario)">
+        {{ usuario.nombreMedico }} - <strong>{{ usuario.permiso }}</strong>
+      </li>
+    </ul>
+  </div>
+
+  <!-- FORMULARIO PARA CREAR / EDITAR USUARIO -->
+  <div class="usuario-form">
+    <h3>Datos del Usuario</h3>
+
+    <label for="nombreMedico">Nombre</label>
+    <input id="nombreMedico" type="text" [(ngModel)]="usuarioForm.nombreMedico" />
+
+    <label for="cedulaMedico">Cédula</label>
+    <input id="cedulaMedico" type="text" [(ngModel)]="usuarioForm.cedulaMedico" />
+
+    <label for="user">Usuario</label>
+    <input id="user" type="text" [(ngModel)]="usuarioForm.user" />
+
+    <label for="pass">Password</label>
+    <input id="pass" type="password" [(ngModel)]="usuarioForm.pass" />
+
+    <label for="permiso">Permiso</label>
+    <select id="permiso" [(ngModel)]="usuarioForm.permiso">
+      <option value="ADMINISTRADOR">ADMINISTRADOR</option>
+      <option value="USUARIO">USUARIO</option>
+    </select>
+
+    <label for="codigoMedico">Iniciales</label>
+    <input id="codigoMedico" type="text" [(ngModel)]="usuarioForm.codigoMedico" />
+
+    <!-- BOTONES -->
+    <div class="btns">
+      <button class="btn-nuevo" (click)="newUsuario()">Nuevo</button>
+      <button class="btn-crear" (click)="createUsuario()" [disabled]="selectedUsuario">Crear</button>
+      <button class="btn-modificar" (click)="updateUsuario()" [disabled]="!selectedUsuario">Modificar</button>
+      <button class="btn-borrar" (click)="deleteUsuario()" [disabled]="!selectedUsuario">Borrar</button>
+    </div>
+  </div>
+</div>

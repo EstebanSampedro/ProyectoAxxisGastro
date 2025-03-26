@@ -1,0 +1,113 @@
+.config-usuario-container {
+  display: flex;
+  gap: 2rem;
+  padding: 1rem;
+  font-family: Arial, sans-serif;
+}
+
+.usuario-list,
+.usuario-form {
+  flex: 1;
+  border: 1px solid #ccc;
+  padding: 1rem;
+  border-radius: 8px;
+  min-width: 250px;
+}
+
+/* LISTA DE USUARIOS */
+.usuario-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.usuario-list li {
+  padding: 0.5rem;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+}
+
+.usuario-list li:hover {
+  background-color: #f2f2f2;
+}
+
+.usuario-list li.selected {
+  background-color: #cce5ff;
+}
+
+/* FORMULARIO */
+.usuario-form label {
+  display: block;
+  font-weight: bold;
+  margin-top: 0.5rem;
+}
+
+.usuario-form input[type="text"],
+.usuario-form input[type="password"],
+.usuario-form select {
+  width: 100%;
+  padding: 0.4rem;
+  margin-bottom: 0.5rem;
+  box-sizing: border-box;
+}
+
+/* BOTONES */
+.btns {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.btns button {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+/* Botón Nuevo: Amarillo */
+.btn-nuevo {
+  background-color: #ffc107;
+  color: #121212;
+}
+
+.btn-nuevo:hover {
+  background-color: #e0a800;
+}
+
+/* Botón Crear: Verde */
+.btn-crear {
+  background-color: #28a745;
+  color: #fff;
+}
+
+.btn-crear:hover {
+  background-color: #218838;
+}
+
+/* Botón Modificar: Gris neutro */
+.btn-modificar {
+  background-color: #6c757d;
+  color: #fff;
+}
+
+.btn-modificar:hover {
+  background-color: #5a6268;
+}
+
+/* Botón Borrar: Rojo */
+.btn-borrar {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+.btn-borrar:hover {
+  background-color: #c82333;
+}
+
+.btns button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
