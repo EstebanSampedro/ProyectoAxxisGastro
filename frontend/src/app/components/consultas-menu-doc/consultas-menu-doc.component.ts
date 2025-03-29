@@ -204,7 +204,7 @@ export class ConsultasMenuDocComponent implements OnInit {
       hora: slot,
       horaTermina: horaFin,
       paciente: this.newCitaData.paciente || 'Paciente X',
-      edad: 30,
+      edad: this.newCitaData.edad || '',
       telefono: this.newCitaData.telefono || '',
       procedimiento: this.newCitaData.procedimiento || '',
       imagen: this.newCitaData.imagen || '',
@@ -217,7 +217,8 @@ export class ConsultasMenuDocComponent implements OnInit {
       observaciones2: '',
       colorCita: this.newCitaData.colorCita || '#FFFFFF',
       cedula: this.newCitaData.cedula || '',
-      recordatorioEnv: false
+      recordatorioEnv: false,
+      tipoCita : 'consulta'
     };
 
     this.http.post('http://localhost:3000/api/citas/register', body).subscribe({

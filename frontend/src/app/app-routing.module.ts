@@ -8,6 +8,7 @@ import { ConsultasMenuDocComponent } from './components/consultas-menu-doc/consu
 import { ConfigUsuariosComponent } from './components/config-usuarios/config-usuarios.component';
 import { ConfigDoctorComponent } from './components/config-doctor/config-doctor.component';
 import { ConfigTorreComponent } from './components/config-torres/config-torres.component';
+import { RespaldoExcelComponent } from './components/respaldo-excel/respaldo-excel.component';
 import { ObservacionesComponent } from './components/observaciones/observaciones.component';
 
 
@@ -23,7 +24,8 @@ const routes: Routes = [
   { path: 'configuraciones/doctores', component: ConfigDoctorComponent },
   { path: 'configuraciones/usuarios', component: ConfigUsuariosComponent },
   { path: 'configuraciones/torres', component: ConfigTorreComponent },
-  { path:'observaciones', component:ObservacionesComponent}
+  { path: 'respaldo-excel', component: RespaldoExcelComponent },
+  { path: 'observaciones', component:ObservacionesComponent}
 ];
 
 @NgModule({

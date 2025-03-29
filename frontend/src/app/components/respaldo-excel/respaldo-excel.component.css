@@ -1,0 +1,15 @@
+.respaldo-container {
+    padding: 1rem;
+    font-family: Arial, sans-serif;
+  }
+  
+  .date-filters {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .date-filters label {
+    font-weight: bold;
+  }
+  

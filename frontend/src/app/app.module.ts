@@ -22,6 +22,7 @@ import { DatePickerComponent } from './components/date-picker/date-picker.compon
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faChevronRight } from '@fortawesome/free-solid-svg-icons';
 import { faChevronLeft } from '@fortawesome/free-solid-svg-icons';
+import { RespaldoExcelComponent } from './components/respaldo-excel/respaldo-excel.component';
 import { ObservacionesComponent } from './components/observaciones/observaciones.component';
 const routes: Routes = [
   // Define tus rutas aquí
@@ -36,6 +37,7 @@ const routes: Routes = [
     ConfigUsuariosComponent,
     ConfigDoctorComponent,
     ConfigTorreComponent,
+    RespaldoExcelComponent,
     LoginComponent,
     MainHeaderComponent,
     MenuComponent,
