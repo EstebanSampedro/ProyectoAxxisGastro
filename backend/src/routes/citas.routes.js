@@ -6,7 +6,8 @@ const {
   updateCita,
   deleteCita,
   filterCitasByDate,
-  filterCitasByDateAndTower
+  filterCitasByDateAndTower,
+  exportExcelCitas 
 } = require("../controllers/cita.controller");
 
 const router = express.Router();
@@ -18,4 +19,6 @@ router.put("/:id", updateCita);
 router.delete("/:id", deleteCita);
 router.get("/byDate",filterCitasByDate)
 router.get("/byDateAndTower",filterCitasByDateAndTower)
+router.get("/exportExcel", exportExcelCitas);
+
 module.exports = router;

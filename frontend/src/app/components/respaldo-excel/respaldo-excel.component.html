@@ -1,0 +1,16 @@
+<app-main-header></app-main-header>
+<app-nav-bar></app-nav-bar>
+
+<div class="respaldo-container">
+  <h2>RESPALDOS EXCEL</h2>
+
+  <div class="date-filters">
+    <label>Desde:</label>
+    <input type="date" [(ngModel)]="fechaInicio" />
+
+    <label>Hasta:</label>
+    <input type="date" [(ngModel)]="fechaFin" />
+
+    <button (click)="exportarExcel()">EXPORTAR</button>
+  </div>
+</div>

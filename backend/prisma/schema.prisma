@@ -35,6 +35,8 @@ model cita {
   colorCita              String           @db.VarChar(20)
   cedula                 String?          @db.VarChar(100)
   recordatorioEnv        Boolean          @default(false)
+  tipoCita               String?          @db.VarChar(50) 
+
 }
 
 model confirmacion {

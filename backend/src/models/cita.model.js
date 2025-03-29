@@ -26,6 +26,7 @@ class Cita {
       this.colorCita = data.colorCita;
       this.cedula = data.cedula;
       this.recordatorioEnv = data.recordatorioEnv;
+      this.tipoCita = data.tipoCita;
     }
   }
   
