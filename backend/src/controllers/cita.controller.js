@@ -1,6 +1,12 @@
 const prisma = require("../../prisma/prismaClient");
 const Cita = require("../models/cita.model");
 const ExcelJS = require("exceljs"); // <-- importamos exceljs
+const puppeteer = require("puppeteer");
+const path = require("path");
+const PDFDocument = require("pdfkit");
+
+
+
 
 
 /**
@@ -157,6 +163,7 @@ const deleteCita = async (req, res) => {
   }
 };
 
+// RESPALDO EXCEL
 const exportExcelCitas = async (req, res) => {
   try {
     // Se esperan los parámetros "fechaInicio" y "fechaFin" en formato YYYY-MM-DD
@@ -254,6 +261,238 @@ const exportExcelCitas = async (req, res) => {
   }
 };
 
+
+/**
+ * Formatea la hora en formato HH:MM.
+ * Toma la subcadena de la hora del valor ISO.
+ */
+function formatHora(fechaHora) {
+  if (!fechaHora) return "";
+  const isoStr = fechaHora instanceof Date ? fechaHora.toISOString() : fechaHora;
+  return isoStr.substring(11, 16);
+}
+
+// Definición de columnas para la tabla (los anchos están en puntos)
+const columns = [
+  { header: "HORA",          width: 40  },
+  { header: "MEDICO",        width: 100 },
+  { header: "PACIENTE",      width: 100 },
+  { header: "EDAD",          width: 30  },
+  { header: "PROCEDIMI.",    width: 100 },
+  { header: "IMAGEN",        width: 50  },
+  { header: "SOLICITADO",    width: 100 },
+  { header: "INSTITU.",      width: 60  },
+  { header: "SEGURO",        width: 70  },
+  { header: "RESP",          width: 30  },
+  { header: "OBSERVACIONES", width: 120 },
+];
+
+/**
+ * Dibuja una celda: primero dibuja el rectángulo y luego coloca el texto dentro con un pequeño margen.
+ */
+function drawCell(doc, x, y, w, h, text, fontSize = 8, align = "left") {
+  doc.rect(x, y, w, h).stroke();
+  const margin = 2;
+  doc.fontSize(fontSize).text(text, x + margin, y + margin, {
+    width: w - margin * 2,
+    height: h - margin * 2,
+    align,
+  });
+}
+
+/**
+ * Dibuja una fila de la tabla. La altura de la fila se ajusta según el contenido de la última columna.
+ * Retorna la nueva posición Y para la siguiente fila.
+ */
+function drawRow(doc, startX, startY, rowData) {
+  const lastColIndex = columns.length - 1;
+  const lastColWidth = columns[lastColIndex].width;
+  const lastColText = rowData[lastColIndex] || "";
+  
+  // Calcular la altura necesaria para la última columna (MultiCell)
+  doc.font("Helvetica").fontSize(8);
+  const neededHeight = doc.heightOfString(lastColText, { width: lastColWidth - 4 });
+  
+  // Altura mínima para las otras columnas (puedes ajustar)
+  const baseHeight = 15;
+  const rowHeight = Math.max(baseHeight, neededHeight + 4);
+  
+  let currentX = startX;
+  // Dibujar cada celda de la fila
+  for (let i = 0; i < columns.length; i++) {
+    const colWidth = columns[i].width;
+    const text = rowData[i] || "";
+    // Para la última columna, usamos el rowHeight calculado
+    drawCell(doc, currentX, startY, colWidth, rowHeight, text, 6, i === 0 ? "center" : "left");
+    currentX += colWidth;
+  }
+  return startY + rowHeight;
+}
+
+/**
+ * Función que genera el PDF mostrando TODOS los registros para la fecha indicada.
+ * Se recorren las torres del 1 al 4.
+ */
+async function exportImprimirPDF(req, res) {
+  try {
+    const { f } = req.query;
+    if (!f) {
+      return res.status(400).json({ error: "Se requiere la fecha (f)" });
+    }
+    const fecha = f; // p.ej. "2025-04-28"
+    
+    // Rango de fecha: desde el inicio del día hasta antes del siguiente
+    const startDate = new Date(fecha);
+    const endDate = new Date(fecha);
+    endDate.setDate(endDate.getDate() + 1);
+
+    // Consulta la confirmación para el día (si existe)
+    const confirmacionResult = await prisma.$queryRaw`
+      SELECT c.*, m.nombreMedico
+      FROM confirmacion c
+      INNER JOIN medico m ON c.idMedicoConfirma = m.idmedico
+      WHERE c.fechaCita = ${fecha}
+    `;
+    const confirmacion = confirmacionResult[0] || {};
+
+    // Crear el documento PDF en orientación landscape (A4)
+    const doc = new PDFDocument({ layout: "landscape", size: "A4", margin: 20 });
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="respaldo-citas-${fecha}.pdf"`);
+    doc.pipe(res);
+
+    // ----------------- ENCABEZADO -----------------
+    // Logo (imagen desde el backend, asegúrate de que la ruta sea correcta)
+    const imagePath = path.join(__dirname, "../public/images/axxis-gastro.png");
+    doc.image(imagePath, 20, 10, { width: 40 });
+    
+    // Título
+    doc.font("Helvetica-Bold").fontSize(16).text("PROGRAMACION DE PROCEDIMIENTOS", 70, 10);
+    
+    // Día y fecha en celdas a la derecha (simulando FPDF)
+    const fechaObj = new Date(fecha);
+    const dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    const dayName = dias[fechaObj.getDay()] || "";
+
+
+    // Celda para el día
+    //doc.rect(400, 10, 45, 15).stroke();
+    doc.font("Helvetica").fontSize(14).text(dayName.toUpperCase(), 400, 10, { width: 100, align: "center" });
+    // Celda para la fecha
+    //doc.rect(460, 10, 45, 15).stroke();
+    doc.text(fecha, 460, 10, { width: 180, align: "center" });
+    
+    // Espacio para la tabla
+    doc.moveDown();
+    doc.y = 40; // posición inicial de la tabla
+
+    // ----------------- TABLA POR TORRE -----------------
+    for (let k = 1; k < 5; k++) {
+      // Consulta: todos los registros para la torre k en el día
+      const citas = await prisma.$queryRaw`
+        SELECT c.*, m.nombreMedico as nomMedico, d.nomDoctor2 as nomDoctor
+        FROM cita c
+        LEFT JOIN medico m ON c.idResponsable_idMedico = m.idmedico
+        LEFT JOIN doctor2 d ON c.idDoctor_cita = d.idDoctor2
+        WHERE c.torre = ${k}
+          AND c.fecha >= ${startDate} AND c.fecha < ${endDate}
+        ORDER BY c.hora ASC
+      `;
+      console.log(`Torre ${k} - Registros:`, citas);
+
+      // Si hay registros para esta torre, se dibuja la tabla
+      if (citas.length > 0) {
+        // Título de la torre
+        const confTorre = confirmacion[`confTorre${k}`] || "";
+        const tableWidth = columns.reduce((sum, col) => sum + col.width, 0);
+        doc.font("Helvetica-Bold")
+     .fontSize(10)
+     .text(`TORRE ${k}  -  ${confTorre}`, 20, doc.y, { width: tableWidth, align: "center" });
+  doc.moveDown(0.5);
+        
+        // Encabezado de la tabla
+        let startX = 20;
+        let startY = 50;
+        const headerHeight = 15;
+        doc.font("Helvetica-Bold").fontSize(8);
+        let tmpX = startX;
+        for (const col of columns) {
+          doc.rect(tmpX, startY, col.width, headerHeight).stroke();
+          doc.text(col.header, tmpX + 2, startY + 4, { width: col.width - 4, align: "center" });
+          tmpX += col.width;
+        }
+        // Actualizamos Y
+        startY += headerHeight;
+        doc.y = startY;
+        
+        // Filas de datos
+        doc.font("Helvetica").fontSize(8);
+        for (const fila of citas) {
+          const rowData = [
+            formatHora(fila.hora),               // HORA
+            fila.nomDoctor || "",                // MEDICO
+            fila.paciente || "",                 // PACIENTE
+            fila.edad != null ? String(fila.edad) : "", // EDAD
+            fila.procedimiento || "",            // PROC.
+            fila.imagen || "",                   // IMAGEN
+            fila.pedido || "",                   // SOLICITADO
+            fila.institucion || "",              // INST.
+            fila.seguro || "",                   // SEGURO
+            fila.codigoMedico || "",             // RESP
+            fila.observaciones || "",            // OBSERVACIONES
+          ];
+          // Dibuja la fila y actualiza la posición Y
+          const newY = drawRow(doc, startX, doc.y, rowData);
+          doc.y = newY;
+        }
+        // Salto de línea entre torres
+        doc.moveDown(1);
+      }
+    }
+
+      // ----------------- SECCIÓN DE FIRMAS -----------------
+    // Dejamos espacio suficiente antes de las firmas
+    doc.moveDown(5);
+    const yFirmas = doc.y;
+    // Dividimos la página en dos columnas para las firmas
+    const pageWidth = doc.page.width;
+    const colFirmaWidth = (pageWidth - 40) / 2; // 40 es el total de márgenes horizontales
+
+    // Definimos un ancho menor para las líneas (por ejemplo, 70% del ancho de columna)
+    const signatureLineWidth = colFirmaWidth * 0.5;
+
+    // Para centrar la línea dentro de la columna, calculamos un offset:
+    const offsetLeft = (colFirmaWidth - signatureLineWidth) / 2;
+
+    // Línea de firma para la parte izquierda
+    doc.moveTo(20 + offsetLeft, yFirmas)
+      .lineTo(20 + offsetLeft + signatureLineWidth, yFirmas)
+      .stroke();
+
+    // Línea de firma para la parte derecha
+    doc.moveTo(20 + colFirmaWidth + 20 + offsetLeft, yFirmas)
+      .lineTo(20 + colFirmaWidth + 20 + offsetLeft + signatureLineWidth, yFirmas)
+      .stroke();
+
+    // Texto debajo de las líneas
+    doc.font("Helvetica").fontSize(10);
+    doc.text(`Responsable: ${confirmacion.nombreMedico || ""}`, 20, yFirmas + 5, {
+      width: colFirmaWidth,
+      align: "center",
+    });
+    doc.text("Aprobado por:", 20 + colFirmaWidth + 20, yFirmas + 5, {
+      width: colFirmaWidth,
+      align: "center",
+    });
+
+    doc.end();
+  } catch (error) {
+    console.error("Error generando PDF:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+}
+
+
 module.exports = {
   registerCita,
   filterCitas,
@@ -262,5 +501,6 @@ module.exports = {
   deleteCita,
   filterCitasByDate,
   filterCitasByDateAndTower,
-  exportExcelCitas
+  exportExcelCitas,
+  exportImprimirPDF
 };

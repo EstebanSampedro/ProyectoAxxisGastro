@@ -641,7 +641,11 @@ private cerrarModal(): void {
 }
 
 imprimir() {
-  throw new Error('Method not implemented.');
+  // Convertir la fecha seleccionada a "YYYY-MM-DD"
+  const fechaStr = this.selectedDate.toISOString().split('T')[0];
+  // Llama al endpoint del backend para generar el PDF
+  // Ajusta la URL de acuerdo a la ruta y dominio de tu backend
+  window.open(`http://localhost:3000/api/citas/imprimir?f=${fechaStr}`, '_blank');
   }
  
 }
