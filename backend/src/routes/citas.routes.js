@@ -7,7 +7,8 @@ const {
   deleteCita,
   filterCitasByDate,
   filterCitasByDateAndTower,
-  exportExcelCitas 
+  exportExcelCitas,
+  exportImprimirPDF // Agregamos la función para generar el PDF
 } = require("../controllers/cita.controller");
 
 const router = express.Router();
@@ -17,8 +18,9 @@ router.get("/filter", filterCitas);
 router.get("/", getAllCitas);
 router.put("/:id", updateCita);
 router.delete("/:id", deleteCita);
-router.get("/byDate",filterCitasByDate)
-router.get("/byDateAndTower",filterCitasByDateAndTower)
+router.get("/byDate", filterCitasByDate);
+router.get("/byDateAndTower", filterCitasByDateAndTower);
 router.get("/exportExcel", exportExcelCitas);
+router.get("/imprimir", exportImprimirPDF);
 
 module.exports = router;
