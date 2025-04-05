@@ -10,6 +10,7 @@ import { ConfigDoctorComponent } from './components/config-doctor/config-doctor.
 import { ConfigTorreComponent } from './components/config-torres/config-torres.component';
 import { RespaldoExcelComponent } from './components/respaldo-excel/respaldo-excel.component';
 import { ObservacionesComponent } from './components/observaciones/observaciones.component';
+import { UserdocMenuComponent } from './components/userdoc-menu/userdoc-menu.component';
 
 
 ConfigDoctorComponent
@@ -25,7 +26,9 @@ const routes: Routes = [
   { path: 'configuraciones/usuarios', component: ConfigUsuariosComponent },
   { path: 'configuraciones/torres', component: ConfigTorreComponent },
   { path: 'respaldo-excel', component: RespaldoExcelComponent },
-  { path: 'observaciones', component:ObservacionesComponent}
+  { path: 'observaciones', component: ObservacionesComponent},
+  { path: 'userdoc-menu', component: UserdocMenuComponent }
+
 ];
 
 @NgModule({

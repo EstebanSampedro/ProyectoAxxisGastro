@@ -204,7 +204,7 @@ export class ConsultasMenuDocComponent implements OnInit {
       hora: slot,
       horaTermina: horaFin,
       paciente: this.newCitaData.paciente || 'Paciente X',
-      edad: this.newCitaData.edad || '',
+      edad: this.newCitaData.edad || null,
       telefono: this.newCitaData.telefono || '',
       procedimiento: this.newCitaData.procedimiento || '',
       imagen: this.newCitaData.imagen || '',

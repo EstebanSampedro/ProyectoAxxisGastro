@@ -24,6 +24,7 @@ import { faChevronRight } from '@fortawesome/free-solid-svg-icons';
 import { faChevronLeft } from '@fortawesome/free-solid-svg-icons';
 import { RespaldoExcelComponent } from './components/respaldo-excel/respaldo-excel.component';
 import { ObservacionesComponent } from './components/observaciones/observaciones.component';
+import { UserdocMenuComponent } from './components/userdoc-menu/userdoc-menu.component';
 const routes: Routes = [
   // Define tus rutas aquí
 ];
@@ -43,7 +44,8 @@ const routes: Routes = [
     MenuComponent,
     NavBarComponent,
     DatePickerComponent,
-    ObservacionesComponent
+    ObservacionesComponent,
+    UserdocMenuComponent
   ],
   imports: [
     BrowserModule,  // Esencial para aplicaciones en el navegador
