@@ -70,4 +70,10 @@ export class AuthService {
     }
     return 0;
   }
+
+  getDoctorId(): number {
+    // Supongamos que en tu objeto usuario se guarda la propiedad idDoctor2
+    return this.currentUserValue?.idDoctor2 || 0;
+  }  
+  
 }

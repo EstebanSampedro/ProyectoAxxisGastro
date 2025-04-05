@@ -52,7 +52,7 @@ export class LoginComponent {
           sessionStorage.setItem('token', res.token);
           localStorage.setItem('idDoctor', res.user.idDoctor2)
           // Navega a la ruta protegida para doctores
-          this.router.navigate(['/doctor/dashboard']);
+          this.router.navigate(['/userdoc-menu']);
         },
         error: (err) => {
           console.error('Error en login doctor:', err);

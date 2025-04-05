@@ -1,0 +1,61 @@
+<!-- Se pueden reutilizar componentes globales como el header y el navbar -->
+<app-main-header></app-main-header>
+
+<!-- Encabezado del Doctor -->
+<div class="header-doc">
+  <h1>{{ doctorName }}</h1>
+</div>
+
+<!-- Sección de Fecha y Botón Buscar -->
+<div class="date-section">
+  <label for="fecha">Fecha:</label>
+  <input
+    type="date"
+    id="fecha"
+    [(ngModel)]="selectedDate"
+    (change)="onDateChange()"
+  />
+  <span class="formatted-date">{{ formattedDate }}</span>
+  <button (click)="cargarAgenda()">Buscar</button>
+</div>
+
+<!-- Tabla de Agenda del Doctor -->
+<div class="agenda-section">
+  <table class="agenda-table">
+    <thead>
+      <tr>
+        <th>HORA INICIO</th>
+        <th>HORA FIN</th>
+        <th>TORRE</th>
+        <th>PACIENTE</th>
+        <th>PROCEDIMIENTO</th>
+        <th>TELÉFONO</th>
+        <th>SEGURO</th>
+        <th>CONF.</th>
+        <th>OBSERVACIONES</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let cita of agenda">
+        <td>{{ cita.horaStr }}</td>
+        <td>{{ cita.horaFinStr }}</td>
+        <td>{{ cita.torre }}</td>
+        <td>{{ cita.paciente }}</td>
+        <td>{{ cita.procedimiento }}</td>
+        <td>{{ cita.telefono }}</td>
+        <td>{{ cita.seguro }}</td>
+        <td>{{ cita.confirmado }}</td>
+        <td>{{ cita.observaciones }}</td>
+      </tr>
+      <tr *ngIf="agenda.length === 0">
+        <td colspan="9" class="no-data">No hay citas para esta fecha.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Botones de acción -->
+<div class="actions">
+  <button (click)="cerrarSesion()">Cerrar Sesión</button>
+</div>
+

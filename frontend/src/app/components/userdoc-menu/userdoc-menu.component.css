@@ -1,0 +1,105 @@
+/* Encabezado del Doctor */
+.header-doc {
+    text-align: center;
+    margin: 1rem 0;
+  }
+  
+  .header-doc h1 {
+    font-size: 2rem; /* Ajusta el tamaño según prefieras */
+    color: #333;
+  }
+  
+  /* Sección de Fecha */
+  .date-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .date-section label {
+    font-weight: bold;
+  }
+  
+  .date-section input[type="date"] {
+    padding: 0.3rem;
+    font-size: 1rem;
+  }
+  
+  .formatted-date {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .date-section button {
+    padding: 0.4rem 0.8rem;
+    font-size: 1rem;
+    background-color: #ffc107;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .date-section button:hover {
+    background-color: #e6b800;
+  }
+  
+  /* Tabla de Agenda */
+  .agenda-section {
+    margin: 0 auto;
+    width: 95%;
+  }
+  
+  .agenda-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+  }
+  
+  .agenda-table th,
+  .agenda-table td {
+    border: 1px solid #ccc;
+    padding: 0.5rem;
+    text-align: center;
+    font-size: 0.9rem;
+  }
+  
+  .agenda-table thead {
+    background-color: #80bfff;
+    color: #fff;
+  }
+  
+  .agenda-table tbody tr:hover {
+    background-color: #d9f2ff;
+  }
+  
+  .no-data {
+    text-align: center;
+    font-style: italic;
+  }
+  
+  /* Botones de acción */
+  .actions {
+    text-align: center;
+    margin-top: 1rem;
+  }
+  
+  .actions button {
+    margin: 0 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    background-color: #ffc107;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .actions button:hover {
+    background-color: #e6b800;
+  }
+  
