@@ -3,6 +3,8 @@ const express = require('express');
 const router = express.Router();
 const twilio = require('twilio');
 
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 // Lee las variables de entorno
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken  = process.env.TWILIO_AUTH_TOKEN;

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms'; 
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AuthService } from '../../services/auth.service'; 
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
@@ -421,6 +421,7 @@ export class ConsultasMenuDocComponent implements OnInit {
   }
 
   enviarWhatsApp(cita: any): void {
+    // Prepara el número de teléfono (formato E.164)
     let phoneNumber = cita.telefono.trim();
     if (phoneNumber.startsWith('0')) {
       phoneNumber = phoneNumber.substring(1);
@@ -428,7 +429,37 @@ export class ConsultasMenuDocComponent implements OnInit {
     if (!phoneNumber.startsWith('+')) {
       phoneNumber = '+593' + phoneNumber;
     }
-    const mensaje = `Hola Mundo, tu cita es el día ${this.selectedDate}. Paciente: ${cita.paciente}`;
+  
+    // Construir el mensaje de WhatsApp según el tipo de cita
+    const parsedDate = parse(this.selectedDate, "yyyy-MM-dd", new Date());
+    const fechaFormateada = format(parsedDate, "EEEE dd 'de' MMMM 'del' yyyy", { locale: es });
+    let mensaje = '';
+    const tipo = cita.tipoCita ? cita.tipoCita.toLowerCase() : '';
+  
+    if (tipo === 'consulta') {
+      // Mensaje para CONSULTA
+      mensaje = `Señor(a) ${cita.paciente}, su cita de consulta médica con Dr(a) ${this.doctorName} ha sido programada para el día ${fechaFormateada} a las ${cita.horaStr}. En el área de gastroenterología primer piso del Hospital Axxis, Av. 10 de agosto N39-155 y Av. América frente al Coral de la Y. Favor se solicita su puntual asistencia el día de la consulta. Además, le comunicamos que un día antes de su consulta se volverá a confirmar.`;
+    } else if (tipo === 'cita') {
+      // Mensaje para CITA (procedimiento)
+      mensaje = 
+      `Señor(a) ${cita.paciente} de Axxisgastro le saludamos para recordarle: el día ${fechaFormateada} a las ${cita.horaStr} usted tiene cita para realizarse el procedimiento *${cita.procedimiento}* con Dr(a). ${this.doctorName}.
+      
+Para el día del examen debe acudir con 45 minutos de anticipación a la hora señalada del procedimiento.
+      
+Debe acudir máximo con un familiar o un acompañante. Es obligatorio traer pedido el médico original y la cédula de ciudadanía. Debe seguir las indicaciones adjuntas al pie de la letra.
+      
+Adicionalmente, por favor confírmenos si toma las siguientes pastillas:
+      • Presión
+      • Tiroides
+      • Problemas cardíacos
+      • Diabetes
+      • Anticoagulantes`
+    } else {
+      // Si no es ninguno de los anteriores, usa un mensaje por defecto
+      mensaje = `Hola ${cita.paciente}, su cita está programada para el día ${this.selectedDate} a las ${cita.horaStr}.`;
+    }
+  
+    // Envía el mensaje vía el endpoint de WhatsApp en el backend
     this.http.post('http://localhost:3000/api/whatsapp/send', {
       phone: phoneNumber,
       message: mensaje
@@ -443,6 +474,8 @@ export class ConsultasMenuDocComponent implements OnInit {
       }
     });
   }
+  
+  
   
   // Método para enviar recordatorio (botón WA2)
   enviarRecordatorio(cita: any): void {
