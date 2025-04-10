@@ -25,6 +25,7 @@ import {
   faXmark 
 } from '@fortawesome/free-solid-svg-icons';
 
+
 @Component({
   selector: 'app-registro-citas',
   templateUrl: './registro-citas.component.html',
@@ -192,35 +193,65 @@ export class RegistroCitasComponent implements OnInit {
 
 
    // Método para extraer la hora en formato "HH:mm:00"
-   private extraerHora(fechaString: string): string {
+   extraerHora(fechaString: string): string {
     if (!fechaString) return '';
     const match = fechaString.match(/T(\d{2}:\d{2}):/);
     return match ? `${match[1]}:00` : '';
   }
 
   enviarWhatsApp(cita: any): void {
-      let phoneNumber = cita.telefono.trim();
-      if (phoneNumber.startsWith('0')) {
-        phoneNumber = phoneNumber.substring(1);
-      }
-      if (!phoneNumber.startsWith('+')) {
-        phoneNumber = '+593' + phoneNumber;
-      }
-      const mensaje = `Hola Mundo, tu cita es el día ${this.selectedDate}. Paciente: ${cita.paciente}`;
-      this.http.post('http://localhost:3000/api/whatsapp/send', {
-        phone: phoneNumber,
-        message: mensaje
-      }).subscribe({
-        next: (resp: any) => {
-          console.log('Mensaje enviado:', resp);
-          alert('Mensaje de WhatsApp enviado con éxito');
-        },
-        error: (err) => {
-          console.error('Error al enviar WhatsApp:', err);
-          alert('No se pudo enviar el mensaje de WhatsApp');
-        }
-      });
+    // Prepara el número de teléfono (formato E.164)
+    let phoneNumber = cita.telefono.trim();
+    if (phoneNumber.startsWith('0')) {
+      phoneNumber = phoneNumber.substring(1);
     }
+    if (!phoneNumber.startsWith('+')) {
+      phoneNumber = '+593' + phoneNumber;
+    }
+  
+    // Construir el mensaje de WhatsApp según el tipo de cita
+    const fechaFormateada = format(this.selectedDate, "EEEE dd 'de' MMMM 'del' yyyy", { locale: es });
+    let mensaje = '';
+    const tipo = cita.tipoCita ? cita.tipoCita.toLowerCase() : '';
+  
+    if (tipo === 'consulta') {
+      // Mensaje para CONSULTA
+      mensaje = `Señor(a) ${cita.paciente}, su cita de consulta médica con Dr(a) ${this.doctorName} ha sido programada para el día ${fechaFormateada} a las ${cita.horaStr}. En el área de gastroenterología primer piso del Hospital Axxis, Av. 10 de agosto N39-155 y Av. América frente al Coral de la Y. Favor se solicita su puntual asistencia el día de la consulta. Además, le comunicamos que un día antes de su consulta se volverá a confirmar.`;
+    } else if (tipo === 'cita') {
+      // Mensaje para CITA (procedimiento)
+      mensaje = 
+      `Señor(a) ${cita.paciente} de Axxisgastro le saludamos para recordarle: el día ${fechaFormateada} a las ${cita.horaStr} usted tiene cita para realizarse el procedimiento *${cita.procedimiento}* con Dr(a). ${this.doctorName}.
+      
+Para el día del examen debe acudir con 45 minutos de anticipación a la hora señalada del procedimiento.
+      
+Debe acudir máximo con un familiar o un acompañante. Es obligatorio traer pedido el médico original y la cédula de ciudadanía. Debe seguir las indicaciones adjuntas al pie de la letra.
+      
+Adicionalmente, por favor confírmenos si toma las siguientes pastillas:
+      • Presión
+      • Tiroides
+      • Problemas cardíacos
+      • Diabetes
+      • Anticoagulantes`
+    } else {
+      // Si no es ninguno de los anteriores, usa un mensaje por defecto
+      mensaje = `Hola ${cita.paciente}, su cita está programada para el día ${this.selectedDate} a las ${cita.horaStr}.`;
+    }
+  
+    // Envía el mensaje vía el endpoint de WhatsApp en el backend
+    this.http.post('http://localhost:3000/api/whatsapp/send', {
+      phone: phoneNumber,
+      message: mensaje
+    }).subscribe({
+      next: (resp: any) => {
+        console.log('Mensaje enviado:', resp);
+        alert('Mensaje de WhatsApp enviado con éxito');
+      },
+      error: (err) => {
+        console.error('Error al enviar WhatsApp:', err);
+        alert('No se pudo enviar el mensaje de WhatsApp');
+      }
+    });
+  }
     
     // Método para enviar recordatorio (botón WA2)
     enviarRecordatorio(cita: any): void {
