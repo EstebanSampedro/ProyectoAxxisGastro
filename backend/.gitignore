@@ -58,3 +58,5 @@ build/
 # Archivos de configuración de usuario
 .npmrc
 .yarnrc
+
+src/credentials/

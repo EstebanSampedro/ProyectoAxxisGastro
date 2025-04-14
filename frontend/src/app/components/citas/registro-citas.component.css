@@ -566,3 +566,92 @@
     width: 50%; /* Divide el ancho en dos columnas en desktops */
   }
 }
+
+
+/* ==== Ajusta los estilos de la sección del input de archivos ==== */
+.file-input-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  justify-content: center; /* Opcional: centrar horizontalmente */
+}
+
+/* Un label personalizado para el botón "Examinar..." */
+.file-input-label {
+  background-color: #007bff;
+  color: #fff;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+/* Cambia color al hacer hover en el label */
+.file-input-label:hover {
+  background-color: #0069d9;
+}
+
+/* Ocultamos el input de forma nativa, de modo que el label sea el "botón" */
+.file-input-element {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+  z-index: -1;
+}
+
+/* Para mostrar cuántos archivos fueron seleccionados */
+.file-input-info {
+  font-size: 0.85rem;
+  color: #333;
+}
+
+/* ==== Mejora los botones dentro del modal ==== */
+.modal-buttons {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.modal-buttons button {
+  flex: 1 1 auto;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+  color: #fff; /* texto blanco por defecto */
+}
+
+/* Botón de envío (submit) en verde */
+.btn-submit {
+  background-color: #28a745;
+}
+.btn-submit:hover {
+  background-color: #218838;
+}
+
+/* Botón de cancelar en rojo */
+.btn-cancel {
+  background-color: #dc3545;
+}
+.btn-cancel:hover {
+  background-color: #c82333;
+}
+
+/* ==== Mensaje de éxito ==== */
+.success-message {
+  margin-top: 1rem;
+  color: #155724;
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+  padding: 0.5rem;
+  border-radius: 4px;
+  text-align: center;
+  font-weight: bold;
+}

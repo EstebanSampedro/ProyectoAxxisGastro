@@ -310,3 +310,43 @@
 </div>
 
 
+<!-- Botón para enviar WhatsApp en cada registro se mantiene (ya lo tienes en la columna OPCIONES) -->
+<!-- Aquí se muestra el modal para subir archivos, visible solo para registros de tipo "cita" -->
+<div *ngIf="mostrarModalAdjuntos" class="modal-overlay">
+  <div class="modal">
+    <h3>Adjuntar PDF(s) para el procedimiento</h3>
+    
+    <!-- Muestra el input y debajo un pequeño texto con la cantidad de archivos elegidos -->
+    <div class="file-input-section">
+      <label for="pdfInput" class="file-input-label">Examinar...</label>
+      <input
+        id="pdfInput"
+        type="file"
+        #fileInput
+        (change)="onFilesSelected($event)"
+        multiple
+        accept=".pdf"
+        class="file-input-element"
+      />
+      <span class="file-input-info">
+        {{ selectedFiles?.length || 0 }} archivo(s) seleccionado(s).
+      </span>
+    </div>
+
+    <!-- Mensaje de éxito que se muestra durante 2-3 segundos -->
+    <div *ngIf="successMessage" class="success-message">
+      {{ successMessage }}
+    </div>
+
+    <div class="modal-buttons">
+      <button (click)="uploadAndSend(citaSeleccionada)" class="btn-submit">
+        Enviar WhatsApp con Archivo(s)
+      </button>
+      <button (click)="cerrarModal2()" class="btn-cancel">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
+
