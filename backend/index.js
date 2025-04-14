@@ -9,6 +9,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Servir archivos estáticos de la carpeta "uploads"
+app.use('/uploads', express.static(path.join(__dirname, 'src', 'public', 'uploads')));
+
+
 // Función para cargar rutas de manera segura
 const loadRoute = (routePath, routeUrl) => {
   try {
@@ -31,7 +35,7 @@ loadRoute('./src/routes/doctor.js', '/api/doctores');
 loadRoute('./src/routes/citas.routes.js', '/api/citas');
 loadRoute('./src/routes/whatsapp.js', '/api/whatsapp');
 loadRoute('./src/routes/observacion.general.routes.js', '/api/observaciones');
-loadRoute('./src/routes/torre.routes.js', '/api/torres'); 
+loadRoute('./src/routes/torre.routes.js', '/api/torres');
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;

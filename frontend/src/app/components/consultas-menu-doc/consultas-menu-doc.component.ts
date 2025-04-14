@@ -477,7 +477,6 @@ Adicionalmente, por favor confírmenos si toma las siguientes pastillas:
   
   
   
-  // Método para enviar recordatorio (botón WA2)
   enviarRecordatorio(cita: any): void {
     if (cita.recordatorioEnv) {
       alert('El recordatorio ya fue enviado.');
@@ -486,6 +485,8 @@ Adicionalmente, por favor confírmenos si toma las siguientes pastillas:
     if (!confirm(`¿Está seguro de enviar el recordatorio al paciente "${cita.paciente}"?`)) {
       return;
     }
+  
+    // Formateo del número (asegura formato E.164)
     let phoneNumber = cita.telefono.trim();
     if (phoneNumber.startsWith('0')) {
       phoneNumber = phoneNumber.substring(1);
@@ -493,7 +494,122 @@ Adicionalmente, por favor confírmenos si toma las siguientes pastillas:
     if (!phoneNumber.startsWith('+')) {
       phoneNumber = '+593' + phoneNumber;
     }
-    const mensaje = `Recordatorio: Se le recuerda que su cita es el día ${this.selectedDate}. Paciente: ${cita.paciente}. Por favor confirme su asistencia.`;
+  
+    // Obtener la fecha de mañana (basada en la fecha seleccionada)
+    const fechaHoy = new Date(this.selectedDate);
+    fechaHoy.setDate(fechaHoy.getDate() + 1);
+    // Utilizamos date-fns para formatear la fecha en español
+    const fechaMananaFormateada = format(fechaHoy, "EEEE dd 'de' MMMM 'del' yyyy", { locale: es });
+    
+    let mensaje = '';
+    const tipo = cita.tipoCita ? cita.tipoCita.toLowerCase() : '';
+  
+    // Diferencia de mensajes según el doctor: evaluamos this.doctorName (ya cargado en el componente)
+    if (this.doctorName.toLowerCase().includes("marco luna")) {
+      // Mensaje para DR. MARCO LUNA (consulta)
+      mensaje = 
+  `Buenas tardes de Axxis Gastro, le saludamos de parte del consultorio del Dr. Marco Luna. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
+
+El valor de la consulta médica es de $50 dólares, que lo puede cancelar en efectivo o transferencia bancaria.
+El ingreso al parqueadero actualmente es por la calle Vozandes, y la salida es por la Avenida 10 de agosto.
+
+Por favor, ayúdenos con los nombres completos del paciente y con el número de cédula o pasaporte en caso de ser extranjero.
+
+Tome en cuenta que el hospital se encuentra ubicado en una zona de alto tráfico; recomendamos tener presente las debidas precauciones y llegar oportunamente.
+Si desea certificado médico por su asistencia, hágalo saber en recepción el mismo día de la consulta; caso contrario, tendrá que acercarse posteriormente para solicitar el documento.
+
+Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
+    
+    } else if (this.doctorName.toLowerCase().includes("coello")) {
+      // Mensaje para DR. COELLO (consulta) y dependiente de seguro
+      if (!cita.seguro || cita.seguro.trim() === "") {
+        mensaje = 
+  `Buenos días de Axxis Gastro, le saludamos de parte del consultorio del Dr. Ramiro Coello. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr} de la mañana.
+
+El valor de la consulta es de $60 dólares, que lo puede cancelar en efectivo o transferencia bancaria.
+El ingreso al parqueadero es por la calle Vozandes, y la salida es por la Avenida 10 de agosto.
+
+Por favor, ayúdenos con los nombres completos del paciente y con el número de cédula o pasaporte en caso de ser extranjero.
+
+Tome en cuenta que el hospital se encuentra en una zona de alto tráfico; se recomienda tomar las debidas precauciones y llegar oportunamente.
+Si desea certificado médico por su asistencia, hágalo saber en recepción el mismo día de la consulta; caso contrario, deberá acercarse posteriormente para solicitar el documento.
+
+Por favor, confirme su cita. En el caso de no tener respuesta, su consulta será cancelada.`;
+      } else {
+        mensaje =
+  `Buenos días de Axxis Gastro, le saludamos de parte del consultorio del Dr. Ramiro Coello. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr} de la mañana.
+El valor de la consulta lo puede cancelar en efectivo o transferencia bancaria, de acuerdo al copago que tenga con su seguro médico.
+
+El ingreso al parqueadero es por la calle Vozandes, y la salida es por la Avenida 10 de agosto.
+Por favor, ayúdenos con los nombres completos del paciente y con el número de cédula o pasaporte en caso de ser extranjero.
+Tome en cuenta que el hospital se encuentra en una zona de alto tráfico; se recomienda tomar las debidas precauciones y llegar oportunamente.
+Si desea certificado médico por su asistencia, hágalo saber en recepción el mismo día de la consulta; caso contrario, deberá acercarse posteriormente para solicitar el documento.
+
+Nota: si usted es paciente de SALUD S.A, tenga en cuenta las siguientes recomendaciones:
+  • El doctor aplica el copago en consulta con el plan CERO TRÁMITES y bajo reembolso.
+  • El doctor no trabaja con el plan ODAS.
+Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
+      }
+    } else if (this.doctorName.toLowerCase().includes("cargua")) {
+      // Mensaje para DR. OSWALDO CARGUA
+      mensaje =
+  `Buenos días de Axxis Gastro, le saludamos de parte del consultorio del Dr. Oswaldo Cargua. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
+El valor de la consulta médica lo puede cancelar en efectivo o transferencia bancaria.
+
+El ingreso al parqueadero es por la calle Vozandes, y la salida es por la Avenida 10 de agosto.
+Por favor, ayúdenos con los nombres completos del paciente y con el número de cédula o pasaporte en caso de ser extranjero.
+Tome en cuenta que el hospital se encuentra ubicado en una zona de alto tráfico; se recomienda tomar las debidas precauciones y llegar oportunamente.
+Si desea certificado médico por su asistencia, hágalo saber en recepción el mismo día de la consulta; caso contrario, deberá acercarse posteriormente para solicitar el documento.
+
+Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
+    } else if (this.doctorName.toLowerCase().includes("orellana")) {
+    // Mensaje para DRA. IVONNE ORELLANA
+    mensaje = `Buenos días de Axxis Gastro, le saludamos de parte del consultorio de la Dra. Ivonne Orellana. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
+El valor de la consulta médica lo puede cancelar en efectivo o transferencia bancaria.
+
+El ingreso al parqueadero es por la calle Vozandes, y la salida es por la Avenida 10 de agosto.
+Por favor, ayúdenos con los nombres completos del paciente y con el número de cédula o pasaporte en caso de ser extranjero.
+Tome en cuenta que el hospital se encuentra ubicado en una zona de alto tráfico; recomendamos tomar las debidas precauciones y llegar oportunamente.
+Si desea certificado médico por su asistencia, hágalo saber en recepción el mismo día de la consulta; de lo contrario, deberá acercarse presencialmente luego para solicitar el documento.
+
+Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
+
+  } else if (this.doctorName.toLowerCase().includes("escudero")) {
+    // Mensaje para DRA. PÍA ESCUDERO
+    mensaje = `Buenos días de Axxis Gastro, le saludamos de parte del consultorio de la Dra. Pía Escudero. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
+El valor de la consulta médica lo puede cancelar en efectivo o transferencia bancaria.
+
+El ingreso al parqueadero es por la calle Vozandes, y la salida es por la Avenida 10 de agosto.
+Por favor, ayúdenos con los nombres completos del paciente y con el número de cédula o pasaporte en caso de ser extranjero.
+Tome en cuenta que el hospital se encuentra ubicado en una zona de alto tráfico; recomendamos tomar las debidas precauciones y llegar oportunamente.
+Si desea certificado médico por su asistencia, hágalo saber en recepción el mismo día de la consulta; de lo contrario, deberá acercarse presencialmente luego para solicitar el documento.
+
+Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
+
+  } else if (this.doctorName.toLowerCase().includes("flamain")) {
+    // Mensaje para DR. CARLOS CASTILLO FLAMAIN
+    mensaje = `Buenos días de Axxis Gastro, le saludamos de parte del consultorio del Dr. Carlos Castillo Flamain. Por recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
+Por favor, si dispone de resultados recientes o antiguos (laboratorio, rayos X u otra especialidad) que el doctor aún no haya revisado referentes a su estado de salud, acuda con una copia física. Estos resultados serán anexados a su historia clínica y servirán como antecedente en su tratamiento.
+Recuerde que el valor de la consulta lo puede cancelar en cheque, efectivo o transferencia. Por favor, ayude facilitando la búsqueda de su historia clínica proporcionando los nombres completos del paciente.
+
+Anexo enlace de la ubicación de Axxis Gastro: https://maps.app.goo.gl/q9HtZ6ZrnEG83RjV9 
+
+Actualmente, el ingreso es por la calle Vozandes y la salida por la Avenida 10 de agosto. El consultorio del doctor está ubicado en: Primer piso, Torre de hospitalización, Consultorio 119, Unidad de gastroenterología (Axxis Gastro) junto a Medical Track.
+Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
+
+
+} else {
+      mensaje = `Buenos días de Axxis Gastro, le saludamos de parte del consultorio de ${this.doctorName}. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
+El valor de la consulta médica lo puede cancelar en efectivo o transferencia bancaria.
+
+El ingreso al parqueadero es por la calle Vozandes, y la salida es por la Avenida 10 de agosto. Por favor, ayúdenos con los nombres completos del paciente y con el número de cédula o pasaporte en caso de ser extranjero.
+Tome en cuenta que el hospital se encuentra en una zona de alto tráfico; recomendamos tomar las debidas precauciones y llegar oportunamente.
+Si desea certificado médico por su asistencia, hágalo saber en recepción el mismo día de la consulta; de lo contrario, deberá acercarse presencialmente luego para solicitar el documento.
+
+Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
+    }
+  
+    // Envía el recordatorio vía el endpoint de WhatsApp
     this.http.post('http://localhost:3000/api/whatsapp/send', {
       phone: phoneNumber,
       message: mensaje
@@ -501,7 +617,8 @@ Adicionalmente, por favor confírmenos si toma las siguientes pastillas:
       next: (resp: any) => {
         console.log('Recordatorio enviado:', resp);
         alert('Recordatorio de WhatsApp enviado con éxito');
-     
+        
+        // Actualiza la cita para marcar que ya se envió el recordatorio
         const updateBody = {
           idDoctor_cita: cita.idDoctor_cita,
           fecha: cita.fecha, 
@@ -524,6 +641,7 @@ Adicionalmente, por favor confírmenos si toma las siguientes pastillas:
           cedula: cita.cedula,
           recordatorioEnv: true
         };
+        
         const url = `http://localhost:3000/api/citas/${cita.idCita}`;
         this.http.put(url, updateBody).subscribe({
           next: (resp: any) => {
