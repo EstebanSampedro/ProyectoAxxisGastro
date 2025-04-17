@@ -84,6 +84,15 @@ export class RegistroCitasComponent implements OnInit {
 
   // Para controlar el modo de edición
   editingSlot: string | null = null;
+  // Para el dropdown del doctor a asignar en la cita
+  doctores: any[] = [];
+  selectedDoctorForCita: number = 0; // Este valor se selecciona desde el dropdown
+  adminInitials: string = '';
+
+  admins: { idmedico: number; codigoMedico: string }[] = [];
+
+  
+
 
  
    // Mapeo de códigos de color a nombres legibles
@@ -98,42 +107,84 @@ export class RegistroCitasComponent implements OnInit {
      '#8080c0': 'Gris'
    };
  
+   // Carga la lista de doctores para el dropdown (de la tabla doctor2)
+  cargarDoctores(): void {
+    this.http.get<any[]>('http://localhost:3000/api/doctores').subscribe({
+      next: (data) => {
+        // Mapear para que la propiedad "doctorId" contenga el ID del doctor (doctor2) y "doctor" su nombre.
+        this.doctores = data.map(doc => ({
+          doctorId: doc.idDoctor2,
+          doctor: doc.nomDoctor2
+        }));
+      },
+      error: (err) => {
+        console.error('Error al cargar doctores:', err);
+      }
+    });
+  }
 
   ngOnInit(): void {
+    this.authService.fetchAllAdmins().subscribe({
+      error: err => console.error('No cargan admins:', err)
+    });
+    this.adminInitials = this.authService.currentUserValue?.codigoMedico || '';
     this.idDoctor=obtenerIdDoctorDesdeSessionStorage();
     this.cargarTorres();
     this.generarTimeSlots();
     this.onDateChange();
     this.cargarCitas();
     this.cargarObservaciones();
-
+    this.cargarDoctores();
   }
 
-  cargarCitas(): void {
-    // Convertir la fecha a string con formato YYYY-MM-DD
-    const fechaStr = this.selectedDate.toISOString().split('T')[0];
-    
-    this.citaService.getCitasByDateAndTower(fechaStr, this.selectedTorreId)
-      .subscribe({
-        next: (data) => {
-          this.citas = data.map(cita => {
-            const horaStr = this.extraerHora(cita.hora);
-            const horaFinStr = this.extraerHora(cita.horaTermina);
-            return { 
-              ...cita, 
-              horaStr, 
-              horaFinStr, 
-              cedula: cita.cedula || '',
-              recordatorioEnv: cita.recordatorioEnv || false
-            };
-          });
-          console.log('Consultas:', this.citas);
-        },
-        error: (err) => {
-          console.error('Error al obtener consultas:', err);
-        }
-      });
+  
+  // Método para obtener el nombre del doctor usando el idDoctor_cita (asumiendo que este valor se guardó a partir de la selección en el dropdown)
+  // Agrega este método en tu clase RegistroCitasComponent
+getDoctorName(doctorId: number): string {
+  if (!this.doctores || this.doctores.length === 0) {
+    return '';
   }
+  // Buscamos en la lista de doctores el que tenga doctorId igual al idDoctor_cita
+  const foundDoctor = this.doctores.find(doc => doc.doctorId === doctorId);
+  return foundDoctor ? foundDoctor.doctor : 'No asignado';
+}
+
+cargarCitas(): void {
+  // 1. Convertir la fecha a string "YYYY-MM-DD"
+  const fechaStr = this.selectedDate.toISOString().split('T')[0];
+
+  // 2. Llamar al servicio de citas
+  this.citaService
+    .getCitasByDateAndTower(fechaStr, this.selectedTorreId)
+    .subscribe({
+      next: (data) => {
+        // 3. Mapear cada cita para añadir los campos extra
+        this.citas = data.map(cita => {
+          const horaStr    = this.extraerHora(cita.hora);
+          const horaFinStr = this.extraerHora(cita.horaTermina);
+          // aquí traemos las iniciales del admin que confirmó
+          const responsable = cita.idConfirma_idMedico
+          ? this.authService.getAdminCode(cita.idConfirma_idMedico)
+          : '';
+
+          return {
+            ...cita,
+            horaStr,
+            horaFinStr,
+            cedula:           cita.cedula           || '',
+            recordatorioEnv:  cita.recordatorioEnv  || false,
+            responsable
+          };
+        });
+
+        console.log('Consultas con códigos de admin:', this.citas);
+      },
+      error: (err) => {
+        console.error('Error al obtener consultas:', err);
+      }
+    });
+}
+
 
 
   
@@ -145,6 +196,7 @@ export class RegistroCitasComponent implements OnInit {
     this.editingSlot = slot;
     this.editingCitaId = null;
     this.newCitaData = {
+      idDoctor_cita: 0,  // Por defecto 0 o vacío
       paciente: '',
       telefono: '',
       seguro: '',
@@ -160,7 +212,9 @@ export class RegistroCitasComponent implements OnInit {
   guardarCita(slot: string): void {
     const horaFin = this.calcularFin(slot, 30); // 30 minutos por defecto
     const body = {
-      idDoctor_cita:this.idDoctor,
+      idResponsable_idMedico: this.authService.getAdminId(), // ID del admin (quien crea la cita)
+      // Usamos el valor seleccionado en el dropdown para el doctor a asignar a la cita
+      idDoctor_cita: +this.selectedDoctorForCita,
       fecha: this.selectedDate,
       torre: 1,
       hora: slot,
@@ -180,7 +234,8 @@ export class RegistroCitasComponent implements OnInit {
       colorCita: this.newCitaData.colorCita || '#FFFFFF',
       cedula: this.newCitaData.cedula || '',
       recordatorioEnv: false,
-      tipoCita: 'cita'
+      tipoCita: 'cita',
+      responsable: this.adminInitials
     };
 
     this.http.post('http://localhost:3000/api/citas/register', body).subscribe({
@@ -619,7 +674,7 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
    guardarEdicion(): void {
     const url = `http://localhost:3000/api/citas/${this.newCitaData.idCita}`;
     const body = {
-      idDoctor_cita: this.idDoctor,
+      idDoctor_cita: this.newCitaData.idDoctor_cita ? +this.newCitaData.idDoctor_cita : 0, 
       fecha: this.selectedDate,
       torre: 1,
       hora: this.newCitaData.hora,
@@ -830,6 +885,8 @@ eliminarCita(cita: any): void {
 
   
   const updateBody = {
+    // dentro de updateBody, para el PUT de confirmación
+    idConfirma_idMedico: this.authService.getAdminId(),
     idDoctor_cita: this.citaToConfirm.idDoctor_cita,
     fecha: this.citaToConfirm.fecha,
     torre: this.citaToConfirm.torre || 1,

@@ -1,0 +1,85 @@
+<app-main-header></app-main-header>
+<app-nav-bar></app-nav-bar>
+
+<div class="historial-container">
+  <h2>HISTORIAL DE CITAS</h2>
+
+  <!-- Sección de filtros -->
+  <div class="filtros-section">
+    <label for="fromDate">DESDE:</label>
+    <input type="date" id="fromDate" [(ngModel)]="fromDate" />
+
+    <label for="toDate">HASTA:</label>
+    <input type="date" id="toDate" [(ngModel)]="toDate" />
+
+    <br />
+
+    <label for="doctor">DOCTOR:</label>
+    <select id="doctor" [(ngModel)]="selectedDoctor">
+      <option value="">-- seleccione --</option>
+      <option *ngFor="let doc of doctores" [value]="doc.doctorId">
+        {{ doc.doctor }}
+      </option>
+    </select>
+
+    <label for="patient">PACIENTE:</label>
+    <input type="text" id="patient" placeholder="Opcional" [(ngModel)]="patientName" />
+
+    <button (click)="buscarHistorial()">BUSCAR</button>
+  </div>
+
+  <!-- Nota -->
+  <div class="nota-fecha">
+    {{ notaFecha }}
+  </div>
+
+  <!-- Tabla de resultados -->
+  <div class="historial-result">
+    <p *ngIf="citasHistorial.length > 0">
+      HISTORIAL DE CITAS: DESDE: {{ fromDate }}  HASTA: {{ toDate }}
+    </p>
+
+    <table class="historial-table" *ngIf="citasHistorial.length > 0">
+      <thead>
+        <tr>
+          <th>FECHA CITA</th>
+          <th>HORA CITA</th>
+          <th>TORRE</th>
+          <th>DOCTOR</th>
+          <th>PACIENTE</th>
+          <th>PROCEDIMIENTO</th>
+          <th>INGRESA</th>
+          <th>FECHA INGRESO</th>
+          <th>CONFIRMADA</th>
+          <th>CONFIRMA</th>
+          <th>FECHA CONFIRMA</th>
+          <th>CANCELA</th>
+          <th>FECHA CANCELA</th>
+          <th>OBSERVACIONES</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let cita of citasHistorial">
+          <td>{{ cita.FECHA_CITA }}</td>
+          <td>{{ cita.HORA_CITA }}</td>
+          <td>{{ cita.TORRE }}</td>
+          <td>{{ cita.DOCTOR }}</td>
+          <td>{{ cita.PACIENTE }}</td>
+          <td>{{ cita.PROCEDIMIENTO }}</td>
+          <td>{{ cita.INGRESA }}</td>
+          <td>{{ cita.FECHA_INGRESO }}</td>
+          <td>{{ cita.CONFIRMADA }}</td>
+          <td>{{ cita.CONFIRMA }}</td>
+          <td>{{ cita.FECHA_CONFIRMA }}</td>
+          <td>{{ cita.CANCELA }}</td>
+          <td>{{ cita.FECHA_CANCELA }}</td>
+          <td>{{ cita.OBSERVACIONES }}</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <p *ngIf="citasHistorial.length === 0">
+      No se encontraron resultados.
+    </p>
+  </div>
+</div>

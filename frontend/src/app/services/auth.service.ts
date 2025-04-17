@@ -5,6 +5,11 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import config from '../config/util.json';
 
+export interface Admin {
+  idmedico:     number;
+  codigoMedico: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -13,7 +18,10 @@ export class AuthService {
   private currentUserSubject: BehaviorSubject<any>;
   public currentUser: Observable<any>;
 
-  constructor(private http: HttpClient, private router: Router) {
+    /** Caché local de administradores (tabla medico) */
+    private admins: Admin[] = [];
+    
+    constructor(private http: HttpClient, private router: Router) {
     this.currentUserSubject = new BehaviorSubject<any>(
       localStorage.getItem('currentUser') ? JSON.parse(sessionStorage.getItem('currentUser')!) : null
     );
@@ -71,9 +79,24 @@ export class AuthService {
     return 0;
   }
 
-  getDoctorId(): number {
+  getDoctorId():  number {
     // Supongamos que en tu objeto usuario se guarda la propiedad idDoctor2
     return this.currentUserValue?.idDoctor2 || 0;
   }  
+  fetchAllAdmins(): Observable<Admin[]> {
+    return this.http
+      .get<Admin[]>(`${this.baseUrl}/auth/usuarios`)
+      .pipe(tap(list => this.admins = list));
+  }
+
+  /**
+   * Devuelve las siglas (codigoMedico) del admin con ese id,
+   * o cadena vacía si no existe o no viene.
+   */
+  getAdminCode(idmedico?: number): string {
+    if (idmedico == null) return '';
+    const found = this.admins.find(a => a.idmedico === idmedico);
+    return found ? found.codigoMedico : '';
+  }
   
 }

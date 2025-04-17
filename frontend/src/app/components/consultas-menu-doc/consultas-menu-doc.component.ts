@@ -8,6 +8,12 @@ import { es } from 'date-fns/locale';
 import { AuthService } from '../../services/auth.service'; 
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 
+import { Cita } from '../../interfaces/cita';
+import { ConfirmacionBody } from '../../interfaces/confirmacionBody';
+import { ApiResponse } from '../../interfaces/apiResponse';
+import { Observable } from 'rxjs/internal/Observable';
+import { catchError } from 'rxjs/internal/operators/catchError';
+
 
 
 @Component({
@@ -36,6 +42,8 @@ export class ConsultasMenuDocComponent implements OnInit {
 
   // Objeto que guarda los datos del formulario inline (para nuevo registro o edición)
   newCitaData: any = {};
+  adminInitials: string = '';
+  admins: { idmedico: number; codigoMedico: string }[] = [];
 
   // Mapeo de códigos de color a nombres legibles
   colorNames: { [key: string]: string } = {
@@ -58,6 +66,11 @@ export class ConsultasMenuDocComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    
+    this.authService.fetchAllAdmins().subscribe({
+      error: err => console.error('No cargan admins:', err)
+    });
+
     this.idDoctor = this.route.snapshot.paramMap.get('idDoctor') || '';
     this.generarTimeSlots();
 
@@ -108,12 +121,17 @@ export class ConsultasMenuDocComponent implements OnInit {
         this.consultas = data.map(cita => {
           const horaStr = this.extraerHora(cita.hora);
           const horaFinStr = this.extraerHora(cita.horaTermina);
+           // Busca las iniciales del admin que confirmó:
+          const responsable = cita.idConfirma_idMedico
+          ? this.authService.getAdminCode(cita.idConfirma_idMedico)
+          : '';
           return { 
             ...cita, 
             horaStr, 
             horaFinStr, 
             cedula: cita.cedula || '',
-            recordatorioEnv: cita.recordatorioEnv || false
+            recordatorioEnv: cita.recordatorioEnv || false,
+            responsable
           };
         });
         console.log('Consultas:', this.consultas);
@@ -197,7 +215,10 @@ export class ConsultasMenuDocComponent implements OnInit {
   // Guarda la nueva cita (creación)
   guardarCita(slot: string): void {
     const horaFin = this.calcularFin(slot, 30); // 30 minutos por defecto
+    const adminId = this.authService.getAdminId();
+
     const body = {
+      idResponsable_idMedico: adminId,        // ← aquí
       idDoctor_cita: parseInt(this.idDoctor),
       fecha: this.selectedDate,
       torre: 1,
@@ -237,7 +258,10 @@ export class ConsultasMenuDocComponent implements OnInit {
   // Guarda la edición de una cita existente (PUT)
   guardarEdicion(): void {
     const url = `http://localhost:3000/api/citas/${this.newCitaData.idCita}`;
+    const adminId = this.authService.getAdminId();
+
     const body = {
+      idResponsable_idMedico: adminId,   // opcionalmente lo vuelves a enviar
       idDoctor_cita: parseInt(this.idDoctor),
       fecha: this.selectedDate,
       torre: 1,
@@ -330,9 +354,12 @@ export class ConsultasMenuDocComponent implements OnInit {
       console.log('Opción inválida');
       return;
     }
+    const adminId = this.authService.getAdminId();
+
   
     
     const updateBody = {
+      idConfirma_idMedico: adminId,
       idDoctor_cita: this.citaToConfirm.idDoctor_cita,
       fecha: this.citaToConfirm.fecha,
       torre: this.citaToConfirm.torre || 1,
@@ -379,28 +406,25 @@ export class ConsultasMenuDocComponent implements OnInit {
     });
   }
   
-  crearOActualizarConfirmacion(cita: any, estado: string): void {
-    // ID del admin que está confirmando
-    const adminId = this.authService.getAdminId();
-  
-    const body = {
-      fechaCita: cita.fecha,            // "YYYY-MM-DD"
-      idMedicoConfirma: adminId,        // ID admin
-      confDoctor: cita.idDoctor_cita,   // ID del doctor
-      confTorre1: 'OK',
-      fechaConfirma: new Date().toISOString(),
-      estado // "confirmado" | "denegado" | "pendiente"
-    };
-  
-    this.http.post('http://localhost:3000/api/citas/confirmacion', body).subscribe({
-      next: (resp: any) => {
-        console.log('Registro de confirmacion:', resp);
-      },
-      error: (err) => {
-        console.error('Error al crear/actualizar confirmacion:', err);
-      }
-    });
-  }
+private crearOActualizarConfirmacion(cita: Cita, estado: string): Observable<ApiResponse> {
+  const adminId = this.authService.getAdminId();
+
+  const body: ConfirmacionBody = {
+    fechaCita: cita.fecha,
+    idMedicoConfirma: adminId,
+    confDoctor: cita.idDoctor_cita,
+    confTorre1: 'OK',
+    fechaConfirma: new Date().toISOString(),
+    estado,
+  };
+
+  return this.http.post<ApiResponse>('http://localhost:3000/api/citas/confirmacion', body).pipe(
+    catchError((error) => {
+      console.error('Error al crear/actualizar confirmación:', error);
+      throw new Error('No se pudo crear/actualizar la confirmación');
+    })
+  );
+}
   
   
   eliminarConsulta(cita: any): void {
