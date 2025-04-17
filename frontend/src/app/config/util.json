@@ -3,6 +3,7 @@
     "baseUrl": "http://localhost:3000/api",
     "endpoints": {
       "doctores": "/doctores",
+      "auth": "/auth",
       "authAdmin": "/auth/admin",
       "authDoctor": "/auth/doctor",
       "citas": {

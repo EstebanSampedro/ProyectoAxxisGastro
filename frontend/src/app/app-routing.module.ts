@@ -12,8 +12,9 @@ import { RespaldoExcelComponent } from './components/respaldo-excel/respaldo-exc
 import { ObservacionesComponent } from './components/observaciones/observaciones.component';
 import { UserdocMenuComponent } from './components/userdoc-menu/userdoc-menu.component';
 
+import { HistorialCitasComponent } from './components/historial-citas/historial-citas.component';
 
-ConfigDoctorComponent
+
 
 const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -27,7 +28,9 @@ const routes: Routes = [
   { path: 'configuraciones/torres', component: ConfigTorreComponent },
   { path: 'respaldo-excel', component: RespaldoExcelComponent },
   { path: 'observaciones', component: ObservacionesComponent},
-  { path: 'userdoc-menu', component: UserdocMenuComponent }
+  { path: 'userdoc-menu', component: UserdocMenuComponent },
+  { path: 'historial-citas', component: HistorialCitasComponent }
+
 
 ];
 

@@ -27,7 +27,7 @@ export class NavBarComponent {
   }
 
   goToHistorialCitas() {
-    this.router.navigate(['/historial/citas']);
+    this.router.navigate(['/historial-citas']);
   }
 
   goToModificaciones() {

@@ -6,6 +6,9 @@ class Cita {
      * @param {Object} data - Datos de la cita
      */
     constructor(data) {
+      this.idResponsable_idMedico = data.idResponsable_idMedico;
+      this.idConfirma_idMedico = data.idConfirma_idMedico;
+      this.idBorra_idMedico = data.idBorra_idMedico;
       this.idDoctor_cita = data.idDoctor_cita;
       this.fecha = new Date(data.fecha);
       this.torre = data.torre;

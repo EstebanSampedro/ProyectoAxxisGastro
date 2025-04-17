@@ -83,7 +83,12 @@
         <ng-container *ngIf="editingCitaId === cita.idCita; else modoLectura">
           <!-- Inputs en línea para edición -->
           <td>
-            <input type="text" [(ngModel)]="newCitaData.codigoMedico" placeholder="Médico" />
+            <select [(ngModel)]="newCitaData.idDoctor_cita">
+              <option [value]="0">-- Seleccione --</option>
+              <option *ngFor="let doc of doctores" [value]="doc.doctorId">
+                {{ doc.doctor }}
+              </option>
+            </select>
           </td>
           <td>
             <input type="text" [(ngModel)]="newCitaData.paciente" placeholder="Paciente" />
@@ -137,7 +142,7 @@
           </td>
         </ng-container>
           <ng-template #modoLectura>
-            <td>{{ cita.codigoMedico }}</td>
+            <td>{{ getDoctorName(cita.idDoctor_cita) }}</td>
             <td>{{ cita.paciente }}</td>
             <td>{{ cita.edad }}</td>
             <td>{{ cita.telefono }}</td>
@@ -178,7 +183,12 @@
             <!-- Formulario de creación en la misma fila -->
             <!-- MEDICO -->
             <td>
-              <input type="text" [(ngModel)]="newCitaData.codigoMedico" placeholder="Médico" />
+              <select [(ngModel)]="selectedDoctorForCita">
+                <option value="">-- Seleccione --</option>
+                <option *ngFor="let doc of doctores" [value]="doc.doctorId">
+                  {{ doc.doctor }}
+                </option>
+              </select>
             </td>
             
             <!-- PACIENTE -->
@@ -246,7 +256,7 @@
             
             <!-- RESP. -->
             <td>
-              <input type="text" [(ngModel)]="newCitaData.responsable" placeholder="Responsable" />
+              <input type="text" [value]="adminInitials" disabled placeholder="Responsable" />
             </td>
             
             <!-- OPCIONES -->
