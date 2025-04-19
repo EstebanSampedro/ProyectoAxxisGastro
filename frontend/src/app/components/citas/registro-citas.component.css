@@ -289,7 +289,52 @@
   text-align: center;
   border: 1px solid #ccc;
   word-wrap: break-word;
+  white-space: normal;       /* permite saltos de línea */
+  overflow-wrap: break-word; /* quiebra palabras muy largas */
+  word-break: break-word;    /* compatibilidad adicional */
 }
+.consultas-table .options-col {
+  width: 120px;
+}
+
+
+
+.consultas-table .col-paciente {
+  width: 130px;
+}
+
+.consultas-table .col-medico {
+  width: 130px;
+}
+.consultas-table .col-procedimiento {
+  width: 120px;
+}
+.consultas-table .col-observaciones {
+  width: 120px;
+}
+
+/* columnas “pequeñas” */
+.consultas-table .col-edad {
+  width: 40px;
+}
+.consultas-table .col-confirmado {
+  width: 60px;
+}
+.consultas-table .col-responsable {
+  width: 40px;
+}
+
+
+/* permite multilinea en Paciente, Procedimiento y Observaciones */
+.consultas-table td.col-paciente,
+.consultas-table td.col-procedimiento,
+.consultas-table td.col-observaciones {
+  white-space: normal;        /* deja romper línea */
+  word-break: break-word;     /* quiebra palabras largas */
+  overflow-wrap: break-word;  /* alternativa para navegadores */
+  text-align: left;           /* opcional: alinea a la izquierda */
+}
+
 
 .consultas-table th {
   font-style: italic;

@@ -7,12 +7,18 @@ import { format, parseISO, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AuthService } from '../../services/auth.service'; 
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-
+import { formatDate, obtenerIdDoctorDesdeSessionStorage } from '../../shared/common';
 import { Cita } from '../../interfaces/cita';
 import { ConfirmacionBody } from '../../interfaces/confirmacionBody';
 import { ApiResponse } from '../../interfaces/apiResponse';
 import { Observable } from 'rxjs/internal/Observable';
 import { catchError } from 'rxjs/internal/operators/catchError';
+import {faPrint, faMagnifyingGlass,faSave, faWarning} from '@fortawesome/free-solid-svg-icons'
+import { Torre } from '../../interfaces/torre';
+import { TorreService } from '../../services/torres.service';
+import { Observacion } from '../../interfaces/observacion.general';
+import { ObservacionService } from '../../services/observaciones.generales.service';
+import { CitaService } from '../../services/cita.service';
 
 
 
@@ -39,11 +45,21 @@ export class ConsultasMenuDocComponent implements OnInit {
   // Para controlar el modo de edición
   editingSlot: string | null = null;
   editingCitaId: number | null = null;
+  faPrint = faPrint;
+  faSearch = faMagnifyingGlass
+  faSave = faSave;
+  faWarning = faWarning;
+
 
   // Objeto que guarda los datos del formulario inline (para nuevo registro o edición)
   newCitaData: any = {};
   adminInitials: string = '';
   admins: { idmedico: number; codigoMedico: string }[] = [];
+
+
+  flagObservaciones: boolean = false;
+  torres: Torre[] = []; // Lista de torres
+  selectedTorreId: number = 1; // ID de la torre seleccionada
 
   // Mapeo de códigos de color a nombres legibles
   colorNames: { [key: string]: string } = {
@@ -61,7 +77,11 @@ export class ConsultasMenuDocComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private http: HttpClient,
-    private authService: AuthService 
+    private authService: AuthService,
+    private observacionService : ObservacionService,
+    private torreService: TorreService,
+    private citaService : CitaService
+
 
   ) {}
 
@@ -80,6 +100,7 @@ export class ConsultasMenuDocComponent implements OnInit {
 
     this.cargarNombreDoctor();
     this.cargarConsultas();
+    this.cargarTorres();
     this.cargarObservaciones();
   }
 
@@ -94,12 +115,38 @@ export class ConsultasMenuDocComponent implements OnInit {
     }
   }
 
+  cargarTorres(): void {
+    this.torreService.getAllTorres().subscribe(
+      (data) => {
+        this.torres = data;
+        if (this.torres.length > 0) {
+          this.selectedTorreId = this.torres[0].idTorre; // Seleccionar la primera torre por defecto
+          this.cargarConsultas(); // Cargar citas de la primera torre
+        }
+      },
+      (error) => console.error('Error al cargar torres:', error)
+    );
+  }
+
+  selectTorre(torreId: number): void {
+    this.selectedTorreId = torreId;
+    this.editingSlot = null;
+    this.cargarConsultas();
+  }
+
   onDateChange(): void {
     const parsedDate = parseISO(this.selectedDate);
     this.formattedDate = format(parsedDate, "EEEE, dd 'de' MMMM 'del' yyyy", { locale: es });
     this.cargarConsultas();
     this.cargarObservaciones();
   }
+
+  
+    onPickerDateChange(newDateStr: string) {
+      // newDateStr viene como "YYYY-MM-DD"
+      this.selectedDate = newDateStr;  // <— sigue siendo string
+      this.onDateChange(); // formatea y recarga citas y observaciones
+    }
 
   cargarNombreDoctor(): void {
     const url = `http://localhost:3000/api/doctores/${this.idDoctor}`;
@@ -115,31 +162,30 @@ export class ConsultasMenuDocComponent implements OnInit {
   }
 
   cargarConsultas(): void {
-    const url = `http://localhost:3000/api/citas/filter?doctorId=${this.idDoctor}&fecha=${this.selectedDate}`;
-    this.http.get<any[]>(url).subscribe({
-      next: (data) => {
-        this.consultas = data.map(cita => {
-          const horaStr = this.extraerHora(cita.hora);
-          const horaFinStr = this.extraerHora(cita.horaTermina);
-           // Busca las iniciales del admin que confirmó:
-          const responsable = cita.idConfirma_idMedico
-          ? this.authService.getAdminCode(cita.idConfirma_idMedico)
-          : '';
-          return { 
-            ...cita, 
-            horaStr, 
-            horaFinStr, 
-            cedula: cita.cedula || '',
-            recordatorioEnv: cita.recordatorioEnv || false,
-            responsable
-          };
-        });
-        console.log('Consultas:', this.consultas);
-      },
-      error: (err) => {
-        console.error('Error al obtener consultas:', err);
-      }
-    });
+    const fechaStr = this.selectedDate; // ya es "YYYY-MM-DD"
+    // Si usas tu servicio:
+    this.citaService
+      .getCitasByDateAndTower(fechaStr, this.selectedTorreId)
+      .subscribe({
+        next: data => {
+          this.consultas = data.map(cita => {
+            const horaStr    = this.extraerHora(cita.hora);
+            const horaFinStr = this.extraerHora(cita.horaTermina);
+            const responsable = cita.idConfirma_idMedico
+              ? this.authService.getAdminCode(cita.idConfirma_idMedico)
+              : '';
+            return {
+              ...cita,
+              horaStr,
+              horaFinStr,
+              cedula:           cita.cedula           || '',
+              recordatorioEnv:  cita.recordatorioEnv  || false,
+              responsable
+            };
+          });
+        },
+        error: err => console.error('Error al obtener consultas:', err)
+      });
   }
 
   // Extrae la hora en formato "HH:mm:00" de una cadena tipo "1970-01-01T08:00:00.000Z"
@@ -148,6 +194,17 @@ export class ConsultasMenuDocComponent implements OnInit {
     const match = fechaString.match(/T(\d{2}:\d{2}):/);
     return match ? `${match[1]}:00` : '';
   }
+
+    verObservaciones(): void {
+      // Formatea la fecha
+      const fechaDate = parseISO(this.selectedDate);
+      const formattedDate = formatDate(fechaDate);
+      // Guarda la fecha formateada en sessionStorage
+      sessionStorage.setItem('selectedDate', formattedDate);
+      console.log('Fecha guardada:', formattedDate);
+      // Navega a la ruta 'observaciones' sin recargar la página
+      this.router.navigate(['/observaciones']);
+    }
 
   cargarObservaciones(): void {
     const url = `http://localhost:3000/api/citas/observaciones?doctorId=${this.idDoctor}&fecha=${this.selectedDate}`;
@@ -160,6 +217,7 @@ export class ConsultasMenuDocComponent implements OnInit {
       }
     });
   }
+  
 
   guardarObservaciones(): void {
     const url = `http://localhost:3000/api/citas/observaciones`;
@@ -221,7 +279,7 @@ export class ConsultasMenuDocComponent implements OnInit {
       idResponsable_idMedico: adminId,        // ← aquí
       idDoctor_cita: parseInt(this.idDoctor),
       fecha: this.selectedDate,
-      torre: 1,
+      torre: this.selectedTorreId, 
       hora: slot,
       horaTermina: horaFin,
       paciente: this.newCitaData.paciente || 'Paciente X',
@@ -264,7 +322,7 @@ export class ConsultasMenuDocComponent implements OnInit {
       idResponsable_idMedico: adminId,   // opcionalmente lo vuelves a enviar
       idDoctor_cita: parseInt(this.idDoctor),
       fecha: this.selectedDate,
-      torre: 1,
+      torre: this.selectedTorreId, 
       hora: this.newCitaData.hora,
       horaTermina: this.newCitaData.horaTermina,
       paciente: this.newCitaData.paciente || 'Paciente X',
@@ -362,7 +420,7 @@ export class ConsultasMenuDocComponent implements OnInit {
       idConfirma_idMedico: adminId,
       idDoctor_cita: this.citaToConfirm.idDoctor_cita,
       fecha: this.citaToConfirm.fecha,
-      torre: this.citaToConfirm.torre || 1,
+      torre: this.citaToConfirm.torre,
       hora: this.citaToConfirm.horaStr,        // "HH:mm:00"
       horaTermina: this.citaToConfirm.horaFinStr, // "HH:mm:00"
       paciente: this.citaToConfirm.paciente,

@@ -3,15 +3,17 @@
 <div class="container">
   <div class="flex-row">
     <div class="flex-column">
-      <app-date-picker></app-date-picker>
+      <app-date-picker
+        (dateChange)="onPickerDateChange($event)">
+      </app-date-picker>
     </div>
     <div class="flex-column">
       <div class="action-icons">
-        <button class="btn icon-btn" title="Buscar" (click)="cargarCitas()">
-          Buscar
+        <button class="btn icon-btn" title="Buscar" (click)="onDateChange()">
+          Buscar 
           <fa-icon [icon]="faSearch"></fa-icon>
         </button>
-        
+    
         <button class="btn icon-btn" title="Imprimir" (click)="imprimir()">
           Imprimir
           <fa-icon [icon]="faPrint"></fa-icon>
@@ -52,20 +54,21 @@
   <thead>
     <tr>
       <th>HORA</th>
-      <th>MEDICO</th>
-      <th>PACIENTE</th>
-      <th>EDAD</th>
+      <th class="col-medico">MEDICO</th>
+      <th class="col-paciente">PACIENTE</th>
+      <th>CEDULA</th>
+      <th class="col-edad">EDAD</th>
       <th>TELEFONO</th>
-      <th>PROCEDIMIENTO</th>
+      <th class="col-procedimiento">PROCEDIMIENTO</th>
       <th>IMAGEN</th>
       <th>SOLICITADO</th>
       <th>INSTITUCION</th>
       <th>SEGURO</th>
-      <th>OBSERVACIONES</th>
+      <th class="col-observaciones">OBSERVACIONES</th>
       <th>COLOR</th>
-      <th>CONFIR.</th>
-      <th>RESP.</th>
-      <th>OPCIONES</th>
+      <th class="col-confirmado">CONFIR.</th>
+      <th class="col-responsable">RESP.</th>
+        <th class="options-col">OPCIONES</th>
     </tr>
   </thead>
   <!-- Se agrega cdkDropList al tbody -->
@@ -92,6 +95,9 @@
           </td>
           <td>
             <input type="text" [(ngModel)]="newCitaData.paciente" placeholder="Paciente" />
+          </td>
+          <td>
+            <input type="text" [(ngModel)]="newCitaData.cedula" placeholder="Cedula" />
           </td>
           <td>
             <input type="number" [(ngModel)]="newCitaData.edad" placeholder="Edad" />
@@ -144,6 +150,7 @@
           <ng-template #modoLectura>
             <td>{{ getDoctorName(cita.idDoctor_cita) }}</td>
             <td>{{ cita.paciente }}</td>
+            <td>{{ cita.cedula }}</td>
             <td>{{ cita.edad }}</td>
             <td>{{ cita.telefono }}</td>
             <td>{{ cita.procedimiento }}</td>
@@ -195,7 +202,10 @@
             <td>
               <input type="text" [(ngModel)]="newCitaData.paciente" placeholder="Paciente" />
             </td>
-            
+            <!-- CEDULA -->
+            <td>
+              <input type="text" [(ngModel)]="newCitaData.cedula" placeholder="Cedula" />
+            </td>
             <!-- EDAD -->
             <td>
               <input type="number" [(ngModel)]="newCitaData.edad" placeholder="Edad" />
@@ -268,6 +278,7 @@
             </td>
           </ng-container>
           <ng-template #modoVacio>
+            <td></td>
             <td></td>
             <td></td>
             <td></td>
