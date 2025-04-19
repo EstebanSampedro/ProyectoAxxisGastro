@@ -42,15 +42,15 @@ export class ObservacionesComponent implements OnInit {
    * Cargar las observaciones desde el servicio
    */
   cargarObservaciones(): void {
-
-      this.observacionService.filterObservacionesByDate(this.selectedDate).subscribe({
-        next: (data: Observacion[]) => {
+    this.observacionService
+      .filterObservacionesByDate(this.selectedDate)
+      .subscribe({
+        next: data => {
           console.log('Observaciones recibidas:', data);
-          this.observaciones = data; // Asigna directamente el arreglo de observaciones
+          this.observaciones = data; // Ahora es un array, uno por doctor
         },
-        error: (err) => {
-          console.error('Error al cargar observaciones:', err);
-        }
+        error: err => console.error('Error al cargar observaciones:', err)
       });
-    }
+  }
+  
   }

@@ -30,29 +30,30 @@ export class ObservacionService {
   /**
      * Filtrar observaciones por doctor y fecha
      */
-  filterObservaciones(doctorId: number, fecha: Date): Observable<Observacion[]> {
-    // Formatear la fecha a YYYY-MM-DD
-    const fechaFormateada = this.formatDate(fecha);
-    console.log("fechaFormateada", fechaFormateada);
+  filterObservaciones(doctorId: number, fecha: string | Date): Observable<Observacion[]> {
+    // si es Date, lo formateamos; si es string, lo usamos tal cual
+    const fechaStr =
+      typeof fecha === 'string'
+        ? fecha
+        : this.formatDate(fecha);
+
     return this.http.get<Observacion[]>(
-      `${this.apiUrl}${this.endpoints.filter}?doctorId=${doctorId}&fecha=${fechaFormateada}`
+      `${this.apiUrl}${this.endpoints.filter}?doctorId=${doctorId}&fecha=${fechaStr}`
     );
   }
+
 
   
   /**
    * Filtrar observaciones por fecha
    */
   filterObservacionesByDate(fecha: Date): Observable<Observacion[]> {
-    // Formatear la fecha a YYYY-MM-DD
-    const fechaFormateada = this.formatDate(fecha);
-    console.log("fechaFormateada", fechaFormateada);
-
-    // Usar el nuevo endpoint byDate
+    const fechaFormateada = this.formatDate(fecha); // "YYYY-MM-DD"
     return this.http.get<Observacion[]>(
       `${this.apiUrl}${this.endpoints.byDate}?fecha=${fechaFormateada}`
     );
   }
+  
 
    /**
    * Formatear fecha a YYYY-MM-DD
