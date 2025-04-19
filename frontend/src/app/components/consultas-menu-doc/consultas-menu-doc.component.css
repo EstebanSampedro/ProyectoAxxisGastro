@@ -10,6 +10,78 @@
   margin-bottom: 0.75rem; /* reduje un poco */
 }
 
+/* ===================== SECCIÓN DE ACCIONES (FECHA, BOTONES) ===================== */
+/* 1) En el row que envuelve date‑picker + buscar, quita el stretch */
+.container > .flex-row {
+  display: flex;       /* asegúrate de que esté en modo flex */
+  flex-wrap: nowrap;   /* que no se rompa en varias filas */
+  align-items: center; /* alinea verticalmente en el centro */
+  justify-content: flex-start; /* todo empieza a la izquierda */
+  gap: 0.5rem;         /* un espacio pequeñito entre columnas */
+}
+
+/* 2) Evita que las columnas ocupen todo el ancho */
+.container > .flex-row > .flex-column {
+  flex: none;     /* que sólo ocupen lo que realmente pesan */
+  width: auto;    /* ancho automático según su contenido */
+}
+
+/* 3) Opcionalmente afina la posición vertical del botón */
+.action-icons {
+  align-self: flex-start; /* súbelo un pelín hacia arriba */
+  margin-top: 0.2rem;     /* ajusta a tu gusto */
+}
+
+.action-icons .btn {
+  padding: 0.5rem 1rem;
+  background-color: #ffc107;
+  color: #121212;
+  font-weight: bold;
+  border: none;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.action-icons .btn:hover {
+  background-color: #e6b800;
+}
+
+/* ===================== OBSERVACIONES ===================== */
+.observaciones-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.observaciones-section label {
+  font-weight: bold;
+  color: #333;
+}
+
+.observaciones-section textarea {
+  width: 60%;    /* igualito a registro‑citas */
+  resize: vertical;
+}
+
+/* Si usas un botón “Guardar” junto a la textarea */
+.observaciones-section button {
+  background-color: #ffc107;
+  border: none;
+  border-radius: 4px;
+  color: #121212;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+.observaciones-section button:hover {
+  background-color: #e6b800;
+}
+
+
+
 .header-left {
   display: flex;
   flex-direction: column;
@@ -29,6 +101,68 @@
 .header-right img {
   max-height: 45px; /* antes 50px */
 }
+
+/* ===================== SECCIÓN DE FECHA Y BOTONES ===================== */
+.date-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.date-section label {
+  font-weight: bold;
+  color: #333;
+}
+.date-section input[type="date"] {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+.action-icons .btn {
+  background-color: #ffc107;
+  border: none;
+  border-radius: 4px;
+  color: #121212;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+  margin-right: 0.5rem;
+}
+.action-icons .btn:hover {
+  background-color: #e6b800;
+}
+.action-icons {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem; /* un pequeño espacio debajo */
+}
+
+
+
+
+/* ===================== PESTAÑAS DE TORRES ===================== */
+.tab-container {
+  display: flex;
+  border-bottom: 2px solid #ccc;
+  margin-bottom: 1rem;
+}
+.tab {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  border-bottom: none;
+  margin-right: 0.5rem;
+  background-color: #f9f9f9;
+  border-radius: 5px 5px 0 0;
+  transition: background-color 0.2s;
+}
+.tab.active {
+  background-color: #007bff;
+  color: #fff;
+  border-color: #007bff;
+}
+
 
 /* ===================== BARRA DE MENÚ (NAV) ===================== */
 .navbar {

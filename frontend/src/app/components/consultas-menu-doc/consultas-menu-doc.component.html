@@ -6,28 +6,49 @@
   <h1>{{ doctorName }}</h1>
 </div>
 
-<!-- Sección de Fecha y Botón Buscar -->
-<div class="date-section">
-  <label for="fecha">Fecha:</label>
-  <input
-    type="date"
-    id="fecha"
-    [(ngModel)]="selectedDate"
-    (change)="onDateChange()"
-  />
-  <span class="formatted-date">{{ formattedDate }}</span>
-  <button (click)="cargarConsultas()">Buscar</button>
+<div class="container">
+  <div class="flex-row">
+    <div class="flex-column">
+      <app-date-picker
+        (dateChange)="onPickerDateChange($event)">
+      </app-date-picker>
+    </div>
+    <div class="flex-column">
+      <div class="action-icons">
+        <button class="btn icon-btn" title="Buscar" (click)="onDateChange()">
+          Buscar 
+          <fa-icon [icon]="faSearch"></fa-icon>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
-
-<!-- Observaciones Generales -->
-<div class="observaciones-section">
+<div class="observaciones-section container">
+  <button *ngIf="flagObservaciones" title="Existen observaciones" (click)="verObservaciones()" >
+    <fa-icon   [icon]="faWarning"></fa-icon>
+  </button>
   <label for="observaciones">OBSERVACIONES:</label>
   <textarea
     id="observaciones"
     rows="2"
     [(ngModel)]="observaciones"
+    class="responsive-textarea"
   ></textarea>
-  <button (click)="guardarObservaciones()">Guardar</button>
+  <button (click)="guardarObservaciones()" class="btn">Guardar
+    <fa-icon [icon]="faSave">
+    </fa-icon>
+  </button>
+</div>
+<!-- Pestañas de torres -->
+<div class="tab-container">
+  <div
+    *ngFor="let torre of torres"
+    class="tab"
+    [class.active]="selectedTorreId === torre.idTorre"
+    (click)="selectTorre(torre.idTorre)"
+  >
+    {{ torre.textTorre }}
+  </div>
 </div>
 
 <!-- Tabla de Consultas -->

@@ -209,47 +209,67 @@ cargarCitas(): void {
 
 
   // Guarda la nueva cita (creación)
-  guardarCita(slot: string): void {
-    const horaFin = this.calcularFin(slot, 30); // 30 minutos por defecto
-    const body = {
-      idResponsable_idMedico: this.authService.getAdminId(), // ID del admin (quien crea la cita)
-      // Usamos el valor seleccionado en el dropdown para el doctor a asignar a la cita
-      idDoctor_cita: +this.selectedDoctorForCita,
-      fecha: this.selectedDate,
-      torre: 1,
-      hora: slot,
-      horaTermina: horaFin,
-      paciente: this.newCitaData.paciente || 'Paciente X',
-      edad: this.newCitaData.edad || '',
-      telefono: this.newCitaData.telefono || '',
-      procedimiento: this.newCitaData.procedimiento || '',
-      imagen: this.newCitaData.imagen || '',
-      pedido: this.newCitaData.pedido || '',
-      institucion: this.newCitaData.institucion || '',
-      seguro: this.newCitaData.seguro || '',
-      estado: 'activo',
-      confirmado: 'pendiente',
-      observaciones: this.newCitaData.observaciones || '',
-      observaciones2: '',
-      colorCita: this.newCitaData.colorCita || '#FFFFFF',
-      cedula: this.newCitaData.cedula || '',
-      recordatorioEnv: false,
-      tipoCita: 'cita',
-      responsable: this.adminInitials
-    };
+guardarCita(slot: string): void {
+  // 1) Convertimos la fecha al formato YYYY-MM-DD para pasar al filtro
+  const fechaStr = this.selectedDate.toISOString().split('T')[0];
 
-    this.http.post('http://localhost:3000/api/citas/register', body).subscribe({
-      next: (resp: any) => {
-        console.log('Cita agregada:', resp);
-        this.editingSlot = null;
-        this.newCitaData = {};
-        this.cargarCitas();
+  // 2) Primero comprobamos si ese doctor ya tiene cita a esa hora ese día
+  this.citaService.getCitasByDoctorAndDate(+this.selectedDoctorForCita, fechaStr)
+    .subscribe({
+      next: citasDoctor => {
+        const ocupado = citasDoctor.some(c => this.extraerHora(c.hora) === slot);
+        if (ocupado) {
+          // Si ya hay una cita a esa hora, abortamos y mostramos advertencia
+          return alert('❌ Doctor ocupado en este horario');
+        }
+
+        // 3) Si está libre, seguimos con la creación
+        const horaFin = this.calcularFin(slot, 30); // 30 minutos por defecto
+        const body = {
+          idResponsable_idMedico: this.authService.getAdminId(), // quien crea
+          idDoctor_cita: +this.selectedDoctorForCita,
+          fecha: this.selectedDate,
+          torre: this.selectedTorreId,    // ahora sí respetamos la torre activa
+          hora: slot,
+          horaTermina: horaFin,
+          paciente: this.newCitaData.paciente || 'Paciente X',
+          edad: this.newCitaData.edad || '',
+          telefono: this.newCitaData.telefono || '',
+          procedimiento: this.newCitaData.procedimiento || '',
+          imagen: this.newCitaData.imagen || '',
+          pedido: this.newCitaData.pedido || '',
+          institucion: this.newCitaData.institucion || '',
+          seguro: this.newCitaData.seguro || '',
+          estado: 'activo',
+          confirmado: 'pendiente',
+          observaciones: this.newCitaData.observaciones || '',
+          observaciones2: '',
+          colorCita: this.newCitaData.colorCita || '#FFFFFF',
+          cedula: this.newCitaData.cedula || '',
+          recordatorioEnv: false,
+          tipoCita: 'cita',
+          responsable: this.adminInitials
+        };
+
+        this.http.post('http://localhost:3000/api/citas/register', body).subscribe({
+          next: resp => {
+            console.log('Cita agregada:', resp);
+            this.editingSlot = null;
+            this.newCitaData = {};
+            this.cargarCitas();
+          },
+          error: err => {
+            console.error('Error al agregar cita:', err);
+          }
+        });
       },
-      error: (err) => {
-        console.error('Error al agregar cita:', err);
+      error: err => {
+        console.error('Error comprobando citas del doctor:', err);
+        alert('No se pudo verificar la disponibilidad. Inténtalo de nuevo.');
       }
     });
-  }
+}
+
 
 
    // Método para extraer la hora en formato "HH:mm:00"
@@ -635,7 +655,7 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
       const updateBody = {
         idDoctor_cita: draggedCita.idDoctor_cita,
         fecha: draggedCita.fecha, // se asume que ya está en formato adecuado
-        torre: draggedCita.torre || 1,
+        torre: draggedCita.torre,
         hora: newHora,
         horaTermina: newHoraFin,
         paciente: draggedCita.paciente,
@@ -676,7 +696,7 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
     const body = {
       idDoctor_cita: this.newCitaData.idDoctor_cita ? +this.newCitaData.idDoctor_cita : 0, 
       fecha: this.selectedDate,
-      torre: 1,
+      torre: this.selectedTorreId,
       hora: this.newCitaData.hora,
       horaTermina: this.newCitaData.horaTermina,
       paciente: this.newCitaData.paciente || 'Paciente X',
@@ -747,11 +767,19 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
     this.router.navigate(['/observaciones']);
   }
 
+  
+
   onDateChange(): void {
     const parsedDate = typeof this.selectedDate === 'string' ? parseISO(this.selectedDate) : this.selectedDate;
     this.formattedDate = format(parsedDate, "EEEE, dd 'de' MMMM 'del' yyyy", { locale: es });
     this.cargarCitas();
     this.cargarObservaciones();
+  }
+
+  onPickerDateChange(newDateStr: string) {
+    // newDateStr viene como "YYYY-MM-DD"
+    this.selectedDate = new Date(newDateStr);
+    this.onDateChange(); // formatea y recarga citas y observaciones
   }
 
    generarTimeSlots(): void {
@@ -806,6 +834,7 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
 
   selectTorre(torreId: number): void {
     this.selectedTorreId = torreId;
+    this.editingSlot = null;
     this.cargarCitas();
   }
 
@@ -889,7 +918,7 @@ eliminarCita(cita: any): void {
     idConfirma_idMedico: this.authService.getAdminId(),
     idDoctor_cita: this.citaToConfirm.idDoctor_cita,
     fecha: this.citaToConfirm.fecha,
-    torre: this.citaToConfirm.torre || 1,
+    torre: this.citaToConfirm.torre,
     hora: this.citaToConfirm.horaStr,        // "HH:mm:00"
     horaTermina: this.citaToConfirm.horaFinStr, // "HH:mm:00"
     paciente: this.citaToConfirm.paciente,
