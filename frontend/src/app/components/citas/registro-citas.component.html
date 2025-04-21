@@ -23,9 +23,11 @@
   </div>
 </div>
 <div class="observaciones-section container">
-  <button *ngIf="flagObservaciones" title="Existen observaciones" (click)="verObservaciones()" >
-    <fa-icon   [icon]="faWarning"></fa-icon>
-  </button>
+  <!-- Ahora SIEMPRE aparece -->
+<button class="btn icon-btn" title="Ver observaciones" (click)="verObservaciones()">
+  <fa-icon [icon]="faWarning"></fa-icon>
+</button>
+
   <label for="observaciones">OBSERVACIONES:</label>
   <textarea
     id="observaciones"

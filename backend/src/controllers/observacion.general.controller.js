@@ -33,6 +33,9 @@ const getAllObservaciones = async (req, res) => {
 /**
  * Filtrar observaciones por doctor y fecha
  */
+/**
+ * Filtrar observaciones por doctor y fecha (rango de un día completo)
+ */
 const filterObservaciones = async (req, res) => {
   try {
     const { doctorId, fecha } = req.query;
@@ -40,12 +43,21 @@ const filterObservaciones = async (req, res) => {
       return res.status(400).json({ error: "doctorId y fecha son requeridos." });
     }
 
+    // Partimos de "YYYY-MM-DD"
+    const start = new Date(fecha);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(fecha);
+    end.setHours(23, 59, 59, 999);
+
     const observaciones = await prisma.observaciones.findMany({
       where: {
         docObser: parseInt(doctorId, 10),
-        fechaObser: new Date(fecha),
+        fechaObser: {
+          gte: start,
+          lte: end
+        }
       },
-      orderBy: { fechaObser: "asc" },
+      orderBy: { fechaObser: "asc" }
     });
 
     res.json(observaciones);
@@ -54,6 +66,7 @@ const filterObservaciones = async (req, res) => {
     res.status(500).json({ error: "Error interno del servidor" });
   }
 };
+
 
 /**
  * Filtrar observaciones por fecha y hacer JOIN con la tabla de doctores

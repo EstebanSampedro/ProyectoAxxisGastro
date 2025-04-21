@@ -13,6 +13,7 @@ import { ObservacionesComponent } from './components/observaciones/observaciones
 import { UserdocMenuComponent } from './components/userdoc-menu/userdoc-menu.component';
 
 import { HistorialCitasComponent } from './components/historial-citas/historial-citas.component';
+import { HistorialModComponent } from './components/historial-mod/historial-mod.component';
 
 
 
@@ -29,7 +30,8 @@ const routes: Routes = [
   { path: 'respaldo-excel', component: RespaldoExcelComponent },
   { path: 'observaciones', component: ObservacionesComponent},
   { path: 'userdoc-menu', component: UserdocMenuComponent },
-  { path: 'historial-citas', component: HistorialCitasComponent }
+  { path: 'historial-citas', component: HistorialCitasComponent },
+  { path: 'historial-citas-modif', component: HistorialModComponent },
 
 
 ];

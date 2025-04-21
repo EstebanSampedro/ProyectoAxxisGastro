@@ -17,6 +17,10 @@ import { Observable } from 'rxjs/internal/Observable';
 import { catchError } from 'rxjs/internal/operators/catchError';
 import { ConfirmacionBody } from '../../interfaces/confirmacionBody';
 import { ApiResponse } from '../../interfaces/apiResponse';
+import { switchMap } from 'rxjs/operators';
+import { of } from 'rxjs';
+
+
 import { 
   faPhone, 
   faBell, 
@@ -150,38 +154,34 @@ getDoctorName(doctorId: number): string {
 }
 
 cargarCitas(): void {
-  // 1. Convertir la fecha a string "YYYY-MM-DD"
   const fechaStr = this.selectedDate.toISOString().split('T')[0];
-
-  // 2. Llamar al servicio de citas
   this.citaService
     .getCitasByDateAndTower(fechaStr, this.selectedTorreId)
     .subscribe({
-      next: (data) => {
-        // 3. Mapear cada cita para añadir los campos extra
-        this.citas = data.map(cita => {
+      next: data => {
+        // 1) filtramos sólo las activas
+        const activas = data.filter(cita => cita.estado === 'activo');
+
+        // 2) mapeamos las que quedan para añadir horaStr, etc.
+        this.citas = activas.map(cita => {
           const horaStr    = this.extraerHora(cita.hora);
           const horaFinStr = this.extraerHora(cita.horaTermina);
-          // aquí traemos las iniciales del admin que confirmó
           const responsable = cita.idConfirma_idMedico
-          ? this.authService.getAdminCode(cita.idConfirma_idMedico)
-          : '';
-
+            ? this.authService.getAdminCode(cita.idConfirma_idMedico)
+            : '';
           return {
             ...cita,
             horaStr,
             horaFinStr,
-            cedula:           cita.cedula           || '',
-            recordatorioEnv:  cita.recordatorioEnv  || false,
+            cedula:          cita.cedula           || '',
+            recordatorioEnv: cita.recordatorioEnv  || false,
             responsable
           };
         });
 
-        console.log('Consultas con códigos de admin:', this.citas);
+        console.log('Citas activas:', this.citas);
       },
-      error: (err) => {
-        console.error('Error al obtener consultas:', err);
-      }
+      error: err => console.error('Error al obtener consultas:', err)
     });
 }
 
@@ -277,6 +277,108 @@ guardarCita(slot: string): void {
     if (!fechaString) return '';
     const match = fechaString.match(/T(\d{2}:\d{2}):/);
     return match ? `${match[1]}:00` : '';
+  }
+
+  //-------------------
+  cargarTorres(): void {
+    this.torreService.getAllTorres().subscribe(
+      (data) => {
+        this.torres = data;
+        if (this.torres.length > 0) {
+          this.selectedTorreId = this.torres[0].idTorre; // Seleccionar la primera torre por defecto
+          this.cargarCitas(); // Cargar citas de la primera torre
+        }
+      },
+      (error) => console.error('Error al cargar torres:', error)
+    );
+  }
+
+  verObservaciones(): void {
+    // formatea directamente a "YYYY-MM-DD"
+    const formattedDate = format(this.selectedDate, 'yyyy-MM-dd');
+    this.router.navigate(['/observaciones'], {
+      queryParams: { fecha: formattedDate }
+    });
+  }
+
+
+
+  onDateChange(): void {
+    const parsedDate = typeof this.selectedDate === 'string' ? parseISO(this.selectedDate) : this.selectedDate;
+    this.formattedDate = format(parsedDate, "EEEE, dd 'de' MMMM 'del' yyyy", { locale: es });
+    this.cargarCitas();
+    this.cargarObservaciones();
+  }
+
+  onPickerDateChange(newDateStr: string) {
+    // newDateStr viene como "YYYY-MM-DD"
+    this.selectedDate = new Date(newDateStr);
+    this.onDateChange(); // formatea y recarga citas y observaciones
+  }
+
+   generarTimeSlots(): void {
+    const startHour = 7;
+    const endHour = 20;
+    for (let hour = startHour; hour < endHour; hour++) {
+      const slot1 = `${hour.toString().padStart(2, '0')}:00:00`;
+      this.timeSlots.push(slot1);
+      const slot2 = `${hour.toString().padStart(2, '0')}:30:00`;
+      this.timeSlots.push(slot2);
+    }
+  }
+  
+  cargarObservaciones(): void {
+    const docId     = +this.idDoctor;
+    // si selectedDate es Date, lo formateamos, si ya fuera string lo enviaría tal cual
+    const fechaParam =
+      typeof this.selectedDate === 'string'
+        ? this.selectedDate
+        : format(this.selectedDate, 'yyyy-MM-dd');
+  
+    this.observacionService
+      .filterObservaciones(docId, fechaParam)
+      .subscribe({
+        next: data => {
+          if (data.length > 0) {
+            this.observaciones    = data[0].textObser;
+            this.flagObservaciones = true;
+          } else {
+            this.observaciones    = '';
+            this.flagObservaciones = false;
+          }
+        },
+        error: err => console.error('Error al obtener observaciones:', err)
+      });
+  }
+
+  guardarObservaciones(): void {
+    // 1) Formatea la fecha seleccionada a "YYYY-MM-DD"
+    const fechaStr = format(this.selectedDate, 'yyyy-MM-dd');
+    // 2) Crea un Date justo a mediodía (12:00) para neutralizar el offset
+    const fechaObs = new Date(`${fechaStr}T12:00:00Z`);
+  
+    // 3) Construye el body con Date en fechaObser
+    const nuevaObservacion: Observacion = {
+      docObser: this.idDoctor,
+      fechaObser: fechaObs,    // aquí es un Date legítimo
+      textObser: this.observaciones,
+      estado: 'Pendiente'
+    };
+  
+    // 4) Llama al servicio normalmente
+    this.observacionService.registerObservacion(nuevaObservacion).subscribe({
+      next: () => {
+        console.log('Observación guardada/actualizada');
+        this.cargarObservaciones();
+      },
+      error: err => console.error('Error al guardar observación:', err)
+    });
+  }
+
+  selectTorre(torreId: number): void {
+    this.selectedTorreId = torreId;
+    this.editingSlot = null;
+    this.cargarCitas();
   }
 
   // BOTÓN #1 WHATSAPP: Si es "consulta" se envía directamente; si es "cita", se abre el modal para adjuntar archivos.
@@ -688,13 +790,24 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
       });
     }
 
-
+    private crearLog(citaId: number, tipo: 'edicion'|'eliminacion'): Observable<any> {
+      const body = {
+        cita_idCita:     citaId,
+        tipoCambio:      tipo,
+        medico_idMedico: this.authService.getAdminId()
+      };
+      return this.http.post('http://localhost:3000/api/citas/logs', body);
+    }
+    
+    private readonly BASE = 'http://localhost:3000/api/citas';
 
    // Guarda la edición de una cita existente (PUT)
+   /** Guarda la edición de una cita existente (PUT) y luego crea un log de tipo 'edicion' */
    guardarEdicion(): void {
-    const url = `http://localhost:3000/api/citas/${this.newCitaData.idCita}`;
+    const id = this.newCitaData.idCita!;
+    const urlCita = `${this.BASE}/${id}`;
     const body = {
-      idDoctor_cita: this.newCitaData.idDoctor_cita ? +this.newCitaData.idDoctor_cita : 0, 
+      idDoctor_cita: this.newCitaData.idDoctor_cita ? +this.newCitaData.idDoctor_cita : 0,
       fecha: this.selectedDate,
       torre: this.selectedTorreId,
       hora: this.newCitaData.hora,
@@ -716,15 +829,34 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
       recordatorioEnv: this.newCitaData.recordatorioEnv || false
     };
 
-    this.http.put(url, body).subscribe({
-      next: (resp: any) => {
-        console.log('Cita editada:', resp);
+    this.http.put<ApiResponse>(urlCita, body).pipe(
+      // sólo si el PUT sale bien creamos el log
+      switchMap(() => {
+        const logBody = {
+          cita_idCita:     id,
+          tipoCambio:      'edicion',
+          medico_idMedico: this.authService.getAdminId()
+        };
+        return this.http.post<ApiResponse>(
+          `${this.BASE}/logs`,
+          logBody
+        ).pipe(
+          catchError(err => {
+            console.error('Error creando log de edición:', err);
+            return of(null);
+          })
+        );
+      })
+    ).subscribe({
+      next: () => {
+        console.log('Cita editada y (posible) log creado');
         this.editingCitaId = null;
         this.newCitaData = {};
         this.cargarCitas();
       },
-      error: (err) => {
+      error: err => {
         console.error('Error al editar cita:', err);
+        alert('No se pudo editar la cita');
       }
     });
   }
@@ -743,100 +875,7 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
         modificado: true
       };
     }
-  //-------------------
-  cargarTorres(): void {
-    this.torreService.getAllTorres().subscribe(
-      (data) => {
-        this.torres = data;
-        if (this.torres.length > 0) {
-          this.selectedTorreId = this.torres[0].idTorre; // Seleccionar la primera torre por defecto
-          this.cargarCitas(); // Cargar citas de la primera torre
-        }
-      },
-      (error) => console.error('Error al cargar torres:', error)
-    );
-  }
-
-  verObservaciones(): void {
-    // Formatea la fecha
-    const formattedDate = formatDate(this.selectedDate);
-    // Guarda la fecha formateada en sessionStorage
-    sessionStorage.setItem('selectedDate', formattedDate);
-    console.log('Fecha guardada:', formattedDate);
-    // Navega a la ruta 'observaciones' sin recargar la página
-    this.router.navigate(['/observaciones']);
-  }
-
   
-
-  onDateChange(): void {
-    const parsedDate = typeof this.selectedDate === 'string' ? parseISO(this.selectedDate) : this.selectedDate;
-    this.formattedDate = format(parsedDate, "EEEE, dd 'de' MMMM 'del' yyyy", { locale: es });
-    this.cargarCitas();
-    this.cargarObservaciones();
-  }
-
-  onPickerDateChange(newDateStr: string) {
-    // newDateStr viene como "YYYY-MM-DD"
-    this.selectedDate = new Date(newDateStr);
-    this.onDateChange(); // formatea y recarga citas y observaciones
-  }
-
-   generarTimeSlots(): void {
-    const startHour = 7;
-    const endHour = 20;
-    for (let hour = startHour; hour < endHour; hour++) {
-      const slot1 = `${hour.toString().padStart(2, '0')}:00:00`;
-      this.timeSlots.push(slot1);
-      const slot2 = `${hour.toString().padStart(2, '0')}:30:00`;
-      this.timeSlots.push(slot2);
-    }
-  }
-  
-  cargarObservaciones(): void {
-    this.observacionService.filterObservaciones(this.idDoctor, this.selectedDate).subscribe({
-      next: (data: Observacion[]) => {
-        console.log("DATA", data); // Verifica la estructura de la respuesta
-        if (Array.isArray(data) && data.length > 0) {
-          // Asegúrate de que data es un array y tiene al menos un elemento
-          this.observaciones = data[0].textObser; // Asigna el valor de textObser
-          this.flagObservaciones = true;
-          console.log("Observaciones cargadas:", this.observaciones); // Verifica el valor asignado
-        } else {
-          this.observaciones = ''; 
-          this.flagObservaciones = false;
-          console.log("No hay observaciones para mostrar.");
-        }
-      },
-      error: (err) => {
-        console.error('Error al obtener observaciones:', err);
-      }
-    });
-  }
-
-   guardarObservaciones(): void {
-    const nuevaObservacion: Observacion = {
-      fechaObser: new Date(),
-      textObser: this.observaciones,
-      estado: 'Pendiente', 
-      docObser: this.idDoctor
-    };
-    this.observacionService.registerObservacion(nuevaObservacion).subscribe({
-      next: (resp) => {
-        console.log('Observaciones guardadas:', resp);
-        this.cargarObservaciones(); // Llama a la función para recargar las observaciones
-      },
-      error: (err) => {
-        console.error('Error al guardar observaciones:', err);
-      }
-    });
-  }
-
-  selectTorre(torreId: number): void {
-    this.selectedTorreId = torreId;
-    this.editingSlot = null;
-    this.cargarCitas();
-  }
 
 
 
@@ -869,95 +908,109 @@ confirmarCita(cita: Cita): void {
 }
 
 eliminarCita(cita: any): void {
-  const respuesta = window.confirm(`¿Está seguro de eliminar la cita del paciente "${cita.paciente}"?`);
-  if (!respuesta) {
-    return;
-  }
-  const url = `http://localhost:3000/api/citas/${cita.idCita}`;
-  this.http.delete(url).subscribe({
-    next: (resp: any) => {
-      console.log('Cita eliminada:', resp);
-      this.cargarCitas();
-    },
-    error: (err) => {
-      console.error('Error al eliminar cita:', err);
-    }
-  });
-}
- // Cuando el usuario elige una opción en el modal:
- handleConfirmOption(opcion: string): void {
-  if (opcion === 'cancelar') {
-    // Cerrar modal sin hacer nada
-    this.showConfirmModal = false;
-    this.citaToConfirm = null;
+  if (!confirm(`¿Está seguro de eliminar la cita de "${cita.paciente}"?`)) {
     return;
   }
 
-  // Dependiendo la opción, definimos "nuevoConfirmado" en la tabla cita
-  // y "nuevoEstado" en la tabla confirmacion
+  // 1) Soft‑delete en el backend
+  this.http
+    .patch(
+      `http://localhost:3000/api/citas/${cita.idCita}/eliminar`,
+      { medico_idMedico: this.authService.getAdminId() }
+    )
+    .pipe(
+      // 2) Luego creamos el log
+      switchMap(() => this.crearLog(cita.idCita, "eliminacion"))
+    )
+    .subscribe({
+      next: () => {
+        console.log("Cita eliminada y log creado");
+        this.cargarCitas();
+      },
+      error: (err) => {
+        console.error("Error al eliminar cita o crear log:", err);
+        alert("No se pudo eliminar la cita");
+      }
+    });
+}
+
+ // Cuando el usuario elige una opción en el modal:
+ handleConfirmOption(opcion: string): void {
+  if (opcion === 'cancelar') {
+    this.showConfirmModal = false;
+    this.citaToConfirm    = null as any;
+    return;
+  }
+
+  // Determinar valores según la opción
   let nuevoConfirmado: string;
   let nuevoEstado: string;
   if (opcion === 'si') {
     nuevoConfirmado = 'si';
-    nuevoEstado = 'confirmado';
+    nuevoEstado     = 'confirmado';
   } else if (opcion === 'no') {
     nuevoConfirmado = 'no';
-    nuevoEstado = 'denegado';
-  } else if (opcion === 'pendiente') {
-    nuevoConfirmado = 'pendiente';
-    nuevoEstado = 'pendiente';
+    nuevoEstado     = 'denegado';
   } else {
-    // Opción desconocida
-    console.log('Opción inválida');
-    return;
+    nuevoConfirmado = 'pendiente';
+    nuevoEstado     = 'pendiente';
   }
 
-  
+  // 1) Armar el body para actualizar la cita
   const updateBody = {
-    // dentro de updateBody, para el PUT de confirmación
     idConfirma_idMedico: this.authService.getAdminId(),
-    idDoctor_cita: this.citaToConfirm.idDoctor_cita,
-    fecha: this.citaToConfirm.fecha,
-    torre: this.citaToConfirm.torre,
-    hora: this.citaToConfirm.horaStr,        // "HH:mm:00"
-    horaTermina: this.citaToConfirm.horaFinStr, // "HH:mm:00"
-    paciente: this.citaToConfirm.paciente,
-    edad: this.citaToConfirm.edad,
-    telefono: this.citaToConfirm.telefono,
-    procedimiento: this.citaToConfirm.procedimiento || '',
-    imagen: this.citaToConfirm.imagen || '',
-    pedido: this.citaToConfirm.pedido || '',
-    institucion: this.citaToConfirm.institucion || '',
-    seguro: this.citaToConfirm.seguro || '',
-    estado: this.citaToConfirm.estado || 'activo',
-    confirmado: nuevoConfirmado,  // "si" | "no" | "pendiente"
-    observaciones: this.citaToConfirm.observaciones || '',
-    observaciones2: this.citaToConfirm.observaciones2 || '',
-    colorCita: this.citaToConfirm.colorCita || '#FFFFFF',
-    cedula: this.citaToConfirm.cedula || '',
-    recordatorioEnv: this.citaToConfirm.recordatorioEnv || false
+    idDoctor_cita:       this.citaToConfirm.idDoctor_cita,
+    fecha:               this.citaToConfirm.fecha,
+    torre:               this.citaToConfirm.torre,
+    hora:                this.citaToConfirm.horaStr,
+    horaTermina:         this.citaToConfirm.horaFinStr,
+    paciente:            this.citaToConfirm.paciente,
+    edad:                this.citaToConfirm.edad,
+    telefono:            this.citaToConfirm.telefono,
+    procedimiento:       this.citaToConfirm.procedimiento  || '',
+    imagen:              this.citaToConfirm.imagen         || '',
+    pedido:              this.citaToConfirm.pedido         || '',
+    institucion:         this.citaToConfirm.institucion    || '',
+    seguro:              this.citaToConfirm.seguro         || '',
+    estado:              this.citaToConfirm.estado         || 'activo',
+    confirmado:          nuevoConfirmado,
+    observaciones:       this.citaToConfirm.observaciones  || '',
+    observaciones2:      this.citaToConfirm.observaciones2 || '',
+    colorCita:           this.citaToConfirm.colorCita      || '#FFFFFF',
+    cedula:              this.citaToConfirm.cedula         || '',
+    recordatorioEnv:     this.citaToConfirm.recordatorioEnv || false
   };
 
-  // PUT a la cita
   const urlCita = `http://localhost:3000/api/citas/${this.citaToConfirm.idCita}`;
-  this.http.put(urlCita, updateBody).subscribe({
-    next: (resp: any) => {
-      console.log('Cita actualizada:', resp);
 
-      
-      this.crearOActualizarConfirmacion(
-        this.citaToConfirm,
-        nuevoEstado  // "confirmado" | "denegado" | "pendiente"
+  // 2) Primero actualizamos la cita, luego creamos/actualizamos la confirmación
+  this.http.put(urlCita, updateBody).pipe(
+    switchMap(() => {
+      // Armar body de confirmación
+      const body: ConfirmacionBody = {
+        fechaCita:         this.citaToConfirm.fecha,
+        idMedicoConfirma:  this.authService.getAdminId(),
+        confDoctor:        this.citaToConfirm.idDoctor_cita,
+        confTorre1:        'OK',
+        fechaConfirma:     new Date().toISOString(),
+        estado:            nuevoEstado
+      };
+      // POST a /api/citas/confirmacion
+      return this.http.post<ApiResponse>(
+        'http://localhost:3000/api/citas/confirmacion',
+        body
       );
-
-      // Recargar la tabla y cerrar el modal
+    })
+  ).subscribe({
+    next: () => {
+      console.log('Cita y confirmación actualizadas correctamente');
       this.cargarCitas();
       this.showConfirmModal = false;
-      this.citaToConfirm = null;
+      this.citaToConfirm    = null as any;
     },
-    error: (err) => {
-      console.error('Error al actualizar cita:', err);
-      alert('No se pudo actualizar la cita');
+    error: err => {
+      console.error('Error al actualizar cita o confirmación:', err);
+      alert('Ocurrió un problema al confirmar la cita');
     }
   });
 }

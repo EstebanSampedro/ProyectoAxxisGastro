@@ -163,6 +163,134 @@ const deleteCita = async (req, res) => {
   }
 };
 
+const softDeleteCita = async (req, res) => {
+  try {
+    const idCita = parseInt(req.params.id, 10);
+    const { medico_idMedico } = req.body;
+
+    if (medico_idMedico == null) {
+      return res
+        .status(400)
+        .json({ error: "medico_idMedico es requerido para eliminar." });
+    }
+
+    const citaEliminada = await prisma.cita.update({
+      where: { idCita },
+      data: {
+        estado: "eliminado",
+        idBorra_idMedico: Number(medico_idMedico),
+      },
+    });
+
+    res.json({ message: "Cita marcada como eliminada", cita: citaEliminada });
+  } catch (error) {
+    console.error("Error al eliminar (soft) cita:", error);
+    res.status(500).json({ error: "Error interno al eliminar cita" });
+  }
+};
+
+/**
+ * Crea o actualiza una confirmación de cita en la tabla `confirmacion`.
+ */
+const createOrUpdateConfirmacion = async (req, res) => {
+  try {
+    const {
+      fechaCita,        // "YYYY-MM-DD" o Date
+      idMedicoConfirma, // número
+      confDoctor,       // número
+      fechaConfirma,    // ISO string o Date
+      estado,           // "confirmado"|"denegado"|"pendiente"
+      torre             // número entero 1..4
+    } = req.body;
+
+    // Asegúrate de que 'torre' viene como número; si no, conviértelo:
+    const torreNum = parseInt(torre, 10);
+
+    // Calculamos los flags de cada torre (todos son obligatorios en el modelo)
+    const confTorre1 = torreNum === 1 ? "OK" : "";
+    const confTorre2 = torreNum === 2 ? "OK" : "";
+    const confTorre3 = torreNum === 3 ? "OK" : "";
+    const confTorre4 = torreNum === 4 ? "OK" : "";
+
+    // Buscar si ya existe confirmación para este doctor y esta fecha
+    const existente = await prisma.confirmacion.findFirst({
+      where: {
+        confDoctor: parseInt(confDoctor, 10),
+        fechaCita:  new Date(fechaCita)
+      }
+    });
+
+    let resultado;
+    if (existente) {
+      // Actualizar
+      resultado = await prisma.confirmacion.update({
+        where: { idConfirmacion: existente.idConfirmacion },
+        data: {
+          idMedicoConfirma: parseInt(idMedicoConfirma, 10),
+          fechaConfirma:    new Date(fechaConfirma),
+          estado,
+          confTorre1,
+          confTorre2,
+          confTorre3,
+          confTorre4
+        }
+      });
+    } else {
+      // Crear
+      resultado = await prisma.confirmacion.create({
+        data: {
+          fechaCita:        new Date(fechaCita),
+          idMedicoConfirma: parseInt(idMedicoConfirma, 10),
+          confDoctor:       parseInt(confDoctor, 10),
+          fechaConfirma:    new Date(fechaConfirma),
+          estado,
+          confTorre1,
+          confTorre2,
+          confTorre3,
+          confTorre4
+        }
+      });
+    }
+
+    return res.json(resultado);
+  } catch (error) {
+    console.error("Error en createOrUpdateConfirmacion:", error);
+    return res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
+
+// POST /api/citas/logs
+const createLog = async (req, res) => {
+  try {
+    const { cita_idCita, tipoCambio, medico_idMedico } = req.body;
+
+    // Validamos sólo que no sean undefined o null
+    if (cita_idCita == null || tipoCambio == null || medico_idMedico == null) {
+      return res
+        .status(400)
+        .json({ error: "cita_idCita, tipoCambio y medico_idMedico son requeridos." });
+    }
+
+    // Crear el log (DB)
+    const nuevoLog = await prisma.logs.create({
+      data: {
+        cita_idCita:     Number(cita_idCita),
+        tipoCambio:      String(tipoCambio),
+        medico_idMedico: Number(medico_idMedico),
+        // fechaLog por default
+      },
+    });
+
+    return res.json(nuevoLog);
+  } catch (error) {
+    console.error("Error creando log:", error);
+    return res
+      .status(500)
+      .json({ error: "Error interno del servidor al crear log" });
+  }
+};
+
+
 // RESPALDO EXCEL
 const exportExcelCitas = async (req, res) => {
   try {
@@ -486,5 +614,9 @@ module.exports = {
   filterCitasByDate,
   filterCitasByDateAndTower,
   exportExcelCitas,
-  exportImprimirPDF
+  exportImprimirPDF,
+  createOrUpdateConfirmacion,
+  createLog,
+  softDeleteCita
+
 };
