@@ -27,6 +27,7 @@ import { ObservacionesComponent } from './components/observaciones/observaciones
 import { UserdocMenuComponent } from './components/userdoc-menu/userdoc-menu.component';
 
 import { HistorialCitasComponent } from './components/historial-citas/historial-citas.component';
+import { HistorialModComponent } from './components/historial-mod/historial-mod.component';
 
 const routes: Routes = [
   // Define tus rutas aquí
@@ -49,7 +50,8 @@ const routes: Routes = [
     DatePickerComponent,
     ObservacionesComponent,
     UserdocMenuComponent,
-    HistorialCitasComponent
+    HistorialCitasComponent,
+    HistorialModComponent
   ],
   imports: [
     BrowserModule,  // Esencial para aplicaciones en el navegador

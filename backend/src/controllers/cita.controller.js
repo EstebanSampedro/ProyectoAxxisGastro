@@ -163,6 +163,134 @@ const deleteCita = async (req, res) => {
   }
 };
 
+const softDeleteCita = async (req, res) => {
+  try {
+    const idCita = parseInt(req.params.id, 10);
+    const { medico_idMedico } = req.body;
+
+    if (medico_idMedico == null) {
+      return res
+        .status(400)
+        .json({ error: "medico_idMedico es requerido para eliminar." });
+    }
+
+    const citaEliminada = await prisma.cita.update({
+      where: { idCita },
+      data: {
+        estado: "eliminado",
+        idBorra_idMedico: Number(medico_idMedico),
+      },
+    });
+
+    res.json({ message: "Cita marcada como eliminada", cita: citaEliminada });
+  } catch (error) {
+    console.error("Error al eliminar (soft) cita:", error);
+    res.status(500).json({ error: "Error interno al eliminar cita" });
+  }
+};
+
+/**
+ * Crea o actualiza una confirmación de cita en la tabla `confirmacion`.
+ */
+const createOrUpdateConfirmacion = async (req, res) => {
+  try {
+    const {
+      fechaCita,        // "YYYY-MM-DD" o Date
+      idMedicoConfirma, // número
+      confDoctor,       // número
+      fechaConfirma,    // ISO string o Date
+      estado,           // "confirmado"|"denegado"|"pendiente"
+      torre             // número entero 1..4
+    } = req.body;
+
+    // Asegúrate de que 'torre' viene como número; si no, conviértelo:
+    const torreNum = parseInt(torre, 10);
+
+    // Calculamos los flags de cada torre (todos son obligatorios en el modelo)
+    const confTorre1 = torreNum === 1 ? "OK" : "";
+    const confTorre2 = torreNum === 2 ? "OK" : "";
+    const confTorre3 = torreNum === 3 ? "OK" : "";
+    const confTorre4 = torreNum === 4 ? "OK" : "";
+
+    // Buscar si ya existe confirmación para este doctor y esta fecha
+    const existente = await prisma.confirmacion.findFirst({
+      where: {
+        confDoctor: parseInt(confDoctor, 10),
+        fechaCita:  new Date(fechaCita)
+      }
+    });
+
+    let resultado;
+    if (existente) {
+      // Actualizar
+      resultado = await prisma.confirmacion.update({
+        where: { idConfirmacion: existente.idConfirmacion },
+        data: {
+          idMedicoConfirma: parseInt(idMedicoConfirma, 10),
+          fechaConfirma:    new Date(fechaConfirma),
+          estado,
+          confTorre1,
+          confTorre2,
+          confTorre3,
+          confTorre4
+        }
+      });
+    } else {
+      // Crear
+      resultado = await prisma.confirmacion.create({
+        data: {
+          fechaCita:        new Date(fechaCita),
+          idMedicoConfirma: parseInt(idMedicoConfirma, 10),
+          confDoctor:       parseInt(confDoctor, 10),
+          fechaConfirma:    new Date(fechaConfirma),
+          estado,
+          confTorre1,
+          confTorre2,
+          confTorre3,
+          confTorre4
+        }
+      });
+    }
+
+    return res.json(resultado);
+  } catch (error) {
+    console.error("Error en createOrUpdateConfirmacion:", error);
+    return res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
+
+// POST /api/citas/logs
+const createLog = async (req, res) => {
+  try {
+    const { cita_idCita, tipoCambio, medico_idMedico } = req.body;
+
+    // Validamos sólo que no sean undefined o null
+    if (cita_idCita == null || tipoCambio == null || medico_idMedico == null) {
+      return res
+        .status(400)
+        .json({ error: "cita_idCita, tipoCambio y medico_idMedico son requeridos." });
+    }
+
+    // Crear el log (DB)
+    const nuevoLog = await prisma.logs.create({
+      data: {
+        cita_idCita:     Number(cita_idCita),
+        tipoCambio:      String(tipoCambio),
+        medico_idMedico: Number(medico_idMedico),
+        // fechaLog por default
+      },
+    });
+
+    return res.json(nuevoLog);
+  } catch (error) {
+    console.error("Error creando log:", error);
+    return res
+      .status(500)
+      .json({ error: "Error interno del servidor al crear log" });
+  }
+};
+
+
 // RESPALDO EXCEL
 const exportExcelCitas = async (req, res) => {
   try {
@@ -339,155 +467,139 @@ async function exportImprimirPDF(req, res) {
     if (!f) {
       return res.status(400).json({ error: "Se requiere la fecha (f)" });
     }
-    const fecha = f; // p.ej. "2025-04-28"
-    
+    const fecha = f; // "YYYY-MM-DD"
+
     // Rango de fecha: desde el inicio del día hasta antes del siguiente
     const startDate = new Date(fecha);
     const endDate = new Date(fecha);
     endDate.setDate(endDate.getDate() + 1);
 
-    // Consulta la confirmación para el día (si existe)
-    const confirmacionResult = await prisma.$queryRaw`
+    // Consultar confirmación (si existe)
+    const [confirmacion = {}] = await prisma.$queryRaw`
       SELECT c.*, m.nombreMedico
       FROM confirmacion c
-      INNER JOIN medico m ON c.idMedicoConfirma = m.idmedico
+      JOIN medico m ON c.idMedicoConfirma = m.idmedico
       WHERE c.fechaCita = ${fecha}
     `;
-    const confirmacion = confirmacionResult[0] || {};
 
-    // Crear el documento PDF en orientación landscape (A4)
+    // Crear documento PDF en landscape A4
     const doc = new PDFDocument({ layout: "landscape", size: "A4", margin: 20 });
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="respaldo-citas-${fecha}.pdf"`);
     doc.pipe(res);
 
-    // ----------------- ENCABEZADO -----------------
-    // Logo (imagen desde el backend, asegúrate de que la ruta sea correcta)
-    const imagePath = path.join(__dirname, "../public/images/axxis-gastro.png");
-    doc.image(imagePath, 20, 10, { width: 40 });
-    
-    // Título
-    doc.font("Helvetica-Bold").fontSize(16).text("PROGRAMACION DE PROCEDIMIENTOS", 70, 10);
-    
-    // Día y fecha en celdas a la derecha (simulando FPDF)
-    const fechaObj = new Date(fecha);
-    const dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-    const dayName = dias[fechaObj.getDay()] || "";
+    // ——— ENCABEZADO MEJORADO ———
+    const pageWidth = doc.page.width;
+    const headerY   = 10;
+    const logoSize  = 60;
+    const boxW      = 80;
+    const boxH      = 24;
 
+    // Logo más grande
+    const logoPath = path.join(__dirname, "../public/images/axxis-gastro.png");
+    doc.image(logoPath, 20, headerY, { width: logoSize });
 
-    // Celda para el día
-    //doc.rect(400, 10, 45, 15).stroke();
-    doc.font("Helvetica").fontSize(14).text(dayName.toUpperCase(), 400, 10, { width: 100, align: "center" });
-    // Celda para la fecha
-    //doc.rect(460, 10, 45, 15).stroke();
-    doc.text(fecha, 460, 10, { width: 180, align: "center" });
-    
-    // Espacio para la tabla
-    doc.moveDown();
-    doc.y = 40; // posición inicial de la tabla
+    // Título centrado y en 20 pt
+    const title = "PROGRAMACIÓN DE PROCEDIMIENTOS";
+    doc.font("Helvetica-Bold").fontSize(20);
+    const titleWidth = doc.widthOfString(title);
+    doc.text(title, (pageWidth - titleWidth) / 2, headerY + 5);
 
-    // ----------------- TABLA POR TORRE -----------------
-    for (let k = 1; k < 5; k++) {
-      // Consulta: todos los registros para la torre k en el día
-      const citas = await prisma.$queryRaw`
-        SELECT c.*, m.nombreMedico as nomMedico, d.nomDoctor2 as nomDoctor
+    // Día de la semana
+    const dias = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+    const dayName = dias[new Date(fecha).getDay()] || "";
+    const dayX = pageWidth - boxW * 2 - 40;
+    doc
+      .rect(dayX, headerY, boxW, boxH).stroke()
+      .font("Helvetica").fontSize(12)
+      .text(dayName.toUpperCase(), dayX, headerY + 6, { width: boxW, align: "center" });
+
+    // Fecha
+    doc
+      .rect(dayX + boxW + 10, headerY, boxW, boxH).stroke()
+      .text(fecha, dayX + boxW + 10, headerY + 6, { width: boxW, align: "center" });
+
+    // Espacio antes de las tablas
+    doc.moveDown(2);
+
+    // ——— TABLAS POR TORRE ———
+    for (let torre = 1; torre <= 4; torre++) {
+      // Solo registros tipo 'cita'
+      const filas = await prisma.$queryRaw`
+        SELECT c.*, d.nomDoctor2 AS nomDoctor, m.nombreMedico AS codigoMedico
         FROM cita c
-        LEFT JOIN medico m ON c.idResponsable_idMedico = m.idmedico
         LEFT JOIN doctor2 d ON c.idDoctor_cita = d.idDoctor2
-        WHERE c.torre = ${k}
-          AND c.fecha >= ${startDate} AND c.fecha < ${endDate}
-        ORDER BY c.hora ASC
+        LEFT JOIN medico m ON c.idResponsable_idMedico = m.idmedico
+        WHERE c.torre     = ${torre}
+          AND c.tipoCita  = 'cita'
+          AND c.fecha    >= ${startDate}
+          AND c.fecha    <  ${endDate}
+        ORDER BY c.hora
       `;
-      console.log(`Torre ${k} - Registros:`, citas);
+      if (!filas.length) continue;
 
-      // Si hay registros para esta torre, se dibuja la tabla
-      if (citas.length > 0) {
-        // Título de la torre
-        const confTorre = confirmacion[`confTorre${k}`] || "";
-        const tableWidth = columns.reduce((sum, col) => sum + col.width, 0);
-        doc.font("Helvetica-Bold")
-     .fontSize(10)
-     .text(`TORRE ${k}  -  ${confTorre}`, 20, doc.y, { width: tableWidth, align: "center" });
-  doc.moveDown(0.5);
-        
-        // Encabezado de la tabla
-        let startX = 20;
-        let startY = 50;
-        const headerHeight = 15;
-        doc.font("Helvetica-Bold").fontSize(8);
-        let tmpX = startX;
-        for (const col of columns) {
-          doc.rect(tmpX, startY, col.width, headerHeight).stroke();
-          doc.text(col.header, tmpX + 2, startY + 4, { width: col.width - 4, align: "center" });
-          tmpX += col.width;
-        }
-        // Actualizamos Y
-        startY += headerHeight;
-        doc.y = startY;
-        
-        // Filas de datos
-        doc.font("Helvetica").fontSize(8);
-        for (const fila of citas) {
-          const rowData = [
-            formatHora(fila.hora),               // HORA
-            fila.nomDoctor || "",                // MEDICO
-            fila.paciente || "",                 // PACIENTE
-            fila.edad != null ? String(fila.edad) : "", // EDAD
-            fila.procedimiento || "",            // PROC.
-            fila.imagen || "",                   // IMAGEN
-            fila.pedido || "",                   // SOLICITADO
-            fila.institucion || "",              // INST.
-            fila.seguro || "",                   // SEGURO
-            fila.codigoMedico || "",             // RESP
-            fila.observaciones || "",            // OBSERVACIONES
-          ];
-          // Dibuja la fila y actualiza la posición Y
-          const newY = drawRow(doc, startX, doc.y, rowData);
-          doc.y = newY;
-        }
-        // Salto de línea entre torres
-        doc.moveDown(1);
+      // Título de la torre
+      const confT = confirmacion[`confTorre${torre}`] || "";
+      const tableW = columns.reduce((sum, c) => sum + c.width, 0);
+      doc
+        .font("Helvetica-Bold").fontSize(10)
+        .text(`TORRE ${torre}  –  ${confT}`, 20, doc.y, { width: tableW, align: "center" });
+      doc.moveDown(0.5);
+
+      // Encabezados de columnas
+      let x = 20;
+      const headerY2 = doc.y;
+      doc.font("Helvetica-Bold").fontSize(8);
+      for (const col of columns) {
+        doc.rect(x, headerY2, col.width, 15).stroke();
+        doc.text(col.header, x + 2, headerY2 + 4, { width: col.width - 4, align: "center" });
+        x += col.width;
       }
+      doc.y = headerY2 + 15;
+
+      // Filas de datos
+      doc.font("Helvetica").fontSize(8);
+      for (const fila of filas) {
+        const row = [
+          formatHora(fila.hora),            // HORA
+          fila.nomDoctor    || "",          // MEDICO
+          fila.paciente     || "",          // PACIENTE
+          fila.edad != null ? String(fila.edad) : "", // EDAD
+          fila.procedimiento|| "",          // PROCEDIMI.
+          fila.imagen       || "",          // IMAGEN
+          fila.pedido       || "",          // SOLICITADO
+          fila.institucion  || "",          // INSTITU.
+          fila.seguro       || "",          // SEGURO
+          fila.codigoMedico || "",          // RESP
+          fila.observaciones|| ""           // OBSERVACIONES
+        ];
+        doc.y = drawRow(doc, 20, doc.y, row);
+      }
+      doc.moveDown(1);
     }
 
-      // ----------------- SECCIÓN DE FIRMAS -----------------
-    // Dejamos espacio suficiente antes de las firmas
+    // ——— FIRMAS ———
     doc.moveDown(5);
-    const yFirmas = doc.y;
-    // Dividimos la página en dos columnas para las firmas
-    const pageWidth = doc.page.width;
-    const colFirmaWidth = (pageWidth - 40) / 2; // 40 es el total de márgenes horizontales
+    const y0 = doc.y;
+    const pageW2 = doc.page.width;
+    const colW = (pageW2 - 40) / 2;
+    const lineW = colW * 0.5;
+    const off = (colW - lineW) / 2;
 
-    // Definimos un ancho menor para las líneas (por ejemplo, 70% del ancho de columna)
-    const signatureLineWidth = colFirmaWidth * 0.5;
+    // Línea izquierda
+    doc.moveTo(20 + off, y0).lineTo(20 + off + lineW, y0).stroke();
+    // Línea derecha
+    doc.moveTo(20 + colW + 20 + off, y0)
+       .lineTo(20 + colW + 20 + off + lineW, y0).stroke();
 
-    // Para centrar la línea dentro de la columna, calculamos un offset:
-    const offsetLeft = (colFirmaWidth - signatureLineWidth) / 2;
-
-    // Línea de firma para la parte izquierda
-    doc.moveTo(20 + offsetLeft, yFirmas)
-      .lineTo(20 + offsetLeft + signatureLineWidth, yFirmas)
-      .stroke();
-
-    // Línea de firma para la parte derecha
-    doc.moveTo(20 + colFirmaWidth + 20 + offsetLeft, yFirmas)
-      .lineTo(20 + colFirmaWidth + 20 + offsetLeft + signatureLineWidth, yFirmas)
-      .stroke();
-
-    // Texto debajo de las líneas
-    doc.font("Helvetica").fontSize(10);
-    doc.text(`Responsable: ${confirmacion.nombreMedico || ""}`, 20, yFirmas + 5, {
-      width: colFirmaWidth,
-      align: "center",
-    });
-    doc.text("Aprobado por:", 20 + colFirmaWidth + 20, yFirmas + 5, {
-      width: colFirmaWidth,
-      align: "center",
-    });
+    doc
+      .font("Helvetica").fontSize(10)
+      .text(`Responsable: ${confirmacion.nombreMedico||""}`, 20, y0 + 5, { width: colW, align: "center" })
+      .text("Aprobado por:",             20 + colW + 20, y0 + 5, { width: colW, align: "center" });
 
     doc.end();
-  } catch (error) {
-    console.error("Error generando PDF:", error);
+  } catch (err) {
+    console.error("Error generando PDF:", err);
     res.status(500).json({ error: "Error interno del servidor" });
   }
 }
@@ -502,5 +614,9 @@ module.exports = {
   filterCitasByDate,
   filterCitasByDateAndTower,
   exportExcelCitas,
-  exportImprimirPDF
+  exportImprimirPDF,
+  createOrUpdateConfirmacion,
+  createLog,
+  softDeleteCita
+
 };

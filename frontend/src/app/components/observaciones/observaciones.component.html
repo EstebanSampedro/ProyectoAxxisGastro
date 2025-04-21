@@ -1,19 +1,46 @@
 <app-main-header></app-main-header>
 <app-nav-bar></app-nav-bar>
+
 <div class="observaciones-container">
-    <h2>OBSERVACIONES DE DOCTORES - {{ selectedDate | date:'yyyy-MM-dd' }}</h2>
-    <table class="observaciones-table">
-      <thead>
-        <tr>
-          <th>DOCTOR</th>
-          <th>OBSERVACIÓN</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let obs of observaciones">
-          <td>{{ obs.docObser }}</td>
-          <td>{{ obs.textObser }}</td>
-        </tr>
-      </tbody>
-    </table>
+  <!-- 1) Título principal -->
+  <h1 class="main-title">OBSERVACIONES GENERALES</h1>
+
+  <!-- 2) Selector de fecha -->
+  <div class="fecha-picker">
+    <label for="fechaObs">Seleccionar fecha:</label>
+    <input
+      id="fechaObs"
+      type="date"
+      [ngModel]="selectedDate | date:'yyyy-MM-dd'"
+      (ngModelChange)="onDateChange($event)"
+    />
+    <!-- 3) Fecha en texto completo y en mayúsculas -->
+    <div class="fecha-formateada">
+      {{
+        (selectedDate | date:"EEEE, dd 'de' MMMM 'del' yyyy":'':'es')
+          | uppercase
+      }}
+    </div>
   </div>
+
+  <!-- Tabla de resultados -->
+  <table class="observaciones-table">
+    <thead>
+      <tr>
+        <th>DOCTOR</th>
+        <th>OBSERVACIÓN</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let obs of observaciones">
+        <td>{{ obs.nomDoctor2 }}</td>
+        <td>{{ obs.textObser }}</td>
+      </tr>
+      <tr *ngIf="observaciones.length === 0">
+        <td colspan="2" class="sin-datos">
+          No hay observaciones para esta fecha.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

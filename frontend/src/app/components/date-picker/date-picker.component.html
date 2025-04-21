@@ -1,17 +1,17 @@
-
+<!-- date-picker.component.html -->
 <div class="date-section">
   <label for="fecha">Fecha:</label>
   <input
     type="date"
     id="fecha"
-    [ngModel]="selectedDate | date: 'yyyy-MM-dd'"
-    (ngModelChange)="selectedDate = $event; onDateChange()"
+    [ngModel]="selectedDate | date:'yyyy-MM-dd'"
+    (ngModelChange)="onInputChange($event)"
   />
   <span class="formatted-date">{{ formattedDate }}</span>
   <button (click)="previousDay()" class="icon-button">
     <fa-icon [icon]="chevronLeft"></fa-icon>
   </button>
   <button (click)="nextDay()" class="icon-button">
-    <fa-icon  [icon]="chevronRight"></fa-icon>
+    <fa-icon [icon]="chevronRight"></fa-icon>
   </button>
 </div>

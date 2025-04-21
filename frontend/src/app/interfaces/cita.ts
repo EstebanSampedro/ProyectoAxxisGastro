@@ -39,6 +39,8 @@ export class Cita {
   horaFinStr?: string;   // Formato "HH:mm:00"
   modificado?: boolean;  // Marca si está en modo edición
 
+  tipoCita?: string;
+
   constructor(data: Partial<Cita> = {}) {
     // IDs
     this.idCita                 = data.idCita;
@@ -66,6 +68,7 @@ export class Cita {
     this.colorCita   = data.colorCita || '#FFFFFF';
     this.cedula      = data.cedula    || '';
     this.recordatorioEnv = data.recordatorioEnv || false;
+    this.tipoCita = data.tipoCita || '';
 
     // Códigos resueltos (se asignarán luego en el componente)
     this.responsableCode = '';

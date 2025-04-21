@@ -8,7 +8,10 @@ const {
   filterCitasByDate,
   filterCitasByDateAndTower,
   exportExcelCitas,
-  exportImprimirPDF // Agregamos la función para generar el PDF
+  exportImprimirPDF,
+  createOrUpdateConfirmacion,
+  createLog,
+  softDeleteCita
 } = require("../controllers/cita.controller");
 
 const router = express.Router();
@@ -22,5 +25,10 @@ router.get("/byDate", filterCitasByDate);
 router.get("/byDateAndTower", filterCitasByDateAndTower);
 router.get("/exportExcel", exportExcelCitas);
 router.get("/imprimir", exportImprimirPDF);
+router.post("/confirmacion", createOrUpdateConfirmacion);
+router.post('/logs', createLog);
+router.patch("/:id/eliminar", softDeleteCita);
+
+
 
 module.exports = router;

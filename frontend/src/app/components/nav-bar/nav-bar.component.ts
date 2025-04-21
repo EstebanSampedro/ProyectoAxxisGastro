@@ -31,7 +31,7 @@ export class NavBarComponent {
   }
 
   goToModificaciones() {
-    this.router.navigate(['/historial/modificaciones']);
+    this.router.navigate(['/historial-citas-modif']);
   }
 
   goToConfirmaciones() {

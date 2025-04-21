@@ -30,38 +30,52 @@ export class ObservacionService {
   /**
      * Filtrar observaciones por doctor y fecha
      */
-  filterObservaciones(doctorId: number, fecha: Date): Observable<Observacion[]> {
-    // Formatear la fecha a YYYY-MM-DD
-    const fechaFormateada = this.formatDate(fecha);
-    console.log("fechaFormateada", fechaFormateada);
+  filterObservaciones(
+    doctorId: number,
+    fecha: string | Date
+  ): Observable<Observacion[]> {
+    // si es Date, lo convertimos a 'YYYY-MM-DD', si ya es string lo usamos tal cual
+    const fechaStr =
+      typeof fecha === 'string'
+        ? fecha
+        : this.formatDate(fecha);
     return this.http.get<Observacion[]>(
-      `${this.apiUrl}${this.endpoints.filter}?doctorId=${doctorId}&fecha=${fechaFormateada}`
+      `${this.apiUrl}${this.endpoints.filter}`,
+      {
+        params: {
+          doctorId: doctorId.toString(),
+          fecha:    fechaStr
+        }
+      }
     );
   }
+
 
   
   /**
    * Filtrar observaciones por fecha
    */
-  filterObservacionesByDate(fecha: Date): Observable<Observacion[]> {
-    // Formatear la fecha a YYYY-MM-DD
-    const fechaFormateada = this.formatDate(fecha);
-    console.log("fechaFormateada", fechaFormateada);
+  filterObservacionesByDate(fecha: Date | string): Observable<Observacion[]> {
+    // si te pasan un Date, lo formateas; si te pasan un string, lo usas tal cual
+    const fechaStr =
+      typeof fecha === 'string'
+        ? fecha
+        : this.formatDate(fecha);
 
-    // Usar el nuevo endpoint byDate
     return this.http.get<Observacion[]>(
-      `${this.apiUrl}${this.endpoints.byDate}?fecha=${fechaFormateada}`
+      `${this.apiUrl}${this.endpoints.byDate}?fecha=${fechaStr}`
     );
   }
+  
 
    /**
    * Formatear fecha a YYYY-MM-DD
    */
    private formatDate(date: Date): string {
-    const year = date.getFullYear();
-    const month = ('0' + (date.getMonth() + 1)).slice(-2); // Añade un 0 al principio si es necesario
-    const day = ('0' + date.getDate()).slice(-2); // Añade un 0 al principio si es necesario
-    return `${year}-${month}-${day}`;
+    const y = date.getFullYear();
+    const m = ('0' + (date.getMonth() + 1)).slice(-2);
+    const d = ('0' + date.getDate()).slice(-2);
+    return `${y}-${m}-${d}`;
   }
 
   /**

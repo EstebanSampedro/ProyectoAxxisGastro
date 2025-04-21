@@ -6,4 +6,5 @@ export interface Observacion {
     textObser: string;
     estado: string;
     docObser: number;
+    nomDoctor2?: string;
   }
