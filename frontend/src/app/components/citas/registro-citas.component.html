@@ -108,7 +108,15 @@
             <input type="text" [(ngModel)]="newCitaData.telefono" placeholder="Teléfono" />
           </td>
           <td>
-            <input type="text" [(ngModel)]="newCitaData.procedimiento" placeholder="Procedimiento" />
+            <input
+            list="procedimientosList"
+            [(ngModel)]="newCitaData.procedimiento"
+            placeholder="Procedimiento"
+            class="editable-combo"
+          />
+          <datalist id="procedimientosList">
+            <option *ngFor="let p of procedimientos" [value]="p"></option>
+          </datalist>
           </td>
           <td>
             <input type="text" [(ngModel)]="newCitaData.imagen" placeholder="Imagen" />
@@ -220,7 +228,15 @@
             
             <!-- PROCEDIMIENTO -->
             <td>
-              <input type="text" [(ngModel)]="newCitaData.procedimiento" placeholder="Procedimiento" />
+              <input
+              list="procedimientosList"
+              [(ngModel)]="newCitaData.procedimiento"
+              placeholder="Procedimiento"
+              class="editable-combo"
+            />
+            <datalist id="procedimientosList">
+              <option *ngFor="let p of procedimientos" [value]="p"></option>
+            </datalist>
             </td>
             
             <!-- IMAGEN -->
