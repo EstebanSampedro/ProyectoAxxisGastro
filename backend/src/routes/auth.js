@@ -76,23 +76,49 @@ router.post('/register/doctor', async (req, res) => {
  */
 router.post('/admin', async (req, res) => {
   const { user, password } = req.body;
+
+  // Validación de credenciales
+  if (!user || !password) {
+    return res.status(400).json({ error: 'Faltan credenciales' });
+  }
+
   try {
+    // Verifica si la variable de entorno JWT_SECRET está configurada
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET no definido en entorno');
+      return res.status(500).json({ error: 'Configuración del servidor inválida' });
+    }
+
+    // Busca al administrador en la base de datos
     const admin = await prisma.medico.findFirst({ where: { user } });
     if (!admin) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
+
+    // Verifica la contraseña
     const passwordValid = await bcrypt.compare(password, admin.pass);
     if (!passwordValid) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
+
+    // Genera el token JWT
     const token = jwt.sign(
       { id: admin.idmedico, role: admin.permiso },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
-    return res.json({ token, user: admin });
+
+    // Devuelve el token y los datos del usuario
+    return res.json({
+      token,
+      user: {
+        id: admin.idmedico,
+        nombre: admin.nombreMedico,
+        permiso: admin.permiso,
+      },
+    });
   } catch (error) {
-    console.error('Error en login admin:', error);
+    console.error(`[LOGIN ERROR] ${new Date().toISOString()} - Error en login admin:`, error);
     return res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
