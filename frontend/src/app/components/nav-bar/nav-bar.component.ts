@@ -31,11 +31,11 @@ export class NavBarComponent {
   }
 
   goToModificaciones() {
-    this.router.navigate(['/historial/modificaciones']);
+    this.router.navigate(['/historial-citas-modif']);
   }
 
   goToConfirmaciones() {
-    this.router.navigate(['/historial/confirmaciones']);
+    this.router.navigate(['/historial-citas-conf']);
   }
 
   goToUsuarios() {

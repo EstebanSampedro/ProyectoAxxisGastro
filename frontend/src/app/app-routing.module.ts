@@ -13,6 +13,9 @@ import { ObservacionesComponent } from './components/observaciones/observaciones
 import { UserdocMenuComponent } from './components/userdoc-menu/userdoc-menu.component';
 import { HistorialCitasComponent } from './components/historial-citas/historial-citas.component';
 import { NotAuthorizedComponent } from './components/not-authorized/not-authorized.component'; // Componente para acceso denegado
+import { HistorialModComponent } from './components/historial-mod/historial-mod.component';
+import { HistorialConfirmacionesComponent } from './components/historial-confirmaciones/historial-confirmaciones.component';
+
 
 import { RoleGuard } from './guards/role.guard'; // Importar la guarda de roles
 
@@ -85,6 +88,8 @@ const routes: Routes = [
     canActivate: [RoleGuard],
     data: { role: ['administrador', 'usuario'] } // Administrador y usuario
   },
+  { path: 'historial-citas-modif', component: HistorialModComponent },
+  { path: 'historial-citas-conf', component: HistorialConfirmacionesComponent },
   {
     path: 'not-authorized',
     component: NotAuthorizedComponent

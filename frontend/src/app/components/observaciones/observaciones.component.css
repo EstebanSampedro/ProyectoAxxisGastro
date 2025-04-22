@@ -1,60 +1,111 @@
-/* Contenedor principal */
-.observaciones-container {
+/* ===========================
+   Contenedor principal
+   =========================== */
+   .observaciones-container {
     font-family: Arial, sans-serif;
-    max-width: 800px;
-    margin: 20px auto;
-    padding: 20px;
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 24px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
   }
   
-  /* Título */
-  .observaciones-container h2 {
+  /* ===========================
+     1) Título principal
+     =========================== */
+  .main-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #333333;
     text-align: center;
-    color: #333;
-    margin-bottom: 20px;
-    font-size: 24px;
+    margin-bottom: 24px;
+    text-transform: uppercase;
   }
   
-  /* Tabla */
+  /* ===========================
+     2) Selector de fecha
+     =========================== */
+  .fecha-picker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  
+  .fecha-picker label {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .fecha-picker input[type="date"] {
+    padding: 6px 10px;
+    font-size: 16px;
+    border: 1px solid #cccccc;
+    border-radius: 6px;
+    background-color: #fdfdfd;
+  }
+  
+  /* ===========================
+     3) Fecha en texto completo
+     =========================== */
+  .fecha-formateada {
+    font-size: 18px;
+    font-weight: 600;
+    color: #007bff;
+    text-transform: uppercase;
+  }
+  
+  /* ===========================
+     Tabla de observaciones
+     =========================== */
   .observaciones-table {
     width: 100%;
     border-collapse: collapse;
     background-color: #fff;
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
   
-  /* Cabecera de la tabla */
   .observaciones-table thead {
     background-color: #007bff;
     color: #fff;
   }
   
   .observaciones-table th {
-    padding: 12px 15px;
+    padding: 14px 16px;
     text-align: left;
-    font-weight: bold;
+    font-weight: 600;
+    font-size: 15px;
   }
   
-  /* Filas de la tabla */
   .observaciones-table tbody tr {
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid #e0e0e0;
   }
   
   .observaciones-table tbody tr:nth-child(even) {
-    background-color: #f2f2f2;
+    background-color: #f9f9f9;
   }
   
   .observaciones-table tbody tr:hover {
-    background-color: #e9f5ff;
+    background-color: #e6f2ff;
   }
   
   .observaciones-table td {
-    padding: 12px 15px;
-    color: #555;
+    padding: 12px 16px;
+    color: #444;
+    font-size: 14px;
+  }
+  
+  /* Mensaje “sin datos” */
+  .sin-datos {
+    text-align: center;
+    color: #888;
+    font-style: italic;
+    padding: 20px 0;
   }
   
   /* Responsive */
@@ -62,25 +113,22 @@
     .observaciones-table thead {
       display: none;
     }
-  
     .observaciones-table tbody tr {
       display: block;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       border: 1px solid #ddd;
       border-radius: 8px;
     }
-  
     .observaciones-table td {
       display: block;
       text-align: right;
-      padding-left: 50%;
+      padding: 10px;
       position: relative;
     }
-  
     .observaciones-table td::before {
       content: attr(data-label);
       position: absolute;
-      left: 15px;
+      left: 12px;
       width: 50%;
       padding-right: 10px;
       text-align: left;
@@ -88,3 +136,4 @@
       color: #007bff;
     }
   }
+  

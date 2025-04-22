@@ -1,0 +1,45 @@
+<!-- src/app/components/historial-mod/historial-mod.component.html -->
+<app-main-header></app-main-header>
+<app-nav-bar></app-nav-bar>
+
+<div class="historial-mod-container">
+  <h2>HISTORIAL DE MODIFICACIONES</h2>
+
+  <div class="filtros">
+    <label>DESDE:</label>
+    <input type="date" [(ngModel)]="fromDate">
+    <label>HASTA:</label>
+    <input type="date" [(ngModel)]="toDate">
+    
+    <button (click)="buscar()">BUSCAR</button>
+  </div>
+
+  <div class="resultado" *ngIf="logs.length > 0">
+    <p>
+      Mostrando desde <strong>{{ fromDate }}</strong> hasta <strong>{{ toDate }}</strong>
+    </p>
+    <table class="tabla-mod">
+      <thead>
+        <tr>
+          <th>FECHA CITA</th><th>HORA</th><th>TORRE</th>
+          <th>DOCTOR</th><th>PACIENTE</th><th>TIPO</th>
+          <th>FECHA MODIF.</th><th>RESP.</th><th>OBSERVACIONES</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let l of logs">
+          <td>{{ l.FECHA_CITA }}</td>
+          <td>{{ l.HORA }}</td>
+          <td>{{ l.TORRE }}</td>
+          <td>{{ l.DOCTOR }}</td>
+          <td>{{ l.PACIENTE }}</td>
+          <td>{{ l.MODIFICACION | uppercase }}</td>
+          <td>{{ l.FECHA_MODIFICACION }}</td>
+          <td>{{ l.RESP }}</td>
+          <td>{{ l.OBSERVACIONES }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p *ngIf="logs.length === 0">No se encontraron modificaciones en ese rango.</p>
+</div>
