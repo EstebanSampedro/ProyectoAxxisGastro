@@ -4,23 +4,20 @@ import { es } from 'date-fns/locale';
 import { ObservacionService } from '../../services/observaciones.generales.service';
 import { Observacion } from '../../interfaces/observacion.general';
 
+
 @Component({
   selector: 'app-observaciones',
   templateUrl: './observaciones.component.html',
-  styleUrl: './observaciones.component.css',
+  styleUrls: ['./observaciones.component.css'],
   standalone: false
 })
 export class ObservacionesComponent implements OnInit {
-  constructor(private observacionService: ObservacionService) {
-
-  }
   observaciones: Observacion[] = [];
   selectedDate: Date = new Date();
 
+  constructor(private observacionService: ObservacionService) { }
   ngOnInit(): void {
-    // Recuperar la fecha desde sessionStorage
-    this.recuperarFecha();
-    // Cargar las observaciones
+    // Al iniciar, cargamos las obs. de hoy
     this.cargarObservaciones();
   }
 
@@ -32,19 +29,18 @@ export class ObservacionesComponent implements OnInit {
     this.selectedDate = parseISO(newDateStr);
     this.cargarObservaciones();
   }
-
   /**
    * Llama al servicio para traer las observaciones de la fecha seleccionada
    */
   cargarObservaciones(): void {
-    this.observacionService.filterObservacionesByDate(this.selectedDate).subscribe({
-      next: (data: Observacion[]) => {
-        console.log('Observaciones recibidas:', data);
-        this.observaciones = data; // Asigna directamente el arreglo de observaciones
-      },
-      error: (err) => {
-        console.error('Error al cargar observaciones:', err);
-      }
-    });
+    const fechaParam = format(this.selectedDate, 'yyyy-MM-dd');
+    this.observacionService
+      .filterObservacionesByDate(fechaParam)
+      .subscribe({
+        next: data => {
+          this.observaciones = data;
+        },
+        error: err => console.error('Error al cargar observaciones:', err)
+      });
   }
 }
