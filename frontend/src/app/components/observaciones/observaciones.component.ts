@@ -7,16 +7,16 @@ import { obtenerIdDoctorDesdeSessionStorage } from '../../shared/common';
   selector: 'app-observaciones',
   templateUrl: './observaciones.component.html',
   styleUrl: './observaciones.component.css',
-  standalone:false
+  standalone: false
 })
 export class ObservacionesComponent implements OnInit {
-  constructor(private observacionService:ObservacionService){
-    
-  }
-  observaciones: Observacion []= [];
-  selectedDate:Date = new Date();
+  constructor(private observacionService: ObservacionService) {
 
- ngOnInit(): void {
+  }
+  observaciones: Observacion[] = [];
+  selectedDate: Date = new Date();
+
+  ngOnInit(): void {
     // Recuperar la fecha desde sessionStorage
     this.recuperarFecha();
     // Cargar las observaciones
@@ -42,15 +42,14 @@ export class ObservacionesComponent implements OnInit {
    * Cargar las observaciones desde el servicio
    */
   cargarObservaciones(): void {
-
-      this.observacionService.filterObservacionesByDate(this.selectedDate).subscribe({
-        next: (data: Observacion[]) => {
-          console.log('Observaciones recibidas:', data);
-          this.observaciones = data; // Asigna directamente el arreglo de observaciones
-        },
-        error: (err) => {
-          console.error('Error al cargar observaciones:', err);
-        }
-      });
-    }
+    this.observacionService.filterObservacionesByDate(this.selectedDate).subscribe({
+      next: (data: Observacion[]) => {
+        console.log('Observaciones recibidas:', data);
+        this.observaciones = data; // Asigna directamente el arreglo de observaciones
+      },
+      error: (err) => {
+        console.error('Error al cargar observaciones:', err);
+      }
+    });
   }
+}

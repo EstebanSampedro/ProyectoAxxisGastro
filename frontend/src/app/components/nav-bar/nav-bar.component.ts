@@ -23,7 +23,7 @@ export class NavBarComponent {
   }
 
   goToInicio() {
-    this.router.navigate(['/inicio']);
+    this.router.navigate(['/menu']);
   }
 
   goToHistorialCitas() {
