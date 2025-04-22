@@ -88,8 +88,16 @@ const routes: Routes = [
     canActivate: [RoleGuard],
     data: { role: ['administrador', 'usuario'] } // Administrador y usuario
   },
-  { path: 'historial-citas-modif', component: HistorialModComponent },
-  { path: 'historial-citas-conf', component: HistorialConfirmacionesComponent },
+  {
+    path: 'historial-citas-modif', component: HistorialModComponent,
+    canActivate: [RoleGuard],
+    data: { role: ['administrador', 'usuario'] } // Administrador y usuario
+  },
+  {
+    path: 'historial-citas-conf', component: HistorialConfirmacionesComponent,
+    canActivate: [RoleGuard],
+    data: { role: ['administrador', 'usuario'] } // Administrador y usuario
+  },
   {
     path: 'not-authorized',
     component: NotAuthorizedComponent
