@@ -14,6 +14,7 @@ import { UserdocMenuComponent } from './components/userdoc-menu/userdoc-menu.com
 
 import { HistorialCitasComponent } from './components/historial-citas/historial-citas.component';
 import { HistorialModComponent } from './components/historial-mod/historial-mod.component';
+import { HistorialConfirmacionesComponent } from './components/historial-confirmaciones/historial-confirmaciones.component';
 
 
 
@@ -32,6 +33,7 @@ const routes: Routes = [
   { path: 'userdoc-menu', component: UserdocMenuComponent },
   { path: 'historial-citas', component: HistorialCitasComponent },
   { path: 'historial-citas-modif', component: HistorialModComponent },
+  { path: 'historial-citas-conf', component: HistorialConfirmacionesComponent },
 
 
 ];

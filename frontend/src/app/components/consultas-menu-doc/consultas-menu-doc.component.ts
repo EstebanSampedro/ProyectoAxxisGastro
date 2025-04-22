@@ -19,6 +19,8 @@ import { TorreService } from '../../services/torres.service';
 import { Observacion } from '../../interfaces/observacion.general';
 import { ObservacionService } from '../../services/observaciones.generales.service';
 import { CitaService } from '../../services/cita.service';
+import { switchMap } from 'rxjs/operators';
+import { of } from 'rxjs';
 
 
 
@@ -163,35 +165,54 @@ export class ConsultasMenuDocComponent implements OnInit {
     });
   }
 
-  cargarConsultas(): void {
-    const fechaStr = this.selectedDate; // "YYYY‑MM‑DD"
-    this.citaService
-      .getCitasByDateAndTower(fechaStr, this.selectedTorreId)
-      .subscribe({
-        next: data => {
-          // 1) filtrar solo tipoCita === 'consulta'
-          const soloConsultas = data.filter(cita => cita.tipoCita === 'consulta');
+  /** Crea un log de tipo 'edicion' o 'eliminacion' */
+private crearLog(citaId: number, tipo: 'edicion'|'eliminacion'): Observable<any> {
+  const body = {
+    cita_idCita:     citaId,
+    tipoCambio:      tipo,
+    medico_idMedico: this.authService.getAdminId()
+  };
+  return this.http.post('http://localhost:3000/api/citas/logs', body).pipe(
+    catchError(err => {
+      console.error(`Error creando log de ${tipo}:`, err);
+      return of(null);
+    })
+  );
+}
 
-          // 2) mapear
-          this.consultas = soloConsultas.map(cita => {
-            const horaStr    = this.extraerHora(cita.hora);
-            const horaFinStr = this.extraerHora(cita.horaTermina);
-            const responsable = cita.idConfirma_idMedico
-              ? this.authService.getAdminCode(cita.idConfirma_idMedico)
-              : '';
-            return {
-              ...cita,
-              horaStr,
-              horaFinStr,
-              cedula:           cita.cedula           || '',
-              recordatorioEnv:  cita.recordatorioEnv  || false,
-              responsable
-            };
-          });
-        },
-        error: err => console.error('Error al obtener consultas:', err)
-      });
-  }
+
+cargarConsultas(): void {
+  const fechaStr = this.selectedDate; // "YYYY‑MM‑DD"
+  this.citaService
+    .getCitasByDateAndTower(fechaStr, this.selectedTorreId)
+    .subscribe({
+      next: data => {
+        // Filtra sólo tipoCita === 'consulta' y estado !== 'eliminado'
+        const soloConsultas = data.filter(cita =>
+          cita.tipoCita === 'consulta' &&
+          cita.estado !== 'eliminado'
+        );
+
+        // Mapear con horaStr, horaFinStr, responsable…
+        this.consultas = soloConsultas.map(cita => {
+          const horaStr    = this.extraerHora(cita.hora);
+          const horaFinStr = this.extraerHora(cita.horaTermina);
+          const responsable = cita.idConfirma_idMedico
+            ? this.authService.getAdminCode(cita.idConfirma_idMedico)
+            : '';
+          return {
+            ...cita,
+            horaStr,
+            horaFinStr,
+            cedula:           cita.cedula           || '',
+            recordatorioEnv:  cita.recordatorioEnv  || false,
+            responsable
+          };
+        });
+      },
+      error: err => console.error('Error al obtener consultas:', err)
+    });
+}
 
 
   // Extrae la hora en formato "HH:mm:00" de una cadena tipo "1970-01-01T08:00:00.000Z"
@@ -364,44 +385,70 @@ guardarCita(slot: string): void {
 
   // Guarda la edición de una cita existente (PUT)
   guardarEdicion(): void {
-    const url = `http://localhost:3000/api/citas/${this.newCitaData.idCita}`;
+    const id = this.newCitaData.idCita!;
+    const url = `http://localhost:3000/api/citas/${id}`;
     const adminId = this.authService.getAdminId();
-
+  
     const body = {
-      idResponsable_idMedico: adminId,   // opcionalmente lo vuelves a enviar
-      idDoctor_cita: parseInt(this.idDoctor),
-      fecha: this.selectedDate,
-      torre: this.selectedTorreId, 
-      hora: this.newCitaData.hora,
-      horaTermina: this.newCitaData.horaTermina,
-      paciente: this.newCitaData.paciente || 'Paciente X',
-      edad: this.newCitaData.edad || 30,
-      telefono: this.newCitaData.telefono || '',
-      procedimiento: this.newCitaData.procedimiento || '',
-      imagen: this.newCitaData.imagen || '',
-      pedido: this.newCitaData.pedido || '',
-      institucion: this.newCitaData.institucion || '',
-      seguro: this.newCitaData.seguro || '',
-      estado: this.newCitaData.estado || 'activo',
-      confirmado: this.newCitaData.confirmado || 'pendiente',
-      observaciones: this.newCitaData.observaciones || '',
-      observaciones2: this.newCitaData.observaciones2 || '',
-      colorCita: this.newCitaData.colorCita || '#FFFFFF',
-      cedula: this.newCitaData.cedula || '',
-      recordatorioEnv: this.newCitaData.recordatorioEnv || false
+      idResponsable_idMedico: adminId,
+      idDoctor_cita:          parseInt(this.idDoctor, 10),
+      fecha:                  this.selectedDate,
+      torre:                  this.selectedTorreId,
+      hora:                   this.newCitaData.hora,
+      horaTermina:            this.newCitaData.horaTermina,
+      paciente:               this.newCitaData.paciente    || 'Paciente X',
+      edad:                   this.newCitaData.edad        || 30,
+      telefono:               this.newCitaData.telefono    || '',
+      procedimiento:          this.newCitaData.procedimiento || '',
+      imagen:                 this.newCitaData.imagen      || '',
+      pedido:                 this.newCitaData.pedido      || '',
+      institucion:            this.newCitaData.institucion || '',
+      seguro:                 this.newCitaData.seguro      || '',
+      estado:                 this.newCitaData.estado      || 'activo',
+      confirmado:             this.newCitaData.confirmado  || 'pendiente',
+      observaciones:          this.newCitaData.observaciones || '',
+      observaciones2:         this.newCitaData.observaciones2 || '',
+      colorCita:              this.newCitaData.colorCita   || '#FFFFFF',
+      cedula:                 this.newCitaData.cedula      || '',
+      recordatorioEnv:        this.newCitaData.recordatorioEnv || false
     };
-
-    this.http.put(url, body).subscribe({
-      next: (resp: any) => {
-        console.log('Cita editada:', resp);
+  
+    this.http.put(url, body).pipe(
+      switchMap(() => this.crearLog(id, 'edicion'))
+    ).subscribe({
+      next: () => {
+        console.log('Cita editada y log de edición creado');
         this.editingCitaId = null;
-        this.newCitaData = {};
+        this.newCitaData   = {};
         this.cargarConsultas();
       },
-      error: (err) => {
-        console.error('Error al editar cita:', err);
-      }
+      error: err => console.error('Error al editar cita o crear log:', err)
     });
+  }
+
+  eliminarConsulta(cita: any): void {
+    if (!confirm(`¿Está seguro de eliminar la cita de "${cita.paciente}"?`)) {
+      return;
+    }
+  
+    this.http
+      .patch(
+        `http://localhost:3000/api/citas/${cita.idCita}/eliminar`,
+        { medico_idMedico: this.authService.getAdminId() }
+      )
+      .pipe(
+        switchMap(() => this.crearLog(cita.idCita, "eliminacion"))
+      )
+      .subscribe({
+        next: () => {
+          console.log("Cita marcada como eliminada y log creado");
+          this.cargarConsultas();
+        },
+        error: err => {
+          console.error("Error al eliminar cita o crear log:", err);
+          alert("No se pudo eliminar la cita");
+        }
+      });
   }
 
   cancelarEdicion(): void {
@@ -533,23 +580,7 @@ private crearOActualizarConfirmacion(cita: Cita, estado: string): Observable<Api
   );
 }
   
-  
-  eliminarConsulta(cita: any): void {
-    const respuesta = window.confirm(`¿Está seguro de eliminar la cita del paciente "${cita.paciente}"?`);
-    if (!respuesta) {
-      return;
-    }
-    const url = `http://localhost:3000/api/citas/${cita.idCita}`;
-    this.http.delete(url).subscribe({
-      next: (resp: any) => {
-        console.log('Cita eliminada:', resp);
-        this.cargarConsultas();
-      },
-      error: (err) => {
-        console.error('Error al eliminar cita:', err);
-      }
-    });
-  }
+
 
   enviarWhatsApp(cita: any): void {
     // Prepara el número de teléfono (formato E.164)
