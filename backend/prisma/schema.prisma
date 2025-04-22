@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = "mysql://root:admin123@localhost:3306/axxis-citas"
+  url      = env("DATABASE_URL")
 }
 
 model cita {
