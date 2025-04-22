@@ -10,11 +10,7 @@
     <input type="date" [(ngModel)]="fromDate">
     <label>HASTA:</label>
     <input type="date" [(ngModel)]="toDate">
-    <label>DOCTOR:</label>
-    <select [(ngModel)]="selectedDoctor">
-      <option value="">-- todos --</option>
-      <option *ngFor="let d of doctores" [value]="d.doctorId">{{ d.doctor }}</option>
-    </select>
+    
     <button (click)="buscar()">BUSCAR</button>
   </div>
 

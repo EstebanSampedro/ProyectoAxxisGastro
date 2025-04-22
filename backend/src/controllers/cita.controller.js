@@ -259,29 +259,39 @@ const createOrUpdateConfirmacion = async (req, res) => {
   }
 };
 
+function toLocalDate(date) {
+  // date es UTC; getTimezoneOffset es minutos que hay que sumar para llegar a UTC,
+  // así que sumamos en lugar de restar
+  return new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+}
+
 // POST /api/citas/logs
 const createLog = async (req, res) => {
   try {
     const { cita_idCita, tipoCambio, medico_idMedico } = req.body;
-
-    // Validamos sólo que no sean undefined o null
-    if (cita_idCita == null || tipoCambio == null || medico_idMedico == null) {
+    if (cita_idCita == null || !tipoCambio || medico_idMedico == null) {
       return res
         .status(400)
         .json({ error: "cita_idCita, tipoCambio y medico_idMedico son requeridos." });
     }
 
-    // Crear el log (DB)
+    // 1) Creamos el log en UTC
     const nuevoLog = await prisma.logs.create({
       data: {
         cita_idCita:     Number(cita_idCita),
         tipoCambio:      String(tipoCambio),
         medico_idMedico: Number(medico_idMedico),
-        // fechaLog por default
+        // fechaLog se asigna ahora en UTC automáticamente
       },
     });
 
-    return res.json(nuevoLog);
+    // 2) Ajustamos esa fecha a la zona local antes de devolverla
+    const adjustedLog = {
+      ...nuevoLog,
+      fechaLog: toLocalDate(nuevoLog.fechaLog)
+    };
+
+    return res.json(adjustedLog);
   } catch (error) {
     console.error("Error creando log:", error);
     return res
@@ -467,14 +477,12 @@ async function exportImprimirPDF(req, res) {
     if (!f) {
       return res.status(400).json({ error: "Se requiere la fecha (f)" });
     }
-    const fecha = f; // "YYYY-MM-DD"
-
-    // Rango de fecha: desde el inicio del día hasta antes del siguiente
+    const fecha     = f; // "YYYY-MM-DD"
     const startDate = new Date(fecha);
-    const endDate = new Date(fecha);
+    const endDate   = new Date(fecha);
     endDate.setDate(endDate.getDate() + 1);
 
-    // Consultar confirmación (si existe)
+    // Consultar datos de confirmación global (para confTorreX)
     const [confirmacion = {}] = await prisma.$queryRaw`
       SELECT c.*, m.nombreMedico
       FROM confirmacion c
@@ -482,13 +490,13 @@ async function exportImprimirPDF(req, res) {
       WHERE c.fechaCita = ${fecha}
     `;
 
-    // Crear documento PDF en landscape A4
+    // Iniciar PDF en landscape A4
     const doc = new PDFDocument({ layout: "landscape", size: "A4", margin: 20 });
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="respaldo-citas-${fecha}.pdf"`);
     doc.pipe(res);
 
-    // ——— ENCABEZADO MEJORADO ———
+    // ——— ENCABEZADO ———
     const pageWidth = doc.page.width;
     const headerY   = 10;
     const logoSize  = 60;
@@ -524,54 +532,61 @@ async function exportImprimirPDF(req, res) {
 
     // ——— TABLAS POR TORRE ———
     for (let torre = 1; torre <= 4; torre++) {
-      // Solo registros tipo 'cita'
+      // Traer también al médico que confirmó
       const filas = await prisma.$queryRaw`
-        SELECT c.*, d.nomDoctor2 AS nomDoctor, m.nombreMedico AS codigoMedico
+        SELECT 
+          c.*,
+          d.nomDoctor2    AS nomDoctor,
+          mc.codigoMedico AS codigoMedico
         FROM cita c
-        LEFT JOIN doctor2 d ON c.idDoctor_cita = d.idDoctor2
-        LEFT JOIN medico m ON c.idResponsable_idMedico = m.idmedico
-        WHERE c.torre     = ${torre}
-          AND c.tipoCita  = 'cita'
-          AND c.fecha    >= ${startDate}
-          AND c.fecha    <  ${endDate}
+        LEFT JOIN doctor2 d
+          ON d.idDoctor2 = c.idDoctor_cita
+        LEFT JOIN confirmacion conf
+          ON conf.confDoctor    = c.idDoctor_cita
+         AND conf.fechaCita     = ${fecha}
+        LEFT JOIN medico mc
+          ON mc.idmedico        = conf.idMedicoConfirma
+        WHERE c.torre      = ${torre}
+          AND c.tipoCita   = 'cita'
+          AND c.fecha     >= ${startDate}
+          AND c.fecha     <  ${endDate}
         ORDER BY c.hora
       `;
       if (!filas.length) continue;
 
-      // Título de la torre
+      // Título de torre con su confTorreX
       const confT = confirmacion[`confTorre${torre}`] || "";
-      const tableW = columns.reduce((sum, c) => sum + c.width, 0);
-      doc
-        .font("Helvetica-Bold").fontSize(10)
-        .text(`TORRE ${torre}  –  ${confT}`, 20, doc.y, { width: tableW, align: "center" });
+      const tableW = columns.reduce((sum, col) => sum + col.width, 0);
+      doc.font("Helvetica-Bold").fontSize(10)
+         .text(`TORRE ${torre}  –  ${confT}`, 20, doc.y, { width: tableW, align: "center" });
       doc.moveDown(0.5);
 
-      // Encabezados de columnas
+      // Encabezados
       let x = 20;
       const headerY2 = doc.y;
       doc.font("Helvetica-Bold").fontSize(8);
       for (const col of columns) {
         doc.rect(x, headerY2, col.width, 15).stroke();
-        doc.text(col.header, x + 2, headerY2 + 4, { width: col.width - 4, align: "center" });
+        doc.text(col.header, x+2, headerY2+4, { width: col.width-4, align: "center" });
         x += col.width;
       }
       doc.y = headerY2 + 15;
 
-      // Filas de datos
+      // Filas
       doc.font("Helvetica").fontSize(8);
       for (const fila of filas) {
         const row = [
-          formatHora(fila.hora),            // HORA
-          fila.nomDoctor    || "",          // MEDICO
-          fila.paciente     || "",          // PACIENTE
-          fila.edad != null ? String(fila.edad) : "", // EDAD
-          fila.procedimiento|| "",          // PROCEDIMI.
-          fila.imagen       || "",          // IMAGEN
-          fila.pedido       || "",          // SOLICITADO
-          fila.institucion  || "",          // INSTITU.
-          fila.seguro       || "",          // SEGURO
-          fila.codigoMedico || "",          // RESP
-          fila.observaciones|| ""           // OBSERVACIONES
+          formatHora(fila.hora),
+          fila.nomDoctor    || "",
+          fila.paciente     || "",
+          fila.edad!=null?String(fila.edad):"",
+          fila.procedimiento||"",
+          fila.imagen       ||"",
+          fila.pedido       ||"",
+          fila.institucion  ||"",
+          fila.seguro       ||"",
+          fila.codigoMedico ||"",   // ← aquí está el RESPONSABLE real
+          fila.observaciones||""
         ];
         doc.y = drawRow(doc, 20, doc.y, row);
       }
@@ -580,22 +595,18 @@ async function exportImprimirPDF(req, res) {
 
     // ——— FIRMAS ———
     doc.moveDown(5);
-    const y0 = doc.y;
+    const y0    = doc.y;
     const pageW2 = doc.page.width;
-    const colW = (pageW2 - 40) / 2;
-    const lineW = colW * 0.5;
-    const off = (colW - lineW) / 2;
+    const colW   = (pageW2 - 40) / 2;
+    const lineW  = colW * 0.5;
+    const off    = (colW - lineW) / 2;
 
-    // Línea izquierda
-    doc.moveTo(20 + off, y0).lineTo(20 + off + lineW, y0).stroke();
-    // Línea derecha
-    doc.moveTo(20 + colW + 20 + off, y0)
-       .lineTo(20 + colW + 20 + off + lineW, y0).stroke();
+    doc.moveTo(20+off, y0).lineTo(20+off+lineW, y0).stroke();
+    doc.moveTo(20+colW+20+off, y0).lineTo(20+colW+20+off+lineW, y0).stroke();
 
-    doc
-      .font("Helvetica").fontSize(10)
-      .text(`Responsable: ${confirmacion.nombreMedico||""}`, 20, y0 + 5, { width: colW, align: "center" })
-      .text("Aprobado por:",             20 + colW + 20, y0 + 5, { width: colW, align: "center" });
+    doc.font("Helvetica").fontSize(10)
+       .text(`Responsable: ${confirmacion.nombreMedico||""}`, 20,   y0+5, { width: colW, align: "center" })
+       .text("Aprobado por:",             20+colW+20, y0+5, { width: colW, align: "center" });
 
     doc.end();
   } catch (err) {

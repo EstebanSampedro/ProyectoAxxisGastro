@@ -1,0 +1,44 @@
+<app-main-header></app-main-header>
+<app-nav-bar></app-nav-bar>
+
+<div class="historial-conf-container">
+  <h2>HISTORIAL DE CONFIRMACIONES</h2>
+
+  <div class="filtros">
+    <label>DESDE:</label>
+    <input type="date" [(ngModel)]="fromDate">
+    <label>HASTA:</label>
+    <input type="date" [(ngModel)]="toDate">
+    
+    <button (click)="buscar()">BUSCAR</button>
+  </div>
+
+  <div class="resultado" *ngIf="confirmaciones.length > 0">
+    <p>
+      Mostrando confirmaciones desde
+      <strong>{{ formatearFecha(fromDate) }}</strong>
+      hasta
+      <strong>{{ formatearFecha(toDate) }}</strong>
+    </p>
+    <table class="tabla-conf">
+      <thead>
+        <tr>
+          <th>FECHA CITA</th>
+          <th>RESPONSABLE</th>
+          <th>FECHA CONFIRMACIÓN</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of confirmaciones">
+          <td>{{ c.FECHA_CITA }}</td>
+          <td>{{ c.RESPONSABLE }}</td>
+          <td>{{ c.FECHA_CONFIRMACION }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p *ngIf="confirmaciones.length === 0">
+    No se encontraron confirmaciones en ese rango.
+  </p>
+</div>

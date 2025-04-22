@@ -384,6 +384,7 @@ guardarCita(slot: string): void {
   // BOTÓN #1 WHATSAPP: Si es "consulta" se envía directamente; si es "cita", se abre el modal para adjuntar archivos.
   enviarWhatsApp(cita: any): void {
     let phoneNumber = cita.telefono.trim();
+    const doctorNombre = this.getDoctorName(cita.idDoctor_cita);
     if (phoneNumber.startsWith('0')) {
       phoneNumber = phoneNumber.substring(1);
     }
@@ -395,7 +396,7 @@ guardarCita(slot: string): void {
     const tipo = cita.tipoCita ? cita.tipoCita.toLowerCase() : '';
 
     if (tipo === 'consulta') {
-      mensaje = `Señor(a) ${cita.paciente}, su cita de consulta médica con Dr(a) ${this.doctorName} ha sido programada para el día ${fechaFormateada} a las ${cita.horaStr}. En el área de gastroenterología primer piso del Hospital Axxis, Av. 10 de agosto N39-155 y Av. América frente al Coral de la Y. Favor se solicita su puntual asistencia el día de la consulta. Además, le comunicamos que un día antes de su consulta se volverá a confirmar.`;
+      mensaje = `Señor(a) ${cita.paciente}, su cita de consulta médica con ${doctorNombre} ha sido programada para el día ${fechaFormateada} a las ${cita.horaStr}. En el área de gastroenterología primer piso del Hospital Axxis, Av. 10 de agosto N39-155 y Av. América frente al Coral de la Y. Favor se solicita su puntual asistencia el día de la consulta. Además, le comunicamos que un día antes de su consulta se volverá a confirmar.`;
       this.enviarMensajeWhatsapp(phoneNumber, mensaje, null);
     } else if (tipo === 'cita') {
       // Para registros de tipo "cita" (procedimiento), se abre el modal para adjuntar archivos.
@@ -436,105 +437,102 @@ guardarCita(slot: string): void {
   // Cierra el modal de adjuntos y limpia las variables relacionadas
   cerrarModal2(): void {
     this.mostrarModalAdjuntos = false;
-    this.selectedFiles = [];
-    this.citaSeleccionada = null;
+    this.selectedFiles        = [];
+    this.citaSeleccionada     = null;
+    this.successMessage       = '';
   }
 
   successMessage: string = '';
 
   // Método para subir archivos y enviar el mensaje con adjuntos para registros de tipo "cita"
   uploadAndSend(cita: any): void {
-    if (!this.selectedFiles || this.selectedFiles.length === 0) {
+    if (!this.selectedFiles?.length) {
       alert('Por favor, seleccione al menos un archivo PDF.');
       return;
     }
+  
     const formData = new FormData();
-    
-    // Agrega los campos obligatorios
+  
+    // 1) Telefono a E.164
     let phoneNumber = this.citaSeleccionada.telefono.trim();
-    if (phoneNumber.startsWith('0')) {
-      phoneNumber = phoneNumber.substring(1);
-    }
-    if (!phoneNumber.startsWith('+')) {
-      phoneNumber = '+593' + phoneNumber;
-    }
+    if (phoneNumber.startsWith('0')) phoneNumber = phoneNumber.substring(1);
+    if (!phoneNumber.startsWith('+')) phoneNumber = '+593' + phoneNumber;
     formData.append('phone', phoneNumber);
   
-    // Formatea la fecha según el formato deseado
+    // 2) Mensaje
     const fechaFormateada = format(this.selectedDate, "EEEE dd 'de' MMMM 'del' yyyy", { locale: es });
-    // Ejemplo de mensaje para tipo "cita" (procedimiento)
-    const mensaje =
+    const doctorNombre    = this.getDoctorName(cita.idDoctor_cita);
+    const mensaje = 
   `Buenos días de AxxisGastro, le saludamos para recordarle su procedimiento *${this.citaSeleccionada.procedimiento}*.
-  El día ${fechaFormateada} a las 8:30 AM tiene cita para realizarse el procedimiento con Dr(a) ${this.doctorName}.
+El día ${fechaFormateada} a las ${cita.horaStr} tiene cita para realizarse el procedimiento con ${doctorNombre}.
   
-  Por motivos de verificación del examen, le solicitamos enviar una foto legible del pedido médico y proporcionar los siguientes datos del paciente:
-  • Nombres completos:
-  • Número de cédula de ciudadanía:
-  • Fecha de nacimiento:
+Por motivos de verificación del examen, le solicitamos enviar una foto legible del pedido médico y proporcionar los siguientes datos del paciente:
+  • Nombres completos
+  • Número de cédula de ciudadanía
+  • Fecha de nacimiento
   
-  El ingreso al parqueadero es por la calle Vozandes y la salida por la Avenida 10 de agosto.
-  Tome en cuenta que el hospital se encuentra en una zona de alto tráfico; recomendamos tomar las debidas precauciones y llegar oportunamente.
-  Si desea certificado médico por su asistencia, hágalo saber en recepción el día del procedimiento; de lo contrario, deberá acudir posteriormente para solicitar el documento.
-  En caso de dudas sobre el examen, contáctenos.
-  Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimiento será cancelado.`;
-  
+El ingreso al parqueadero es por la calle Vozandes y la salida por la Avenida 10 de agosto. Tome en cuenta que el hospital se encuentra en una zona de alto tráfico; recomendamos tomar las debidas precauciones y llegar oportunamente.
+Si desea certificado médico por su asistencia, hágalo saber en recepción el día del procedimiento; de lo contrario, deberá acudir posteriormente para solicitar el documento. En caso de dudas sobre el examen, contáctenos.
+
+Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimiento será cancelado.`;
     formData.append('message', mensaje);
   
-    // Agrega los archivos, uno o varios
-    this.selectedFiles.forEach(file => formData.append('files', file, file.name));
+    // 3) Archivos
+    this.selectedFiles.forEach(file => {
+      formData.append('files', file, file.name);
+    });
   
-    // Llama al endpoint de subida de archivos integrado en whatsapp.js
-    // Nota: Usa la URL /api/whatsapp/send, ya que allí se procesa la subida y envío.
+    // 4) Petición
     this.http.post<any>('http://localhost:3000/api/whatsapp/send', formData).subscribe({
       next: uploadRes => {
-        if (uploadRes.success && uploadRes.urls) {
-          this.successMessage = '¡Envío exitoso!'; //
-          // Si se reciben URL, se supone que el endpoint ya procesó y envió el mensaje
-          alert('Mensaje de WhatsApp con archivo(s) enviado con éxito');
-          // Actualiza la cita y refresca la lista, etc.
+        if (uploadRes.success) {
+          // 5a) Mensaje interno
+          this.successMessage = '¡Mensaje de WhatsApp con archivo(s) enviado con éxito!';
+  
+          // 5b) Marcamos recordatorioEnv = true
           const updateBody = {
-            idDoctor_cita: this.citaSeleccionada.idDoctor_cita,
-            fecha: this.citaSeleccionada.fecha,
-            torre: this.citaSeleccionada.torre,
-            hora: this.citaSeleccionada.horaStr,
-            horaTermina: this.citaSeleccionada.horaFinStr,
-            paciente: this.citaSeleccionada.paciente,
-            edad: this.citaSeleccionada.edad,
-            telefono: this.citaSeleccionada.telefono,
-            procedimiento: this.citaSeleccionada.procedimiento,
-            imagen: this.citaSeleccionada.imagen || "",
-            pedido: this.citaSeleccionada.pedido || "",
-            institucion: this.citaSeleccionada.institucion || "",
-            seguro: this.citaSeleccionada.seguro || "",
-            estado: this.citaSeleccionada.estado,
-            confirmado: this.citaSeleccionada.confirmado,
-            observaciones: this.citaSeleccionada.observaciones || "",
-            observaciones2: this.citaSeleccionada.observaciones2 || "",
-            colorCita: this.citaSeleccionada.colorCita,
-            cedula: this.citaSeleccionada.cedula,
+            idDoctor_cita:   this.citaSeleccionada.idDoctor_cita,
+            fecha:           this.citaSeleccionada.fecha,
+            torre:           this.citaSeleccionada.torre,
+            hora:            this.citaSeleccionada.horaStr,
+            horaTermina:     this.citaSeleccionada.horaFinStr,
+            paciente:        this.citaSeleccionada.paciente,
+            edad:            this.citaSeleccionada.edad,
+            telefono:        this.citaSeleccionada.telefono,
+            procedimiento:   this.citaSeleccionada.procedimiento,
+            imagen:          this.citaSeleccionada.imagen   || "",
+            pedido:          this.citaSeleccionada.pedido   || "",
+            institucion:     this.citaSeleccionada.institucion || "",
+            seguro:          this.citaSeleccionada.seguro   || "",
+            estado:          this.citaSeleccionada.estado,
+            confirmado:      this.citaSeleccionada.confirmado,
+            observaciones:   this.citaSeleccionada.observaciones  || "",
+            observaciones2:  this.citaSeleccionada.observaciones2 || "",
+            colorCita:       this.citaSeleccionada.colorCita,
+            cedula:          this.citaSeleccionada.cedula,
             recordatorioEnv: true
           };
-          setTimeout(() => { //
-            this.successMessage = '';
-            this.cerrarModal2(); // cierra el modal y limpia selectedFiles
-          }, 3000);
-  
           const urlPut = `http://localhost:3000/api/citas/${this.citaSeleccionada.idCita}`;
           this.http.put(urlPut, updateBody).subscribe({
-            next: resp => {
-              console.log('Cita actualizada con recordatorio:', resp);
-              this.cargarCitas();
-              this.cerrarModal2();
-            },
-            error: err => {
-              console.error('Error al actualizar cita con recordatorio:', err);
-            }
+            next: () => this.cargarCitas(),
+            error: err => console.error('Error actualizando cita:', err)
           });
+  
+          // 5c) Cerrar modal y limpiar tras 3 segundos
+          setTimeout(() => {
+            this.cerrarModal2();
+          }, 3000);
+  
+        } else {
+          // Aquí podrías mostrar otro mensaje si quieres
+          this.successMessage = 'No se pudo enviar el mensaje de WhatsApp.';
+          setTimeout(() => this.successMessage = '', 3000);
         }
       },
       error: err => {
-        console.error('Error al subir archivos:', err);
-        alert('No se pudieron subir los archivos');
+        console.error('Error al enviar WhatsApp:', err);
+        this.successMessage = 'Error de red al enviar WhatsApp.';
+        setTimeout(() => this.successMessage = '', 3000);
       }
     });
   }
@@ -567,11 +565,13 @@ guardarCita(slot: string): void {
       // Construir el mensaje según el tipo de cita
       let mensaje = '';
       const tipo = cita.tipoCita ? cita.tipoCita.toLowerCase() : '';
-      const doctorLower = this.doctorName.toLowerCase();
+
+      const doctorNombre = this.getDoctorName(cita.idDoctor_cita);
+
     
       if (tipo === 'consulta') {
         // Diferencia de mensajes según el doctor: evaluamos this.doctorName (ya cargado en el componente)
-        if (this.doctorName.toLowerCase().includes("marco luna")) {
+        if (doctorNombre.toLowerCase().includes("marco luna")) {
       // Mensaje para DR. MARCO LUNA (consulta)
       mensaje = 
   `Buenas tardes de Axxis Gastro, le saludamos de parte del consultorio del Dr. Marco Luna. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
@@ -586,7 +586,7 @@ Si desea certificado médico por su asistencia, hágalo saber en recepción el m
 
 Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
     
-    } else if (this.doctorName.toLowerCase().includes("coello")) {
+    } else if (doctorNombre.toLowerCase().includes("coello")) {
       // Mensaje para DR. COELLO (consulta) y dependiente de seguro
       if (!cita.seguro || cita.seguro.trim() === "") {
         mensaje = 
@@ -616,7 +616,7 @@ Nota: si usted es paciente de SALUD S.A, tenga en cuenta las siguientes recomend
   • El doctor no trabaja con el plan ODAS.
 Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
       }
-    } else if (this.doctorName.toLowerCase().includes("cargua")) {
+    } else if (doctorNombre.toLowerCase().includes("cargua")) {
       // Mensaje para DR. OSWALDO CARGUA
       mensaje =
   `Buenos días de Axxis Gastro, le saludamos de parte del consultorio del Dr. Oswaldo Cargua. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
@@ -628,7 +628,7 @@ Tome en cuenta que el hospital se encuentra ubicado en una zona de alto tráfico
 Si desea certificado médico por su asistencia, hágalo saber en recepción el mismo día de la consulta; caso contrario, deberá acercarse posteriormente para solicitar el documento.
 
 Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
-    } else if (this.doctorName.toLowerCase().includes("orellana")) {
+    } else if (doctorNombre.toLowerCase().includes("orellana")) {
     // Mensaje para DRA. IVONNE ORELLANA
     mensaje = `Buenos días de Axxis Gastro, le saludamos de parte del consultorio de la Dra. Ivonne Orellana. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
 El valor de la consulta médica lo puede cancelar en efectivo o transferencia bancaria.
@@ -640,7 +640,7 @@ Si desea certificado médico por su asistencia, hágalo saber en recepción el m
 
 Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
 
-  } else if (this.doctorName.toLowerCase().includes("escudero")) {
+  } else if (doctorNombre.toLowerCase().includes("escudero")) {
     // Mensaje para DRA. PÍA ESCUDERO
     mensaje = `Buenos días de Axxis Gastro, le saludamos de parte del consultorio de la Dra. Pía Escudero. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
 El valor de la consulta médica lo puede cancelar en efectivo o transferencia bancaria.
@@ -652,7 +652,7 @@ Si desea certificado médico por su asistencia, hágalo saber en recepción el m
 
 Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
 
-  } else if (this.doctorName.toLowerCase().includes("castillo flamain")) {
+  } else if (doctorNombre.toLowerCase().includes("castillo flamain")) {
     // Mensaje para DR. CARLOS CASTILLO FLAMAIN
     mensaje = `Buenos días de Axxis Gastro, le saludamos de parte del consultorio del Dr. Carlos Castillo Flamain. Por recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
 Por favor, si dispone de resultados recientes o antiguos (laboratorio, rayos X u otra especialidad) que el doctor aún no haya revisado referentes a su estado de salud, acuda con una copia física. Estos resultados serán anexados a su historia clínica y servirán como antecedente en su tratamiento.
@@ -679,7 +679,7 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
         // En la interfaz CITAS, para tipo "cita" (procedimiento)
         mensaje = `Buenos días de AxxisGastro, le saludamos para recordarle su procedimiento ${cita.procedimiento}.
     
-El día de mañana ${fechaMananaFormateada} a las ${cita.horaStr} tiene su cita para realizar el procedimiento con ${this.doctorName}.
+El día de mañana ${fechaMananaFormateada} a las ${cita.horaStr} tiene su cita para realizar el procedimiento con ${doctorNombre}.
     
 Por motivos de verificación del examen, por favor envíenos una foto legible del pedido médico y proporcione los siguientes datos del paciente:
     • Nombres completos:

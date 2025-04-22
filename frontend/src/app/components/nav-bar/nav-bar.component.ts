@@ -35,7 +35,7 @@ export class NavBarComponent {
   }
 
   goToConfirmaciones() {
-    this.router.navigate(['/historial/confirmaciones']);
+    this.router.navigate(['/historial-citas-conf']);
   }
 
   goToUsuarios() {
