@@ -1,4 +1,6 @@
-# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+# General
+.DS_Store
+Thumbs.db
 
 # Compiled output
 /dist
@@ -6,10 +8,21 @@
 /out-tsc
 /bazel-out
 
-# Node
+# Node.js dependencies
 /node_modules
-npm-debug.log
-yarn-error.log
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Angular cache
+/.angular/cache
+
+# Environment and configuration files
+.env
+.env.*       # Ignora cualquier archivo .env con sufijos (e.g., .env.local, .env.production)
+*.local.yaml # Archivos YAML específicos de desarrollo local
+*.prod.yaml  # Archivos YAML específicos de producción
+src/assets/config.yaml # Ignora configuraciones sensibles en YAML
 
 # IDEs and editors
 .idea/
@@ -26,17 +39,33 @@ yarn-error.log
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-.history/*
 
-# Miscellaneous
-/.angular/cache
-.sass-cache/
-/connect.lock
+# History and logs
+.history/*
 /coverage
 /libpeerconnection.log
 testem.log
-/typings
+typings/
 
-# System files
-.DS_Store
-Thumbs.db
+# Sass cache
+.sass-cache/
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Git-specific
+.git/
+.gitignore
+.gitattributes
+
+# Security-related
+src/environments/environment.ts # Ignora configuraciones sensibles en entornos
+src/environments/environment.prod.ts # Ignora configuraciones sensibles en producción
+src/assets/config.yaml # Ignora configuraciones YAML sensibles
+src/assets/config.prod.yaml # Ignora configuraciones YAML de producción
+
+# Miscellaneous
+/connect.lock
+/coverage
