@@ -6,16 +6,16 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { google } = require('googleapis');
-
+const authMiddleware = require("../../middleware/authMiddleware");
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-
+router.use(authMiddleware);
 // Configuración de Multer para guardar archivos temporalmente en "src/public/uploads"
 const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
+  destination: function (req, file, cb) {
     // Guarda los archivos en "backend/src/public/uploads"
     cb(null, path.join(__dirname, '../public/uploads'));
   },
-  filename: function(req, file, cb) {
+  filename: function (req, file, cb) {
     // Genera un nombre único
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, uniqueSuffix + '-' + file.originalname);
@@ -25,7 +25,7 @@ const upload = multer({ storage: storage });
 
 // Variables de entorno de Twilio
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken  = process.env.TWILIO_AUTH_TOKEN;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
 const whatsappFrom = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+19895644496';
 
 // Configuración de Google Drive API (usando un Service Account)

@@ -3,7 +3,10 @@ const express = require('express');
 const router = express.Router();
 const prisma = require("../../prisma/prismaClient");
 const bcrypt = require('bcrypt');
+const authMiddleware = require("../../middleware/authMiddleware");
 
+// Apply authMiddleware to all routes
+router.use(authMiddleware);
 // GET /api/doctores - Devuelve todos los doctores
 router.get('/', async (req, res) => {
   try {

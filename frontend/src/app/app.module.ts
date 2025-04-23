@@ -1,5 +1,5 @@
-import { NgModule, LOCALE_ID  } from '@angular/core';
-import { BrowserModule } from '@angular/platform-browser'; 
+import { NgModule, LOCALE_ID } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module'; // Módulo de rutas
 import { HttpClientModule } from '@angular/common/http'; // <-- Agrega esta importación
 import { AppComponent } from './app.component';
@@ -29,6 +29,9 @@ import { UserdocMenuComponent } from './components/userdoc-menu/userdoc-menu.com
 import { HistorialCitasComponent } from './components/historial-citas/historial-citas.component';
 import { HistorialModComponent } from './components/historial-mod/historial-mod.component';
 import { HistorialConfirmacionesComponent } from './components/historial-confirmaciones/historial-confirmaciones.component';
+import { HTTP_INTERCEPTORS } from '@angular/common/http';
+import { AuthInterceptor } from './interceptors/auth.interceptor';
+import { ApiKeyInterceptor } from './interceptors/api-key.interceptor';
 
 const routes: Routes = [
   // Define tus rutas aquí
@@ -65,14 +68,24 @@ const routes: Routes = [
     FontAwesomeModule,
     DragDropModule
   ],
-  providers: [  
-  ], // No es necesario incluir AppComponent aquí
+  providers: [
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: AuthInterceptor,
+      multi: true
+    },
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: ApiKeyInterceptor,
+      multi: true
+    }
+  ],
   bootstrap: [AppComponent]
 })
-export class AppModule { 
+export class AppModule {
   constructor(
-    
-  ){
+
+  ) {
     library.add(faChevronLeft, faChevronRight)
   }
 }

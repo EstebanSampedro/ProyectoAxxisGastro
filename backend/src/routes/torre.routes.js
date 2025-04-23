@@ -6,9 +6,9 @@ const {
   updateTorre,
   deleteTorre,
 } = require('../controllers/torre.controller');
-
+const authMiddleware = require("../../middleware/authMiddleware");
 const router = express.Router();
-
+router.use(authMiddleware);
 // Ruta para obtener todas las torres
 router.get('/', getAllTorres);
 
