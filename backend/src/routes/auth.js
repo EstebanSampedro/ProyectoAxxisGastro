@@ -115,6 +115,7 @@ router.post('/admin', async (req, res) => {
         id: admin.idmedico,
         nombre: admin.nombreMedico,
         permiso: admin.permiso,
+        codigoMedico: admin.codigoMedico,
       },
     });
   } catch (error) {

@@ -3,17 +3,16 @@
 <div class="container">
   <div class="flex-row">
     <div class="flex-column">
-      <app-date-picker
-        (dateChange)="onPickerDateChange($event)">
+      <app-date-picker (dateChange)="onPickerDateChange($event)">
       </app-date-picker>
     </div>
     <div class="flex-column">
       <div class="action-icons">
         <button class="btn icon-btn" title="Buscar" (click)="onDateChange()">
-          Buscar 
+          Buscar
           <fa-icon [icon]="faSearch"></fa-icon>
         </button>
-    
+
         <button class="btn icon-btn" title="Imprimir" (click)="imprimir()">
           Imprimir
           <fa-icon [icon]="faPrint"></fa-icon>
@@ -24,17 +23,12 @@
 </div>
 <div class="observaciones-section container">
   <!-- Ahora SIEMPRE aparece -->
-<button class="btn icon-btn" title="Ver observaciones" (click)="verObservaciones()">
-  <fa-icon [icon]="faWarning"></fa-icon>
-</button>
+  <button class="btn icon-btn" title="Ver observaciones" (click)="verObservaciones()">
+    <fa-icon [icon]="faWarning"></fa-icon>
+  </button>
 
   <label for="observaciones">OBSERVACIONES:</label>
-  <textarea
-    id="observaciones"
-    rows="2"
-    [(ngModel)]="observaciones"
-    class="responsive-textarea"
-  ></textarea>
+  <textarea id="observaciones" rows="2" [(ngModel)]="observaciones" class="responsive-textarea"></textarea>
   <button (click)="guardarObservaciones()" class="btn">Guardar
     <fa-icon [icon]="faSave">
     </fa-icon>
@@ -42,12 +36,8 @@
 </div>
 <!-- Pestañas de torres -->
 <div class="tab-container">
-  <div
-    *ngFor="let torre of torres"
-    class="tab"
-    [class.active]="selectedTorreId === torre.idTorre"
-    (click)="selectTorre(torre.idTorre)"
-  >
+  <div *ngFor="let torre of torres" class="tab" [class.active]="selectedTorreId === torre.idTorre"
+    (click)="selectTorre(torre.idTorre)">
     {{ torre.textTorre }}
   </div>
 </div>
@@ -70,19 +60,16 @@
       <th>COLOR</th>
       <th class="col-confirmado">CONFIR.</th>
       <th class="col-responsable">RESP.</th>
-        <th class="options-col">OPCIONES</th>
+      <th class="options-col">OPCIONES</th>
     </tr>
   </thead>
   <!-- Se agrega cdkDropList al tbody -->
   <tbody cdkDropList (cdkDropListDropped)="drop($event)">
     <!-- Cada fila es draggable y se le asigna el dato de la cita (si existe) -->
-    <tr *ngFor="let slot of timeSlots" 
-        cdkDrag 
-        [cdkDragData]="getCitaBySlot(slot)" 
-        [ngStyle]="{ 'background-color': getCitaBySlot(slot)?.colorCita || '' }">
+    <tr *ngFor="let slot of timeSlots" cdkDrag [cdkDragData]="getCitaBySlot(slot)"
+      [ngStyle]="{ 'background-color': getCitaBySlot(slot)?.colorCita || '' }">
       <!-- Columna 1: HORA -->
       <td>{{ slot }}</td>
-      
       <!-- Verificamos si existe una cita en este slot -->
       <ng-container *ngIf="getCitaBySlot(slot) as cita; else sinCita">
         <ng-container *ngIf="editingCitaId === cita.idCita; else modoLectura">
@@ -108,15 +95,11 @@
             <input type="text" [(ngModel)]="newCitaData.telefono" placeholder="Teléfono" />
           </td>
           <td>
-            <input
-            list="procedimientosList"
-            [(ngModel)]="newCitaData.procedimiento"
-            placeholder="Procedimiento"
-            class="editable-combo"
-          />
-          <datalist id="procedimientosList">
-            <option *ngFor="let p of procedimientos" [value]="p"></option>
-          </datalist>
+            <input list="procedimientosList" [(ngModel)]="newCitaData.procedimiento" placeholder="Procedimiento"
+              class="editable-combo" />
+            <datalist id="procedimientosList">
+              <option *ngFor="let p of procedimientos" [value]="p"></option>
+            </datalist>
           </td>
           <td>
             <input type="text" [(ngModel)]="newCitaData.imagen" placeholder="Imagen" />
@@ -157,166 +140,162 @@
             </div>
           </td>
         </ng-container>
-          <ng-template #modoLectura>
-            <td>{{ getDoctorName(cita.idDoctor_cita) }}</td>
-            <td>{{ cita.paciente }}</td>
-            <td>{{ cita.cedula }}</td>
-            <td>{{ cita.edad }}</td>
-            <td>{{ cita.telefono }}</td>
-            <td>{{ cita.procedimiento }}</td>
-            <td>{{ cita.imagen }}</td>
-            <td>{{ cita.pedido }}</td>
-            <td>{{ cita.institucion }}</td>
-            <td>{{ cita.seguro }}</td>
-            <td>{{ cita.observaciones }}</td>
-            <td>{{ colorNames[cita.colorCita] || cita.colorCita }}</td>
-            <td>{{ cita.confirmado }}</td>
-            <td>{{ cita.responsable }}</td>
-            <td>
-              <div class="horizontal-btns">
-                <button (click)="enviarWhatsApp(cita)" title="Enviar WhatsApp">
-                  <fa-icon [icon]="faPhone"></fa-icon>
-                </button>
-                <button (click)="enviarRecordatorio(cita)" title="Enviar recordatorio">
-                  <fa-icon [icon]="faBell"></fa-icon>
-                </button>
-                <button (click)="confirmarCita(cita)" title="Confirmar cita">
-                  <fa-icon [icon]="faCheck"></fa-icon>
-                </button>
-                <button (click)="editarCita(cita)" title="Editar cita">
-                  <fa-icon [icon]="faPencil"></fa-icon>
-                </button>
-                <button (click)="eliminarCita(cita)" title="Eliminar cita">
-                  <fa-icon [icon]="faXmark"></fa-icon>
-                </button>
-              </div>
-            </td>
-          </ng-template>
-        </ng-container>
-        
-        <!-- SIN CITA (slot vacío) -->
-        <ng-template #sinCita>
-          <ng-container *ngIf="editingSlot === slot; else modoVacio">
-            <!-- Formulario de creación en la misma fila -->
-            <!-- MEDICO -->
-            <td>
-              <select [(ngModel)]="selectedDoctorForCita">
-                <option value="">-- Seleccione --</option>
-                <option *ngFor="let doc of doctores" [value]="doc.doctorId">
-                  {{ doc.doctor }}
-                </option>
-              </select>
-            </td>
-            
-            <!-- PACIENTE -->
-            <td>
-              <input type="text" [(ngModel)]="newCitaData.paciente" placeholder="Paciente" />
-            </td>
-            <!-- CEDULA -->
-            <td>
-              <input type="text" [(ngModel)]="newCitaData.cedula" placeholder="Cedula" />
-            </td>
-            <!-- EDAD -->
-            <td>
-              <input type="number" [(ngModel)]="newCitaData.edad" placeholder="Edad" />
-            </td>
-            
-            <!-- TELEFONO -->
-            <td>
-              <input type="text" [(ngModel)]="newCitaData.telefono" placeholder="Teléfono" />
-            </td>
-            
-            <!-- PROCEDIMIENTO -->
-            <td>
-              <input
-              list="procedimientosList"
-              [(ngModel)]="newCitaData.procedimiento"
-              placeholder="Procedimiento"
-              class="editable-combo"
-            />
+        <ng-template #modoLectura>
+          <td>{{ getDoctorName(cita.idDoctor_cita) }}</td>
+          <td>{{ cita.paciente }}</td>
+          <td>{{ cita.cedula }}</td>
+          <td>{{ cita.edad }}</td>
+          <td>{{ cita.telefono }}</td>
+          <td>{{ cita.procedimiento }}</td>
+          <td>{{ cita.imagen }}</td>
+          <td>{{ cita.pedido }}</td>
+          <td>{{ cita.institucion }}</td>
+          <td>{{ cita.seguro }}</td>
+          <td>{{ cita.observaciones }}</td>
+          <td>{{ colorNames[cita.colorCita] || cita.colorCita }}</td>
+          <td>{{ cita.confirmado }}</td>
+          <td>{{ cita.responsable }}</td>
+          <td>
+            <div class="horizontal-btns">
+              <button (click)="enviarWhatsApp(cita)" title="Enviar WhatsApp">
+                <fa-icon [icon]="faPhone"></fa-icon>
+              </button>
+              <button (click)="enviarRecordatorio(cita)" title="Enviar recordatorio">
+                <fa-icon [icon]="faBell"></fa-icon>
+              </button>
+              <button (click)="confirmarCita(cita)" title="Confirmar cita">
+                <fa-icon [icon]="faCheck"></fa-icon>
+              </button>
+              <button (click)="editarCita(cita)" title="Editar cita">
+                <fa-icon [icon]="faPencil"></fa-icon>
+              </button>
+              <button (click)="eliminarCita(cita)" title="Eliminar cita">
+                <fa-icon [icon]="faXmark"></fa-icon>
+              </button>
+            </div>
+          </td>
+        </ng-template>
+      </ng-container>
+
+      <!-- SIN CITA (slot vacío) -->
+      <ng-template #sinCita>
+        <ng-container *ngIf="editingSlot === slot; else modoVacio">
+          <!-- Formulario de creación en la misma fila -->
+          <!-- MEDICO -->
+          <td>
+            <select [(ngModel)]="selectedDoctorForCita">
+              <option value="">-- Seleccione --</option>
+              <option *ngFor="let doc of doctores" [value]="doc.doctorId">
+                {{ doc.doctor }}
+              </option>
+            </select>
+          </td>
+
+          <!-- PACIENTE -->
+          <td>
+            <input type="text" [(ngModel)]="newCitaData.paciente" placeholder="Paciente" />
+          </td>
+          <!-- CEDULA -->
+          <td>
+            <input type="text" [(ngModel)]="newCitaData.cedula" placeholder="Cedula" />
+          </td>
+          <!-- EDAD -->
+          <td>
+            <input type="number" [(ngModel)]="newCitaData.edad" placeholder="Edad" />
+          </td>
+
+          <!-- TELEFONO -->
+          <td>
+            <input type="text" [(ngModel)]="newCitaData.telefono" placeholder="Teléfono" />
+          </td>
+
+          <!-- PROCEDIMIENTO -->
+          <td>
+            <input list="procedimientosList" [(ngModel)]="newCitaData.procedimiento" placeholder="Procedimiento"
+              class="editable-combo" />
             <datalist id="procedimientosList">
               <option *ngFor="let p of procedimientos" [value]="p"></option>
             </datalist>
-            </td>
-            
-            <!-- IMAGEN -->
-            <td>
-              <input type="text" [(ngModel)]="newCitaData.imagen" placeholder="Imagen" />
-            </td>
-            
-            <!-- SOLICITADO -->
-            <td>
-              <input type="text" [(ngModel)]="newCitaData.pedido" placeholder="Solicitado" />
-            </td>
-            
-            <!-- INSTITUCION -->
-            <td>
-              <input type="text" [(ngModel)]="newCitaData.institucion" placeholder="Institución" />
-            </td>
-            
-            <!-- SEGURO -->
-            <td>
-              <input type="text" [(ngModel)]="newCitaData.seguro" placeholder="Seguro" />
-            </td>
-            
-            <!-- OBSERVACIONES -->
-            <td>
-              <input type="text" [(ngModel)]="newCitaData.observaciones" placeholder="Observaciones" />
-            </td>
-            
-            <!-- COLOR -->
-            <td>
-              <select [(ngModel)]="newCitaData.colorCita">
-                <option value="#FFFFFF">Ninguno</option>
-                <option value="#ffff00">Amarillo</option>
-                <option value="#ff0000">Rojo</option>
-                <option value="#0000ff">Azul</option>
-                <option value="#FEBB02">Naranja</option>
-                <option value="#00ff00">Verde</option>
-                <option value="#8080c0">Gris</option>
-              </select>
-            </td>
-            
-            <!-- CONFIR. -->
-            <td>
-              <input type="text" [(ngModel)]="newCitaData.confirmado" placeholder="Pendiente" />
-            </td>
-            
-            <!-- RESP. -->
-            <td>
-              <input type="text" [value]="adminInitials" disabled placeholder="Responsable" />
-            </td>
-            
-            <!-- OPCIONES -->
-            <td>
-              <div class="horizontal-btns">
-                <button (click)="guardarCita(slot)">Guardar</button>
-                <button (click)="cancelarCita()">Cancelar</button>
-              </div>
-            </td>
-          </ng-container>
-          <ng-template #modoVacio>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>     
-            <td><span class="placeholder-text">pendiente</span></td>
-            <td></td>
-            <td>
-              <button class="plus-btn" (click)="iniciarCita(slot)">➕</button>
-            </td>
-          </ng-template>
+          </td>
+
+          <!-- IMAGEN -->
+          <td>
+            <input type="text" [(ngModel)]="newCitaData.imagen" placeholder="Imagen" />
+          </td>
+
+          <!-- SOLICITADO -->
+          <td>
+            <input type="text" [(ngModel)]="newCitaData.pedido" placeholder="Solicitado" />
+          </td>
+
+          <!-- INSTITUCION -->
+          <td>
+            <input type="text" [(ngModel)]="newCitaData.institucion" placeholder="Institución" />
+          </td>
+
+          <!-- SEGURO -->
+          <td>
+            <input type="text" [(ngModel)]="newCitaData.seguro" placeholder="Seguro" />
+          </td>
+
+          <!-- OBSERVACIONES -->
+          <td>
+            <input type="text" [(ngModel)]="newCitaData.observaciones" placeholder="Observaciones" />
+          </td>
+
+          <!-- COLOR -->
+          <td>
+            <select [(ngModel)]="newCitaData.colorCita">
+              <option value="#FFFFFF">Ninguno</option>
+              <option value="#ffff00">Amarillo</option>
+              <option value="#ff0000">Rojo</option>
+              <option value="#0000ff">Azul</option>
+              <option value="#FEBB02">Naranja</option>
+              <option value="#00ff00">Verde</option>
+              <option value="#8080c0">Gris</option>
+            </select>
+          </td>
+
+          <!-- CONFIR. -->
+          <td>
+            <input type="text" [(ngModel)]="newCitaData.confirmado" placeholder="Pendiente" />
+          </td>
+
+          <!-- RESP. -->
+          <td>
+            <input type="text" [value]="adminInitials" disabled placeholder="Responsable" />
+          </td>
+
+          <!-- OPCIONES -->
+          <td>
+            <div class="horizontal-btns">
+              <button (click)="guardarCita(slot)">Guardar</button>
+              <button (click)="cancelarCita()">Cancelar</button>
+            </div>
+          </td>
+        </ng-container>
+        <ng-template #modoVacio>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td><span class="placeholder-text">pendiente</span></td>
+          <td></td>
+          <td>
+            <button class="plus-btn" (click)="iniciarCita(slot)">➕</button>
+          </td>
         </ng-template>
-      </tr>
-    </tbody>
+      </ng-template>
+    </tr>
+  </tbody>
 </table>
 
 <!-- Modal de Confirmación -->
@@ -354,21 +333,14 @@
 <div *ngIf="mostrarModalAdjuntos" class="modal-overlay">
   <div class="modal">
     <h3>Adjuntar PDF(s) para el procedimiento</h3>
-    
+
     <!-- Muestra el input y debajo un pequeño texto con la cantidad de archivos elegidos -->
     <div class="file-input-section">
       <label for="pdfInput" class="file-input-label">Examinar...</label>
-      <input
-        id="pdfInput"
-        type="file"
-        #fileInput
-        (change)="onFilesSelected($event)"
-        multiple
-        accept=".pdf"
-        class="file-input-element"
-      />
+      <input id="pdfInput" type="file" #fileInput (change)="onFilesSelected($event)" multiple accept=".pdf"
+        class="file-input-element" />
       <span class="file-input-info">
-        {{ selectedFiles?.length || 0 }} archivo(s) seleccionado(s).
+        {{ selectedFiles.length || 0 }} archivo(s) seleccionado(s).
       </span>
     </div>
 
@@ -387,5 +359,3 @@
     </div>
   </div>
 </div>
-
-
