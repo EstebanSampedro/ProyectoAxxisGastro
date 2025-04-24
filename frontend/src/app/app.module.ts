@@ -1,4 +1,4 @@
-import { NgModule, LOCALE_ID } from '@angular/core';
+import { NgModule, LOCALE_ID, APP_INITIALIZER } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module'; // Módulo de rutas
 import { HttpClientModule } from '@angular/common/http'; // <-- Agrega esta importación
@@ -32,10 +32,19 @@ import { HistorialConfirmacionesComponent } from './components/historial-confirm
 import { HTTP_INTERCEPTORS } from '@angular/common/http';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { ApiKeyInterceptor } from './interceptors/api-key.interceptor';
+import { NotAuthorizedComponent } from './components/not-authorized/not-authorized.component';
+import { ConfigService } from './services/config.service';
 
 const routes: Routes = [
   // Define tus rutas aquí
 ];
+
+export function initializeApp(configService: ConfigService) {
+  return () => configService.loadConfig().toPromise().catch(() => {
+    configService.loadDefaultConfig();
+    return Promise.resolve(); // para continuar incluso si falla
+  });
+}
 
 @NgModule({
   declarations: [
@@ -56,7 +65,8 @@ const routes: Routes = [
     UserdocMenuComponent,
     HistorialCitasComponent,
     HistorialModComponent,
-    HistorialConfirmacionesComponent
+    HistorialConfirmacionesComponent,
+    NotAuthorizedComponent
   ],
   imports: [
     BrowserModule,  // Esencial para aplicaciones en el navegador
@@ -77,6 +87,13 @@ const routes: Routes = [
     {
       provide: HTTP_INTERCEPTORS,
       useClass: ApiKeyInterceptor,
+      multi: true
+    },
+    ConfigService,
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initializeApp,
+      deps: [ConfigService],
       multi: true
     }
   ],
