@@ -13,7 +13,7 @@ import { ConfirmacionBody } from '../../interfaces/confirmacionBody';
 import { ApiResponse } from '../../interfaces/apiResponse';
 import { Observable } from 'rxjs/internal/Observable';
 import { catchError } from 'rxjs/internal/operators/catchError';
-import { faPrint, faMagnifyingGlass, faSave, faWarning } from '@fortawesome/free-solid-svg-icons'
+import { faPrint, faMagnifyingGlass, faSave, faWarning, faCalendarAlt, faFloppyDisk, faTimesCircle } from '@fortawesome/free-solid-svg-icons'
 import { Torre } from '../../interfaces/torre';
 import { TorreService } from '../../services/torres.service';
 import { Observacion } from '../../interfaces/observacion.general';
@@ -301,7 +301,10 @@ export class ConsultasMenuDocComponent implements OnInit {
       .pipe(
         map((data: any[]) =>
           data
-            .filter(c => c.tipoCita === 'consulta' && c.estado !== 'eliminado')
+            .filter(c =>
+              c.estado !== 'eliminado' &&
+              (c.tipoCita === 'consulta' || c.tipoCita === 'cita')
+            )
             .map(cita => ({
               ...cita,
               horaStr: this.extraerHora(cita.hora),
@@ -433,7 +436,7 @@ export class ConsultasMenuDocComponent implements OnInit {
           torre: this.selectedTorreId,
           hora,
           horaTermina,
-          paciente: this.newCitaData.paciente || 'Paciente X',
+          paciente: this.newCitaData.paciente || 'Paciente no proporcionado',
           edad: this.newCitaData.edad ?? null,
           telefono: this.newCitaData.telefono || '',
           procedimiento: this.newCitaData.procedimiento || '',
@@ -563,7 +566,7 @@ export class ConsultasMenuDocComponent implements OnInit {
       torre: this.selectedTorreId,
       hora,
       horaTermina,
-      paciente: this.newCitaData.paciente || 'Paciente X',
+      paciente: this.newCitaData.paciente || 'Paciente no proporcionado',
       edad: this.newCitaData.edad ?? 30,
       telefono: this.newCitaData.telefono || '',
       procedimiento: this.newCitaData.procedimiento || '',
@@ -1013,100 +1016,114 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
       }
     });
   }
-
-  openRescheduleModal(cita: any, slot: string) {
+  // -----------------------------------------------------------------------------------------------------
+  // Métodos para el modal de reagendar cita
+  // Abre el modal y pre‐carga *sin* segundos, usando horaStr/ horaFinStr
+  openRescheduleModal(cita: any) {
     this.citaToReschedule = cita;
-    this.rescheduleDate = cita.fecha;           // p.ej. "2025-04-27"
-    this.rescheduleHour = slot;                 // p.ej. "10:00:00"
-    this.rescheduleEndHour =
-      this.calcularFin(this.rescheduleHour, 30);   // "10:30:00"
-    this.rescheduleTorre = this.selectedTorreId;
+    this.rescheduleDate = cita.fecha;                // "YYYY-MM-DD"
+    // substr(0,5) = "HH:mm"
+    this.rescheduleHour = cita.horaStr.substr(0, 5);
+    this.rescheduleEndHour = cita.horaFinStr.substr(0, 5);
+    this.rescheduleTorre = cita.torre;
     this.showRescheduleModal = true;
   }
 
-  updateEndHour(newHour: string) {
-    this.rescheduleEndHour = this.calcularFin(newHour, 30);
-  }
-
-  // --- 1.3 Cerrar modal ---
   closeRescheduleModal() {
     this.showRescheduleModal = false;
     this.citaToReschedule = null;
   }
 
+  /** Retorna true si hora fin ≤ hora inicio (ambas en "H:MM"/"HH:MM") */
+  isEndBeforeStart(): boolean {
+    const toMin = (s: string) => {
+      const [H, M] = s.split(':').map(Number);
+      return H * 60 + M;
+    };
+    if (!this.rescheduleHour || !this.rescheduleEndHour) return false;
+    return toMin(this.rescheduleEndHour) <= toMin(this.rescheduleHour);
+  }
+
+  /**
+   * Aplica offset -5h a una hora en formato "HH:mm:00" y devuelve "HH:mm:00",
+   * trabajando siempre en UTC para evitar mezclas de local/UTC.
+   */
+  private applyOffset5h(timeFull: string): string {
+    // Partimos de un UTC date a medianoche + tu hora
+    const [H, M] = timeFull.split(':').map(Number);
+    const dt = new Date(Date.UTC(1970, 0, 1, H, M));
+    // Restamos 5 horas en UTC
+    dt.setUTCHours(dt.getUTCHours() - 5);
+    // Extraemos hora y minuto en UTC
+    const hh = dt.getUTCHours().toString().padStart(2, '0');
+    const mm = dt.getUTCMinutes().toString().padStart(2, '0');
+    return `${hh}:${mm}:00`;
+  }
+
 
   rescheduleCita(): void {
-    const fechaStr = this.rescheduleDate; // "YYYY-MM-DD" (string)
+    const id = this.citaToReschedule?.idCita;
+    const fecha = this.rescheduleDate;
+    let h = this.rescheduleHour;
+    let f = this.rescheduleEndHour;
 
-    // 1) Comprobar que no choque con otra consulta (mismo día y hora)
-    this.citaService.getCitasByDate(fechaStr).subscribe({
-      next: allCitas => {
-        const otroChoque = allCitas
-          .filter(c => c.idCita !== this.citaToReschedule.idCita)
-          .some(c => this.extraerHora(c.hora) === this.rescheduleHour);
+    if (!id) return alert('ID de cita inválido');
+    if (!fecha || !h || !f) return alert('Completa todos los campos');
+    if (this.isEndBeforeStart()) return alert('Hora fin debe ser posterior');
 
-        if (otroChoque) {
-          alert('❌ Ya existe otra consulta en esa fecha y hora.');
-          return;
+    // 1) Convertir ambos a "HH:mm:00"
+    const fmtFull = (s: string) => {
+      const [hh, mm] = s.split(':').map(p => p.padStart(2, '0'));
+      return `${hh}:${mm}:00`;
+    };
+    const horaFull = fmtFull(h);
+    const finFull = fmtFull(f);
+
+    // 2) Aplicar offset –5h de manera consistente
+    const horaOffset = this.applyOffset5h(horaFull);
+    const horaFinOffset = this.applyOffset5h(finFull);
+
+    // Solo comprobamos solapamientos sobre consultas activas
+    this.citaService.getCitasByDate(fecha).subscribe({
+      next: all => {
+        const clash = all
+          .filter(c => c.idCita !== id && c.tipoCita === 'consulta' && c.estado !== 'eliminado')
+          .some(c => this.extraerHoraModal(c.hora) === h);
+        if (clash) {
+          return alert('❌ Ya existe otra consulta en esa fecha y hora.');
         }
-
-        // 2) Calculamos la hora de fin original sumando 30 min
-        const endOriginal = this.calcularFin(this.rescheduleHour, 30); // e.g. "10:30:00"
-
-        // 3) Aplicamos offset –5h a hora de inicio
-        const [h, m] = this.rescheduleHour.split(':').map(n => +n);
-        const dtStart = new Date(Date.UTC(1970, 0, 1, h, m));
-        dtStart.setUTCHours(dtStart.getUTCHours() - 5);
-        const hhStart = dtStart.getUTCHours().toString().padStart(2, '0');
-        const mmStart = dtStart.getUTCMinutes().toString().padStart(2, '0');
-        const horaOffset = `${hhStart}:${mmStart}:00`;
-
-        // 4) Aplicamos offset –5h a hora de fin
-        const [eh, em] = endOriginal.split(':').map(n => +n);
-        const dtEnd = new Date(Date.UTC(1970, 0, 1, eh, em));
-        dtEnd.setUTCHours(dtEnd.getUTCHours() - 5);
-        const hhEnd = dtEnd.getUTCHours().toString().padStart(2, '0');
-        const mmEnd = dtEnd.getUTCMinutes().toString().padStart(2, '0');
-        const horaFinOffset = `${hhEnd}:${mmEnd}:00`;
-
-        // 5) Enviamos el PATCH con fecha, torre (la original), hora y horaTermina
+        // Hacemos el PATCH mínimo
         const body = {
-          fecha: fechaStr,
-          torre: this.citaToReschedule.torre,
+          fecha, torre: this.rescheduleTorre,
           hora: horaOffset,
           horaTermina: horaFinOffset
         };
-
-        this.http
-          .patch(
-            `http://localhost:3000/api/citas/${this.citaToReschedule.idCita}/reagendar`,
-            body
-          )
-          .subscribe({
-            next: () => {
-              alert('✅ Consulta reagendada correctamente');
-              this.closeRescheduleModal();
-              // Salir de cualquier modo edición/creación
-              this.editingCitaId = null;
-              this.editingSlot = null;
-              this.cargarConsultas();
-            },
-            error: err => {
-              console.error('Error al reagendar consulta:', err);
-              alert('No se pudo reagendar la consulta');
-            }
-          });
+        this.http.patch(`http://localhost:3000/api/citas/${id}/reagendar`, body).subscribe({
+          next: () => {
+            alert('✅ Consulta reagendada correctamente');
+            this.closeRescheduleModal();
+            this.editingCitaId = null;
+            this.editingSlot = null;
+            this.cargarConsultas();
+          },
+          error: e => {
+            console.error(e);
+            alert('Error al reagendar la consulta');
+          }
+        });
       },
-      error: err => {
-        console.error('Error comprobando consultas existentes:', err);
+      error: () => {
         alert('No se pudo verificar conflicto con otras consultas');
       }
     });
   }
 
+  /** Helper: devuelve "HH:mm" desde un "HH:mm:ss" */
+  extraerHoraModal(horaStr: string): string {
+    return horaStr?.substr(0, 5) || '';
+  }
 
-
-
+  //-----------------------------------------------------------------------------------------------------
   // Métodos de navegación del menú
   goToInicio(): void {
     this.router.navigate(['/menu']);;

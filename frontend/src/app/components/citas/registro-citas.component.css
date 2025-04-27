@@ -1,133 +1,135 @@
+/* ===================== DROPDOWN ===================== */
+/* El contenedor con clase .dropdown es el que tiene submenú */
+.dropdown .dropbtn {
+  cursor: pointer;
+}
 
-  /* ===================== DROPDOWN ===================== */
-  /* El contenedor con clase .dropdown es el que tiene submenú */
-  .dropdown .dropbtn {
-    cursor: pointer;
-  }
-  
-  /* Submenú oculto por defecto */
-  .dropdown-content {
-    display: none;
-    position: absolute;
-    background-color: #333;
-    min-width: 160px;
-    z-index: 1;
-    top: 100%; /* Para que aparezca debajo del botón */
-    left: 0;
-    border-radius: 0 0 8px 8px;
-  }
-  
-  /* Mostrar el submenú al hacer hover en el padre .dropdown */
-  .dropdown:hover .dropdown-content {
-    display: block;
-  }
-  
-  /* Estilos de los links dentro del dropdown */
-  .dropdown-content a {
-    display: block;
-    padding: 0.5rem 1rem;
-    color: #fff;
-  }
-  
-  .dropdown-content a:hover {
-    background-color: #444;
-  }
-  
-  /* ===================== SECCIÓN DE ACCIONES (FECHA, BOTONES) ===================== */
+/* Submenú oculto por defecto */
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #333;
+  min-width: 160px;
+  z-index: 1;
+  top: 100%;
+  /* Para que aparezca debajo del botón */
+  left: 0;
+  border-radius: 0 0 8px 8px;
+}
 
-  .buttons-section fa-icon {
-    margin-left: 1rem;
-    padding: 0.5rem 1rem;
-    background-color: #1e1e1e;
-    border: none;
-    border-radius: 4px;
-    color: #ffc107;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background-color 0.3s ease;
-  }
+/* Mostrar el submenú al hacer hover en el padre .dropdown */
+.dropdown:hover .dropdown-content {
+  display: block;
+}
 
-  
-  
-  .buttons-section fa-icon:hover {
-    background-color: #333333;
-  }
-  
-  /* ===================== OBSERVACIONES ===================== */
-  .observaciones-section {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-  }
-  
-  .observaciones-section label {
-    font-weight: bold;
-    color: #333;
-  }
-  
-  .observaciones-section textarea {
-    width: 60%;
-    resize: vertical;
-  }
-  
-  .observaciones-section button {
-    background-color: #ffc107;
-    border: none;
-    border-radius: 4px;
-    color: #121212;
-    padding: 0.5rem 1rem;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background-color 0.3s ease;
-  }
-  
-  .observaciones-section button:hover {
-    background-color: #e6b800;
-  }
+/* Estilos de los links dentro del dropdown */
+.dropdown-content a {
+  display: block;
+  padding: 0.5rem 1rem;
+  color: #fff;
+}
+
+.dropdown-content a:hover {
+  background-color: #444;
+}
+
+/* ===================== SECCIÓN DE ACCIONES (FECHA, BOTONES) ===================== */
+
+.buttons-section fa-icon {
+  margin-left: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #1e1e1e;
+  border: none;
+  border-radius: 4px;
+  color: #ffc107;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
 
 
 
-  
-  /* ===================== TABLA DE CITAS ===================== */
-  .citas-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 2rem;
-  }
-  
-  .citas-table thead {
-    background-color: #80bfff;
-  }
-  
-  .citas-table th,
-  .citas-table td {
-    padding: 0.75rem;
-    text-align: center;
-    border: 2px solid #fff;
-    font-size: 0.9rem;
-  }
-  
-  .citas-table th {
-    font-style: italic;
-    font-weight: bold;
-  }
-  
-  .citas-table tbody tr:hover {
-    background-color: #d9f2ff;
-  }
-  
+.buttons-section fa-icon:hover {
+  background-color: #333333;
+}
 
-  /* ===================== ENCABEZADO SUPERIOR ===================== */
+/* ===================== OBSERVACIONES ===================== */
+.observaciones-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.observaciones-section label {
+  font-weight: bold;
+  color: #333;
+}
+
+.observaciones-section textarea {
+  width: 60%;
+  resize: vertical;
+}
+
+.observaciones-section button {
+  background-color: #ffc107;
+  border: none;
+  border-radius: 4px;
+  color: #121212;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.observaciones-section button:hover {
+  background-color: #e6b800;
+}
+
+
+
+
+/* ===================== TABLA DE CITAS ===================== */
+.citas-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 2rem;
+}
+
+.citas-table thead {
+  background-color: #80bfff;
+}
+
+.citas-table th,
+.citas-table td {
+  padding: 0.75rem;
+  text-align: center;
+  border: 2px solid #fff;
+  font-size: 0.9rem;
+}
+
+.citas-table th {
+  font-style: italic;
+  font-weight: bold;
+}
+
+.citas-table tbody tr:hover {
+  background-color: #d9f2ff;
+}
+
+
+/* ===================== ENCABEZADO SUPERIOR ===================== */
 .header-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   background-color: #1e1e1e;
   color: #ffc107;
-  padding: 0.5rem 1rem; /* reduje un poco */
+  padding: 0.5rem 1rem;
+  /* reduje un poco */
   border-radius: 8px;
-  margin-bottom: 0.75rem; /* reduje un poco */
+  margin-bottom: 0.75rem;
+  /* reduje un poco */
 }
 
 .header-left {
@@ -138,16 +140,19 @@
 
 .header-left h2 {
   margin: 0;
-  font-size: 1.2rem; /* antes 1.4rem */
+  font-size: 1.2rem;
+  /* antes 1.4rem */
 }
 
 .header-left span {
-  font-size: 0.85rem; /* antes 0.9rem */
+  font-size: 0.85rem;
+  /* antes 0.9rem */
   font-weight: bold;
 }
 
 .header-right img {
-  max-height: 45px; /* antes 50px */
+  max-height: 45px;
+  /* antes 50px */
 }
 
 /* Sitúalo al final de tu fichero CSS */
@@ -155,7 +160,7 @@
   /* ancho máximo razonable */
   max-width: 600px !important;
   /* o un porcentaje moderado */
-  width: 80vw       !important;
+  width: 80vw !important;
   /* un poco de padding para respirar */
   padding: 1.5rem 2rem !important;
 }
@@ -164,7 +169,8 @@
 /* ===================== BARRA DE MENÚ (NAV) ===================== */
 .navbar {
   background-color: #333;
-  margin-bottom: 0.75rem; /* reduje un poco */
+  margin-bottom: 0.75rem;
+  /* reduje un poco */
   border-radius: 8px;
   overflow: hidden;
 }
@@ -184,7 +190,8 @@
   display: block;
   color: #fff;
   text-decoration: none;
-  padding: 0.5rem 0.75rem; /* reduje un poco */
+  padding: 0.5rem 0.75rem;
+  /* reduje un poco */
   transition: background-color 0.3s ease;
 }
 
@@ -214,7 +221,8 @@
 
 .dropdown-content a {
   display: block;
-  padding: 0.5rem 0.75rem; /* reduje un poco */
+  padding: 0.5rem 0.75rem;
+  /* reduje un poco */
   color: #fff;
 }
 
@@ -225,11 +233,13 @@
 /* ===================== ENCABEZADO DEL DOCTOR ===================== */
 .header-doc {
   text-align: center;
-  margin-bottom: 0.75rem; /* reduje un poco */
+  margin-bottom: 0.75rem;
+  /* reduje un poco */
 }
 
 .header-doc h1 {
-  font-size: 1.3rem; /* antes 1.5rem */
+  font-size: 1.3rem;
+  /* antes 1.5rem */
   color: #333;
 }
 
@@ -237,8 +247,10 @@
 .date-section {
   display: flex;
   align-items: center;
-  gap: 0.4rem; /* reduje un poco */
-  margin-bottom: 0.75rem; /* reduje un poco */
+  gap: 0.4rem;
+  /* reduje un poco */
+  margin-bottom: 0.75rem;
+  /* reduje un poco */
 }
 
 .formatted-date {
@@ -270,7 +282,8 @@
   border: none;
   border-radius: 4px;
   color: #121212;
-  padding: 0.4rem 0.8rem; /* reduje un poco */
+  padding: 0.4rem 0.8rem;
+  /* reduje un poco */
   cursor: pointer;
   font-weight: bold;
   transition: background-color 0.3s ease;
@@ -289,8 +302,9 @@
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 2rem;
-  table-layout: fixed; 
-  font-size: 0.8rem; /* antes 0.9rem */
+  table-layout: fixed;
+  font-size: 0.8rem;
+  /* antes 0.9rem */
 }
 
 .consultas-table thead {
@@ -299,21 +313,28 @@
 
 .consultas-table th,
 .consultas-table td {
-  padding: 0.3rem; /* antes 0.75rem */
+  padding: 0.3rem;
+  /* antes 0.75rem */
   text-align: center;
   border: 1px solid #ccc;
   word-wrap: break-word;
-  white-space: normal;       /* permite saltos de línea */
-  overflow-wrap: break-word; /* quiebra palabras muy largas */
-  word-break: break-word;    /* compatibilidad adicional */
+  white-space: normal;
+  /* permite saltos de línea */
+  overflow-wrap: break-word;
+  /* quiebra palabras muy largas */
+  word-break: break-word;
+  /* compatibilidad adicional */
 }
+
 .consultas-table .options-col {
   width: 120px;
 }
 
 .consultas-table td input[type="number"] {
-  width: 7ch;           /* ancho suficiente para "100" o "120" */
-  max-width: 100%;      /* no desborde la celda */
+  width: 7ch;
+  /* ancho suficiente para "100" o "120" */
+  max-width: 100%;
+  /* no desborde la celda */
   box-sizing: border-box;
   padding: 0.2rem;
 }
@@ -322,6 +343,7 @@ input[type="number"] {
   appearance: none;
   -moz-appearance: textfield;
 }
+
 /* Webkit browsers (Chrome, Safari, Edge…) */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
@@ -345,32 +367,40 @@ input[type="number"]::-webkit-inner-spin-button {
   max-width: none;
   padding: 2rem 3rem;
 }
+
 .conflict-title {
   color: #c00;
   text-align: center;
   margin-bottom: 1rem;
 }
-.conflict-table, .detail-table {
+
+.conflict-table,
+.detail-table {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 1rem;
 }
-.conflict-table th, .conflict-table td,
+
+.conflict-table th,
+.conflict-table td,
 .detail-table td {
   border: 1px solid #333;
   padding: 0.5rem;
   text-align: center;
 }
+
 .detail-title {
   text-align: center;
   margin: 1rem 0 0.5rem;
   font-style: italic;
 }
+
 .detail-table td:first-child {
   text-align: right;
   font-weight: bold;
   width: 30%;
 }
+
 .filtros {
   display: flex;
   gap: 1rem;
@@ -378,14 +408,17 @@ input[type="number"]::-webkit-inner-spin-button {
   align-items: center;
   margin-bottom: 1rem;
 }
+
 .filtros label {
   font-weight: bold;
 }
+
 .modal-buttons {
   display: flex;
   justify-content: center;
   gap: 1rem;
 }
+
 .modal-buttons .btn {
   padding: 0.5rem 1.5rem;
   font-weight: bold;
@@ -393,8 +426,16 @@ input[type="number"]::-webkit-inner-spin-button {
   border: none;
   cursor: pointer;
 }
-.modal-buttons .btn-success { background: #28a745; color: #fff; }
-.modal-buttons .btn-danger  { background: #dc3545; color: #fff; }
+
+.modal-buttons .btn-success {
+  background: #28a745;
+  color: #fff;
+}
+
+.modal-buttons .btn-danger {
+  background: #dc3545;
+  color: #fff;
+}
 
 
 .consultas-table .col-paciente {
@@ -404,9 +445,11 @@ input[type="number"]::-webkit-inner-spin-button {
 .consultas-table .col-medico {
   width: 130px;
 }
+
 .consultas-table .col-procedimiento {
   width: 120px;
 }
+
 .consultas-table .col-observaciones {
   width: 120px;
 }
@@ -415,9 +458,11 @@ input[type="number"]::-webkit-inner-spin-button {
 .consultas-table .col-edad {
   width: 40px;
 }
+
 .consultas-table .col-confirmado {
   width: 60px;
 }
+
 .consultas-table .col-responsable {
   width: 40px;
 }
@@ -427,10 +472,14 @@ input[type="number"]::-webkit-inner-spin-button {
 .consultas-table td.col-paciente,
 .consultas-table td.col-procedimiento,
 .consultas-table td.col-observaciones {
-  white-space: normal;        /* deja romper línea */
-  word-break: break-word;     /* quiebra palabras largas */
-  overflow-wrap: break-word;  /* alternativa para navegadores */
-  text-align: left;           /* opcional: alinea a la izquierda */
+  white-space: normal;
+  /* deja romper línea */
+  word-break: break-word;
+  /* quiebra palabras largas */
+  overflow-wrap: break-word;
+  /* alternativa para navegadores */
+  text-align: left;
+  /* opcional: alinea a la izquierda */
 }
 
 
@@ -446,12 +495,15 @@ input[type="number"]::-webkit-inner-spin-button {
 /* Ajustar tamaño de botones en la columna de OPCIONES */
 .horizontal-btns {
   display: inline-flex;
-  gap: 2px; /* menos separación */
+  gap: 2px;
+  /* menos separación */
 }
 
 .horizontal-btns button {
-  font-size: 0.6rem; /* más pequeño */
-  padding: 0.2rem 0.3rem; /* más compacto */
+  font-size: 0.6rem;
+  /* más pequeño */
+  padding: 0.2rem 0.3rem;
+  /* más compacto */
 }
 
 /* Botón "+" centrado */
@@ -471,7 +523,8 @@ input[type="number"]::-webkit-inner-spin-button {
 /* Para que los <input> y <select> dentro de la tabla ocupen el ancho de la celda */
 .consultas-table td input[type="text"],
 .consultas-table td select {
-  width: 100%;          /* ocupa todo el ancho de la celda */
+  width: 100%;
+  /* ocupa todo el ancho de la celda */
   box-sizing: border-box;
   font-size: 0.8rem;
   padding: 0.2rem;
@@ -535,7 +588,8 @@ input[type="number"]::-webkit-inner-spin-button {
   margin-top: 1rem;
   display: flex;
   justify-content: space-between;
-  flex-wrap: wrap; /* Para que en pantallas pequeñas pasen a otra línea */
+  flex-wrap: wrap;
+  /* Para que en pantallas pequeñas pasen a otra línea */
   gap: 0.5rem;
 }
 
@@ -549,14 +603,16 @@ input[type="number"]::-webkit-inner-spin-button {
   font-size: 0.85rem;
   font-weight: bold;
   transition: background-color 0.3s ease;
-  color: #fff; /* color de texto blanco por defecto */
+  color: #fff;
+  /* color de texto blanco por defecto */
 }
 
 /* =====================
    Botón Confirmar (SI)
 ===================== */
 .btn-confirm {
-  background-color: #28a745; /* Verde */
+  background-color: #28a745;
+  /* Verde */
 }
 
 .btn-confirm:hover {
@@ -567,7 +623,8 @@ input[type="number"]::-webkit-inner-spin-button {
    Botón Denegar (NO)
 ===================== */
 .btn-deny {
-  background-color: #dc3545; /* Rojo */
+  background-color: #dc3545;
+  /* Rojo */
 }
 
 .btn-deny:hover {
@@ -578,8 +635,10 @@ input[type="number"]::-webkit-inner-spin-button {
    Botón Pendiente
 ===================== */
 .btn-pending {
-  background-color: #ffc107; /* Amarillo */
-  color: #212529;            /* Texto oscuro para contraste */
+  background-color: #ffc107;
+  /* Amarillo */
+  color: #212529;
+  /* Texto oscuro para contraste */
 }
 
 .btn-pending:hover {
@@ -590,12 +649,14 @@ input[type="number"]::-webkit-inner-spin-button {
    Botón Cancelar
 ===================== */
 .btn-cancel {
-  background-color: #6c757d; /* Gris */
+  background-color: #6c757d;
+  /* Gris */
 }
 
 .btn-cancel:hover {
   background-color: #5a6268;
 }
+
 /* =====================
   RESPONSIVE Y FLEX
 ===================== */
@@ -670,43 +731,52 @@ input[type="number"]::-webkit-inner-spin-button {
   max-width: 100px;
   max-height: 100px;
 }
+
 /* Media Queries para hacerlo responsive */
 
 /* Para pantallas pequeñas (móviles) */
 @media (max-width: 767px) {
   .flex-row {
-    flex-direction: column; /* Cambia a columna en móviles */
-    align-items: stretch; /* Estira los elementos para ocupar todo el ancho */
+    flex-direction: column;
+    /* Cambia a columna en móviles */
+    align-items: stretch;
+    /* Estira los elementos para ocupar todo el ancho */
   }
 
   .flex-column {
-    width: 100%; /* Asegura que las columnas ocupen todo el ancho */
+    width: 100%;
+    /* Asegura que las columnas ocupen todo el ancho */
   }
 
   .container {
-    padding: 10px; /* Reduce el padding en móviles */
+    padding: 10px;
+    /* Reduce el padding en móviles */
   }
 }
 
 /* Para tablets (pantallas medianas) */
 @media (min-width: 768px) and (max-width: 1023px) {
   .flex-row {
-    flex-direction: row; /* Mantiene la fila en tablets */
+    flex-direction: row;
+    /* Mantiene la fila en tablets */
   }
 
   .flex-column {
-    width: 50%; /* Divide el ancho en dos columnas en tablets */
+    width: 50%;
+    /* Divide el ancho en dos columnas en tablets */
   }
 }
 
 /* Para pantallas grandes (desktops) */
 @media (min-width: 1024px) {
   .flex-row {
-    flex-direction: row; /* Mantiene la fila en desktops */
+    flex-direction: row;
+    /* Mantiene la fila en desktops */
   }
 
   .flex-column {
-    width: 50%; /* Divide el ancho en dos columnas en desktops */
+    width: 50%;
+    /* Divide el ancho en dos columnas en desktops */
   }
 }
 
@@ -717,7 +787,8 @@ input[type="number"]::-webkit-inner-spin-button {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1rem;
-  justify-content: center; /* Opcional: centrar horizontalmente */
+  justify-content: center;
+  /* Opcional: centrar horizontalmente */
 }
 
 /* Un label personalizado para el botón "Examinar..." */
@@ -768,13 +839,15 @@ input[type="number"]::-webkit-inner-spin-button {
   font-size: 0.85rem;
   font-weight: bold;
   transition: background-color 0.3s ease;
-  color: #fff; /* texto blanco por defecto */
+  color: #fff;
+  /* texto blanco por defecto */
 }
 
 /* Botón de envío (submit) en verde */
 .btn-submit {
   background-color: #28a745;
 }
+
 .btn-submit:hover {
   background-color: #218838;
 }
@@ -783,6 +856,7 @@ input[type="number"]::-webkit-inner-spin-button {
 .btn-cancel {
   background-color: #dc3545;
 }
+
 .btn-cancel:hover {
   background-color: #c82333;
 }

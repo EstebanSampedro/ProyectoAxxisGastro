@@ -35,7 +35,6 @@
   </button>
 </div>
 
-
 <!-- Tabla de Consultas -->
 <table class="consultas-table">
   <thead>
@@ -55,8 +54,7 @@
   </thead>
   <tbody cdkDropList (cdkDropListDropped)="drop($event)">
 
-    <tr *ngFor="let view of displaySlots; let i = index" cdkDrag [cdkDragData]="view.cita"
-      [ngStyle]="{ 'background-color': view.cita?.colorCita || '' }">
+    <tr *ngFor="let view of displaySlots; let i = index" [ngStyle]="{ 'background-color': view.cita?.colorCita || '' }">
 
       <!-- 1) HORA (columna 1): sólo para empty y appointment -->
       <td *ngIf="view.type !== 'custom-empty'">{{ view.slot.substr(0,5) }}</td>
@@ -98,7 +96,7 @@
               <button title="Cancelar edición" (click)="cancelarEdicion()">
                 <fa-icon [icon]="faCancelAlt"></fa-icon>
               </button>
-              <button title="Reagendar cita" (click)="openRescheduleModal(cita, slot)">
+              <button title="Reagendar cita" (click)="openRescheduleModal(view.cita)">
                 <fa-icon [icon]="faCalendarAlt"></fa-icon>
               </button>
             </div>
@@ -196,7 +194,6 @@
   </div>
 </div>
 
-
 <!-- Modal de Reagendar -->
 <div *ngIf="showRescheduleModal" class="modal-overlay">
   <div class="modal reschedule-modal">
@@ -208,37 +205,66 @@
         <td>{{ citaToReschedule.fecha }}</td>
       </tr>
       <tr>
-        <td><b>Hora actual:</b></td>
-        <td>{{ citaToReschedule.horaStr }}</td>
+        <td><b>Hora inicio actual:</b></td>
+        <td>{{ citaToReschedule.horaStr.substr(0,5) }}</td>
       </tr>
       <tr>
-        <td><b>Torre actual:</b></td>
+        <td><b>Hora fin actual:</b></td>
+        <td>{{ citaToReschedule.horaFinStr.substr(0,5) }}</td>
+      </tr>
+      <tr>
+        <td><b>Torre:</b></td>
         <td>{{ citaToReschedule.torre }}</td>
-      </tr>
-      <tr>
-        <td><b>Doctor:</b></td>
-        <td>{{ doctorName }}</td>
-      </tr>
-      <tr>
-        <td><b>Procedimiento:</b></td>
-        <td>{{ citaToReschedule.procedimiento }}</td>
       </tr>
     </table>
 
-    <div class="filtros" style="justify-content:center; margin-top:1rem">
+    <form #resForm="ngForm" novalidate style="margin-top:1rem; text-align:center;">
 
-      <label>Fecha:</label>
-      <input type="date" [(ngModel)]="rescheduleDate" />
+      <!-- Fecha nueva -->
+      <div class="field">
+        <label>Fecha nueva:</label>
+        <input type="date" required name="date" [(ngModel)]="rescheduleDate" />
+        <div class="error" *ngIf="resForm.submitted && !rescheduleDate">
+          Selecciona una fecha.
+        </div>
+      </div>
 
-      <label>Hora:</label>
-      <select [(ngModel)]="rescheduleHour">
-        <option *ngFor="let h of timeSlots" [value]="h">{{ h }}</option>
-      </select>
-    </div>
+      <!-- Hora inicio manual -->
+      <div class="field">
+        <label>Hora inicio (H:MM / HH:MM):</label>
+        <input type="text" placeholder="09:00 o 8:30" required name="start" pattern="^([0-1]?\d|2[0-3]):[0-5]\d$"
+          [(ngModel)]="rescheduleHour" />
+        <div class="error" *ngIf="resForm.submitted && resForm.controls['start']?.invalid">
+          Formato inválido. Usa H:MM o HH:MM.
+        </div>
+      </div>
 
-    <div class="modal-buttons" style="margin-top:1rem">
-      <button class="btn-submit" (click)="rescheduleCita()">Reagendar</button>
-      <button class="btn-cancel" (click)="closeRescheduleModal()">Cancelar</button>
-    </div>
+      <!-- Hora fin manual -->
+      <div class="field">
+        <label>Hora fin (H:MM / HH:MM):</label>
+        <input type="text" placeholder="09:30 o 8:45" required name="end" pattern="^([0-1]?\d|2[0-3]):[0-5]\d$"
+          [(ngModel)]="rescheduleEndHour" />
+        <div class="error" *ngIf="resForm.submitted && resForm.controls['end']?.invalid">
+          Formato inválido. Usa H:MM o HH:MM.
+        </div>
+      </div>
+
+      <!-- Validación de orden -->
+      <div class="error" *ngIf="resForm.submitted && isEndBeforeStart()">
+        La hora fin debe ser posterior a la hora inicio.
+      </div>
+
+      <!-- Botones -->
+      <div class="modal-buttons" style="margin-top:1rem">
+        <button type="button" class="btn-submit" (click)="rescheduleCita()"
+          [disabled]="resForm.invalid || isEndBeforeStart()">
+          Reagendar
+        </button>
+        <button type="button" class="btn-cancel" (click)="closeRescheduleModal()">
+          Cancelar
+        </button>
+      </div>
+
+    </form>
   </div>
 </div>
