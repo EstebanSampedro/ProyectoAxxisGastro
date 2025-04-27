@@ -40,17 +40,7 @@
     </fa-icon>
   </button>
 </div>
-<!-- Pestañas de torres -->
-<div class="tab-container">
-  <div
-    *ngFor="let torre of torres"
-    class="tab"
-    [class.active]="selectedTorreId === torre.idTorre"
-    (click)="selectTorre(torre.idTorre)"
-  >
-    {{ torre.textTorre }}
-  </div>
-</div>
+
 
 <!-- Tabla de Consultas -->
 <table class="consultas-table">
@@ -72,9 +62,9 @@
   <!-- Se agrega cdkDropList al tbody -->
   <tbody cdkDropList (cdkDropListDropped)="drop($event)">
     <!-- Cada fila es draggable y se le asigna el dato de la cita (si existe) -->
-    <tr *ngFor="let slot of timeSlots" 
-        cdkDrag 
-        [cdkDragData]="getCitaBySlot(slot)" 
+    <tr *ngFor="let slot of timeSlots"
+      cdkDrag
+      [cdkDragDisabled]="getCitaBySlot(slot)?.tipoCita === 'cita'"
         [ngStyle]="{ 'background-color': getCitaBySlot(slot)?.colorCita || '' }">
       <!-- Columna 1: HORA -->
       <td>{{ slot }}</td>
@@ -121,8 +111,20 @@
           </td>
           <td>
             <div class="horizontal-btns">
-              <button (click)="guardarEdicion()">Guardar</button>
-              <button (click)="cancelarEdicion()">Cancelar</button>
+              <button
+                class="btn-save"
+                title="Guardar cambios"
+                (click)="guardarEdicion()">
+                <fa-icon [icon]="faSaveAlt"></fa-icon>
+              </button>
+              <button
+                title="Cancelar edición"
+                (click)="cancelarEdicion()">
+                <fa-icon [icon]="faCancelAlt"></fa-icon>
+              </button>
+              <button title="Reagendar cita" (click)="openRescheduleModal(cita, slot)">
+                <fa-icon [icon]="faCalendarAlt"></fa-icon>
+              </button>
             </div>
           </td>
         </ng-container>
@@ -138,7 +140,7 @@
           <td>{{ cita.confirmado }}</td>
           <td>{{ cita.responsable }}</td>
           <td>
-            <div class="horizontal-btns">
+            <div *ngIf="cita.tipoCita === 'consulta'" class="horizontal-btns">
               <button (click)="enviarWhatsApp(cita)">📞</button>
               <button (click)="enviarRecordatorio(cita)">🔔</button>
               <button (click)="confirmarCita(cita)">✔</button>
@@ -245,3 +247,35 @@
 </div>
 
 
+<!-- Modal de Reagendar -->
+<div *ngIf="showRescheduleModal" class="modal-overlay">
+  <div class="modal reschedule-modal">
+    <h3>Reagendar cita de {{ citaToReschedule.paciente }}</h3>
+
+    <table style="margin:0 auto; text-align:left">
+      <tr><td><b>Fecha actual:</b></td><td>{{ citaToReschedule.fecha }}</td></tr>
+      <tr><td><b>Hora actual:</b></td><td>{{ citaToReschedule.horaStr }}</td></tr>
+      <tr><td><b>Torre actual:</b></td><td>{{ citaToReschedule.torre }}</td></tr>
+      <tr><td><b>Doctor:</b></td>
+          <td>{{ doctorName  }}</td></tr>
+      <tr><td><b>Procedimiento:</b></td>
+          <td>{{ citaToReschedule.procedimiento }}</td></tr>
+    </table>
+
+    <div class="filtros" style="justify-content:center; margin-top:1rem">
+
+      <label>Fecha:</label>
+      <input type="date" [(ngModel)]="rescheduleDate" />
+
+      <label>Hora:</label>
+      <select [(ngModel)]="rescheduleHour">
+        <option *ngFor="let h of timeSlots" [value]="h">{{ h }}</option>
+      </select>
+    </div>
+
+    <div class="modal-buttons" style="margin-top:1rem">
+      <button class="btn-submit" (click)="rescheduleCita()">Reagendar</button>
+      <button class="btn-cancel"  (click)="closeRescheduleModal()">Cancelar</button>
+    </div>
+  </div>
+</div>

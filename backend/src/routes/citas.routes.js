@@ -11,7 +11,8 @@ const {
   exportImprimirPDF,
   createOrUpdateConfirmacion,
   createLog,
-  softDeleteCita
+  softDeleteCita,
+  reagendarCita
 } = require("../controllers/cita.controller");
 
 const router = express.Router();
@@ -28,6 +29,9 @@ router.get("/imprimir", exportImprimirPDF);
 router.post("/confirmacion", createOrUpdateConfirmacion);
 router.post('/logs', createLog);
 router.patch("/:id/eliminar", softDeleteCita);
+router.patch('/:id/reagendar', reagendarCita);
+
+
 
 
 

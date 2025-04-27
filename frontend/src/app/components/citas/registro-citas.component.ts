@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {faPrint, faMagnifyingGlass,faSave, faWarning} from '@fortawesome/free-solid-svg-icons'
+import {faPrint, faMagnifyingGlass,faSave, faWarning, faCalendarAlt} from '@fortawesome/free-solid-svg-icons'
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
@@ -19,6 +19,13 @@ import { ConfirmacionBody } from '../../interfaces/confirmacionBody';
 import { ApiResponse } from '../../interfaces/apiResponse';
 import { switchMap } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { faFloppyDisk, faTimesCircle } from '@fortawesome/free-solid-svg-icons';
+// registra los imports necesarios
+import { EMPTY } from 'rxjs';
+import {  map } from 'rxjs/operators';
+
+
+
 
 
 import { 
@@ -26,7 +33,7 @@ import {
   faBell, 
   faCheck, 
   faPencil, 
-  faXmark 
+  faXmark ,
 } from '@fortawesome/free-solid-svg-icons';
 
 
@@ -37,6 +44,15 @@ import {
   standalone: false
 })
 export class RegistroCitasComponent implements OnInit {
+
+  faCalendarAlt = faCalendarAlt;
+  faSaveAlt   = faFloppyDisk;
+  faCancelAlt = faTimesCircle;
+  showRescheduleModal = false;
+  citaToReschedule: any = null;
+  rescheduleDate: string = '';
+  rescheduleTorre: number = 1;
+  rescheduleHour: string = '';
 
   faPhone = faPhone;
   faBell = faBell;
@@ -53,6 +69,7 @@ export class RegistroCitasComponent implements OnInit {
     private torreService: TorreService
 
   ) {}
+
 
   selectedDate: Date = new Date();
   formattedDate: string = '';
@@ -73,6 +90,15 @@ export class RegistroCitasComponent implements OnInit {
   selectedFiles: File[] = [];
   mostrarModalAdjuntos: boolean = false;
   citaSeleccionada: any = null;
+
+  // — Propiedades para el modal de conflicto —
+  showConflictModal = false;
+  conflictCita: any = null;
+  conflictRescheduleDate = '';   // "YYYY-MM-DD"
+  conflictRescheduleHour = '';   // "HH:mm:00"
+  conflictRescheduleTorre = 1;
+  conflict: any = null;
+
 
   // Listado de procedimientos para el dropdown / datalist
 procedimientos: string[] = [
@@ -210,6 +236,8 @@ procedimientos: string[] = [
     this.cargarCitas();
     this.cargarObservaciones();
     this.cargarDoctores();
+    this.conflictRescheduleTorre = this.selectedTorreId;
+
   }
 
   
@@ -230,16 +258,20 @@ cargarCitas(): void {
     .getCitasByDateAndTower(fechaStr, this.selectedTorreId)
     .subscribe({
       next: data => {
-        // 1) filtramos sólo las activas
-        const activas = data.filter(cita => cita.estado === 'activo');
+        // 1) filtramos sólo las activas Y de tipo "cita"
+        const activas = data.filter(c =>
+          c.estado === 'activo' &&
+          c.tipoCita === 'cita'
+        );
 
-        // 2) mapeamos las que quedan para añadir horaStr, etc.
+        // 2) mapeamos las que quedan para añadir horaStr, horaFinStr, responsable, etc.
         this.citas = activas.map(cita => {
           const horaStr    = this.extraerHora(cita.hora);
           const horaFinStr = this.extraerHora(cita.horaTermina);
           const responsable = cita.idConfirma_idMedico
             ? this.authService.getAdminCode(cita.idConfirma_idMedico)
             : '';
+
           return {
             ...cita,
             horaStr,
@@ -250,11 +282,13 @@ cargarCitas(): void {
           };
         });
 
-        console.log('Citas activas:', this.citas);
+        console.log('Citas activas (solo tipo "cita"):', this.citas);
       },
-      error: err => console.error('Error al obtener consultas:', err)
+      error: err => {
+        console.error('Error al obtener citas:', err);
+      }
     });
-}
+  }
 
 
 
@@ -279,66 +313,164 @@ cargarCitas(): void {
   }
 
 
-  // Guarda la nueva cita (creación)
-guardarCita(slot: string): void {
-  // 1) Convertimos la fecha al formato YYYY-MM-DD para pasar al filtro
-  const fechaStr = this.selectedDate.toISOString().split('T')[0];
-
-  // 2) Primero comprobamos si ese doctor ya tiene cita a esa hora ese día
-  this.citaService.getCitasByDoctorAndDate(+this.selectedDoctorForCita, fechaStr)
-    .subscribe({
-      next: citasDoctor => {
-        const ocupado = citasDoctor.some(c => this.extraerHora(c.hora) === slot);
-        if (ocupado) {
-          // Si ya hay una cita a esa hora, abortamos y mostramos advertencia
-          return alert('❌ Doctor ocupado en este horario');
+  guardarCita(slot: string): void {
+    // 1) Convertimos la fecha al formato YYYY-MM-DD para pasarla a la API
+    const fechaStr = this.selectedDate.toISOString().split('T')[0];
+  
+    // 2) Primero comprobamos si hay una CONSULTA ocupando ese slot (en cualquier torre)
+    this.citaService.getCitasByDate(fechaStr).subscribe({
+      next: allCitas => {
+        const conflict = allCitas.find(c =>
+          c.tipoCita === 'consulta' &&
+          this.extraerHora(c.hora) === slot
+        );
+        if (conflict) {
+          // Si existe conflicto, abrimos el modal para reubicar
+          this.openConflictModal(conflict, slot);
+          return;
         }
-
-        // 3) Si está libre, seguimos con la creación
-        const horaFin = this.calcularFin(slot, 30); // 30 minutos por defecto
-        const body = {
-          idResponsable_idMedico: this.authService.getAdminId(), // quien crea
-          idDoctor_cita: +this.selectedDoctorForCita,
-          fecha: this.selectedDate,
-          torre: this.selectedTorreId,    // ahora sí respetamos la torre activa
-          hora: slot,
-          horaTermina: horaFin,
-          paciente: this.newCitaData.paciente || 'Paciente X',
-          edad: this.newCitaData.edad || '',
-          telefono: this.newCitaData.telefono || '',
-          procedimiento: this.newCitaData.procedimiento || '',
-          imagen: this.newCitaData.imagen || '',
-          pedido: this.newCitaData.pedido || '',
-          institucion: this.newCitaData.institucion || '',
-          seguro: this.newCitaData.seguro || '',
-          estado: 'activo',
-          confirmado: 'pendiente',
-          observaciones: this.newCitaData.observaciones || '',
-          observaciones2: '',
-          colorCita: this.newCitaData.colorCita || '#FFFFFF',
-          cedula: this.newCitaData.cedula || '',
-          recordatorioEnv: false,
-          tipoCita: 'cita',
-          responsable: this.adminInitials
-        };
-
-        this.http.post('http://localhost:3000/api/citas/register', body).subscribe({
-          next: resp => {
-            console.log('Cita agregada:', resp);
-            this.editingSlot = null;
-            this.newCitaData = {};
-            this.cargarCitas();
-          },
-          error: err => {
-            console.error('Error al agregar cita:', err);
-          }
-        });
+  
+        // 3) Si no hay consulta que choque, verificamos disponibilidad del doctor
+        this.citaService.getCitasByDoctorAndDate(+this.selectedDoctorForCita, fechaStr)
+          .subscribe({
+            next: citasDoctor => {
+              const ocupado = citasDoctor.some(c => this.extraerHora(c.hora) === slot);
+              if (ocupado) {
+                alert('❌ Doctor ocupado en este horario');
+                return;
+              }
+  
+              // 4) Si está libre, creamos la CITA:
+              const horaFin = this.calcularFin(slot, 30);
+              const body = {
+                idResponsable_idMedico: this.authService.getAdminId(),
+                idDoctor_cita: +this.selectedDoctorForCita,
+                fecha: fechaStr,
+                torre: this.selectedTorreId,
+                hora: slot,
+                horaTermina: horaFin,
+                paciente: this.newCitaData.paciente || 'Paciente X',
+                edad: this.newCitaData.edad    || '',
+                telefono: this.newCitaData.telefono || '',
+                procedimiento: this.newCitaData.procedimiento || '',
+                imagen: this.newCitaData.imagen        || '',
+                pedido: this.newCitaData.pedido        || '',
+                institucion: this.newCitaData.institucion || '',
+                seguro: this.newCitaData.seguro        || '',
+                estado: 'activo',
+                confirmado: 'pendiente',
+                observaciones: this.newCitaData.observaciones || '',
+                observaciones2: '',
+                colorCita: this.newCitaData.colorCita || '#FFFFFF',
+                cedula: this.newCitaData.cedula || '',
+                recordatorioEnv: false,
+                tipoCita: 'cita',
+                responsable: this.adminInitials
+              };
+  
+              this.http.post('http://localhost:3000/api/citas/register', body).subscribe({
+                next: resp => {
+                  console.log('Cita agregada:', resp);
+                  this.editingSlot = null;
+                  this.newCitaData = {};
+                  this.cargarCitas();
+                },
+                error: err => {
+                  console.error('Error al agregar cita:', err);
+                  alert('No se pudo guardar la cita');
+                }
+              });
+            },
+            error: err => {
+              console.error('Error comprobando citas del doctor:', err);
+              alert('No se pudo verificar la disponibilidad del doctor');
+            }
+          });
       },
       error: err => {
-        console.error('Error comprobando citas del doctor:', err);
-        alert('No se pudo verificar la disponibilidad. Inténtalo de nuevo.');
+        console.error('Error comprobando consultas existentes:', err);
+        alert('No se pudo verificar conflicto con consultas');
       }
     });
+  }
+
+  // Cuando detectas el conflicto:
+private openConflictModal(conf: any, slot: string) {
+  this.conflict = {
+    ...conf,
+    horaStr:    this.extraerHora(conf.hora),
+    horaFinStr: this.extraerHora(conf.horaTermina),
+    responsable: conf.idConfirma_idMedico
+      ? this.authService.getAdminCode(conf.idConfirma_idMedico)
+      : ''
+  };
+  // Inicializa los controles con valores por defecto
+  this.rescheduleTorre = this.selectedTorreId;
+  this.rescheduleDate  = this.selectedDate.toISOString().split('T')[0];
+  this.rescheduleHour  = slot;
+  this.showConflictModal = true;
+}
+
+// Cierra el modal sin hacer nada
+closeConflictModal() {
+  this.showConflictModal = false;
+  this.conflict = null;
+}
+
+// Confirmar nuevo horario tras conflicto
+confirmNewDate() {
+  // 1) Construimos la fecha en YYYY-MM-DD
+  const fechaStr = this.rescheduleDate;  
+
+  // 2) Tomamos la hora elegida y calculamos horaFin (30m después)
+  const slot      = this.rescheduleHour;
+  const horaFin   = this.calcularFin(slot, 30);
+
+  // 3) Preparamos el body EXACTAMENTE igual que en guardarCita()
+  const body = {
+    idResponsable_idMedico: this.authService.getAdminId(),
+    idDoctor_cita:         +this.selectedDoctorForCita,
+    fecha:                  fechaStr,
+    torre:                  this.rescheduleTorre,
+    hora:                   slot,
+    horaTermina:            horaFin,
+    paciente:               this.newCitaData.paciente   || 'Paciente X',
+    edad:                   this.newCitaData.edad       || null,
+    telefono:               this.newCitaData.telefono   || '',
+    procedimiento:          this.newCitaData.procedimiento || '',
+    imagen:                 this.newCitaData.imagen     || '',
+    pedido:                 this.newCitaData.pedido     || '',
+    institucion:            this.newCitaData.institucion|| '',
+    seguro:                 this.newCitaData.seguro     || '',
+    estado:                 'activo',
+    confirmado:             'pendiente',
+    observaciones:          this.newCitaData.observaciones || '',
+    observaciones2:         '',
+    colorCita:              this.newCitaData.colorCita  || '#FFFFFF',
+    cedula:                 this.newCitaData.cedula     || '',
+    recordatorioEnv:        false,
+    tipoCita:               'cita',
+    responsable:            this.adminInitials
+  };
+
+  // 4) Llamamos al endpoint de registro de cita
+  this.http.post(
+    'http://localhost:3000/api/citas/register',
+    body
+  ).subscribe({
+    next: resp => {
+      alert('✅ Nueva cita creada correctamente');
+      // cerramos modal y reseteamos el estado de edición/creación
+      this.closeConflictModal();
+      this.editingSlot   = null;
+      this.newCitaData   = {};
+      this.cargarCitas();
+    },
+    error: err => {
+      console.error('Error al crear nueva cita tras conflicto:', err);
+      alert('No se pudo crear la cita. Inténtalo de nuevo.');
+    }
+  });
 }
 
 
@@ -1140,5 +1272,74 @@ imprimir() {
   // Ajusta la URL de acuerdo a la ruta y dominio de tu backend
   window.open(`http://localhost:3000/api/citas/imprimir?f=${fechaStr}`, '_blank');
   }
+
+// Al pulsar el botón de calendario en la fila en edición
+openRescheduleModal(cita: any) {
+  this.citaToReschedule = cita;
+  this.rescheduleDate   = cita.fecha;      // asumiendo "YYYY-MM-DD"
+  this.rescheduleTorre  = cita.torre;
+  this.rescheduleHour   = cita.horaStr;    // "HH:mm:00"
+  this.showRescheduleModal = true;
+}
+
+closeRescheduleModal() {
+  this.showRescheduleModal = false;
+  this.citaToReschedule    = null;
+}
+/** Lógica de reagendar */
+rescheduleCita() {
+  // 1) comprobar disponibilidad
+  this.citaService
+    .getCitasByDateAndTower(this.rescheduleDate, this.rescheduleTorre)
+    .subscribe({
+      next: citas => {
+        const occupied = citas
+          .filter(c => c.idCita !== this.citaToReschedule.idCita)
+          .some(c => this.extraerHora(c.hora) === this.rescheduleHour);
+        if (occupied) {
+          return alert('❌ Ya existe otra cita en este torre/hora.');
+        }
+
+        // 2) preparamos el body con “offset −5h” en la hora
+        //    parseamos la hora elegida (formato "HH:mm:ss")
+        const [h, m, s] = this.rescheduleHour.split(':').map(n => +n);
+        // usamos un Date genérico en UTC
+        const dt = new Date(Date.UTC(1970, 0, 1, h, m, s));
+        // restamos 5 horas
+        dt.setUTCHours(dt.getUTCHours() - 5);
+        // formateamos de nuevo a "HH:mm:00"
+        const hh = dt.getUTCHours().toString().padStart(2, '0');
+        const mm = dt.getUTCMinutes().toString().padStart(2, '0');
+        const horaOffset = `${hh}:${mm}:00`;
+
+        const url = `http://localhost:3000/api/citas/${this.citaToReschedule.idCita}/reagendar`;
+        const body = {
+          fecha: this.rescheduleDate,   // sigue siendo "YYYY-MM-DD"
+          torre: this.rescheduleTorre,
+          hora:  horaOffset
+        };
+
+        // 3) enviamos el patch
+        this.http.patch(url, body).subscribe({
+          next: () => {
+            alert('✅ Cita reagendada correctamente');
+            this.closeRescheduleModal();
+            this.editingCitaId = null;    // Sale de “editar” para esa cita
+            this.editingSlot   = null;    // Sale de “creación/edición” en ese slot
+            this.cargarCitas();
+          },
+          error: err => {
+            console.error('Error al reagendar:', err);
+            alert('No se pudo reagendar la cita');
+          }
+        });
+      },
+      error: err => {
+        console.error('Error comprobando disponibilidad:', err);
+        alert('No se pudo verificar disponibilidad');
+      }
+    });
+}
+
  
 }

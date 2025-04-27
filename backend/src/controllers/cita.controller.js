@@ -616,6 +616,33 @@ async function exportImprimirPDF(req, res) {
 }
 
 
+// PATCH /api/citas/:id/reagendar
+const reagendarCita = async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { fecha, torre, hora } = req.body;
+    if (!fecha || !torre || !hora) {
+      return res.status(400).json({ error: 'fecha, torre y hora son obligatorios' });
+    }
+    const updated = await prisma.cita.update({
+      where: { idCita: id },
+      data: {
+        fecha: new Date(fecha),
+        torre: Number(torre),
+        hora: new Date(`${fecha}T${hora}`),
+        horaTermina: new Date(`${fecha}T${hora}`) // o bien recalcula fin si quieres
+      }
+    });
+    res.json(updated);
+  } catch (err) {
+    console.error('Error reagendando cita:', err);
+    res.status(500).json({ error: 'Error interno al reagendar cita' });
+  }
+};
+
+
+
+
 module.exports = {
   registerCita,
   filterCitas,
@@ -628,6 +655,7 @@ module.exports = {
   exportImprimirPDF,
   createOrUpdateConfirmacion,
   createLog,
-  softDeleteCita
+  softDeleteCita,
+  reagendarCita
 
 };

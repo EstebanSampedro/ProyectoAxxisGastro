@@ -111,8 +111,8 @@
             <input
             list="procedimientosList"
             [(ngModel)]="newCitaData.procedimiento"
+            class="procedimiento-input"
             placeholder="Procedimiento"
-            class="editable-combo"
           />
           <datalist id="procedimientosList">
             <option *ngFor="let p of procedimientos" [value]="p"></option>
@@ -148,12 +148,24 @@
             <input type="text" [(ngModel)]="newCitaData.confirmado" disabled />
           </td>
           <td>
-            <input type="text" [(ngModel)]="newCitaData.responsable" placeholder="Responsable" />
+            <input type="text" [(ngModel)]="newCitaData.responsable" disabled placeholder="Responsable" />
           </td>
           <td>
             <div class="horizontal-btns">
-              <button (click)="guardarEdicion()">Guardar</button>
-              <button (click)="cancelarEdicion()">Cancelar</button>
+              <button
+                class="btn-save"
+                title="Guardar cambios"
+                (click)="guardarEdicion()">
+                <fa-icon [icon]="faSaveAlt"></fa-icon>
+              </button>
+              <button
+                title="Cancelar edición"
+                (click)="cancelarEdicion()">
+                <fa-icon [icon]="faCancelAlt"></fa-icon>
+              </button>
+              <button title="Reagendar cita" (click)="openRescheduleModal(cita)">
+                <fa-icon [icon]="faCalendarAlt"></fa-icon>
+              </button>
             </div>
           </td>
         </ng-container>
@@ -231,8 +243,8 @@
               <input
               list="procedimientosList"
               [(ngModel)]="newCitaData.procedimiento"
+              class="procedimiento-input"
               placeholder="Procedimiento"
-              class="editable-combo"
             />
             <datalist id="procedimientosList">
               <option *ngFor="let p of procedimientos" [value]="p"></option>
@@ -279,7 +291,7 @@
             
             <!-- CONFIR. -->
             <td>
-              <input type="text" [(ngModel)]="newCitaData.confirmado" placeholder="Pendiente" />
+              <input type="text" [(ngModel)]="newCitaData.confirmado" disabled placeholder="Pendiente" />
             </td>
             
             <!-- RESP. -->
@@ -388,4 +400,104 @@
   </div>
 </div>
 
+<!-- … justo antes de cerrar </div> general … -->
+<div *ngIf="showRescheduleModal" class="modal-overlay">
+  <div class="modal reschedule-modal">
+    <h3>Reagendar cita de {{ citaToReschedule.paciente }}</h3>
+
+    <table style="margin:0 auto; text-align:left">
+      <tr><td><b>Fecha actual:</b></td><td>{{ citaToReschedule.fecha }}</td></tr>
+      <tr><td><b>Hora actual:</b></td><td>{{ citaToReschedule.horaStr }}</td></tr>
+      <tr><td><b>Torre actual:</b></td><td>{{ citaToReschedule.torre }}</td></tr>
+      <tr><td><b>Doctor:</b></td><td>{{ getDoctorName(citaToReschedule.idDoctor_cita) }}</td></tr>
+      <tr><td><b>Procedimiento:</b></td><td>{{ citaToReschedule.procedimiento }}</td></tr>
+    </table>
+
+    <div class="filtros" style="justify-content:center; margin-top:1rem">
+      <label>Torre:</label>
+      <select [(ngModel)]="rescheduleTorre">
+        <option *ngFor="let t of torres" [value]="t.idTorre">{{ t.textTorre }}</option>
+      </select>
+
+      <label>Fecha:</label>
+      <input type="date" [(ngModel)]="rescheduleDate" />
+
+      <label>Hora:</label>
+      <select [(ngModel)]="rescheduleHour">
+        <option *ngFor="let h of timeSlots" [value]="h">{{ h }}</option>
+      </select>
+    </div>
+
+    <div class="modal-buttons" style="margin-top:1rem">
+      <button class="btn-submit" (click)="rescheduleCita()">Reagendar</button>
+      <button class="btn-cancel" (click)="closeRescheduleModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mini-modal de conflicto -->
+<div *ngIf="showConflictModal" class="modal-overlay">
+  <div class="modal conflict-modal">
+    <h3 class="conflict-title">HORARIO DE DOCTOR ESTÁ OCUPADO – SELECCIONE OTRO</h3>
+
+    <!-- Tabla de registro en conflicto -->
+    <table class="conflict-table">
+      <thead>
+        <tr>
+          <th>HORA</th>
+          <th>HORA FIN</th>
+          <th>MÉDICO</th>
+          <th>PACIENTE</th>
+          <th>OBSERVACIONES</th>
+          <th>CONFIR.</th>
+          <th>RESP.</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{{ conflict.horaStr }}</td>
+          <td>{{ conflict.horaFinStr }}</td>
+          <td>{{ getDoctorName(conflict.idDoctor_cita) }}</td>
+          <td>{{ conflict.paciente }}</td>
+          <td>{{ conflict.observaciones }}</td>
+          <td>{{ conflict.confirmado }}</td>
+          <td>{{ conflict.responsable }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Detalles de la nueva cita que estamos creando -->
+    <h4 class="detail-title">SELECCIONE LA NUEVA FECHA DE LA CITA MÉDICA</h4>
+    <table class="detail-table">
+      <tr><td><strong>Fecha actual:</strong></td><td>{{ conflict.fecha | date:'yyyy-MM-dd' }}</td></tr>
+      <tr><td><strong>Hora actual:</strong></td><td>{{ conflict.horaStr }}</td></tr>
+      <tr><td><strong>Torre actual:</strong></td><td>{{ conflict.torre }}</td></tr>
+      <tr><td><strong>Paciente:</strong></td><td>{{ newCitaData.paciente }}</td></tr>
+      <tr><td><strong>Doctor:</strong></td><td>{{ getDoctorName(+selectedDoctorForCita) }}</td></tr>
+      <tr><td><strong>Procedimiento:</strong></td><td>{{ newCitaData.procedimiento }}</td></tr>
+    </table>
+
+    <!-- Controles para elegir nueva fecha/torre/hora -->
+    <div class="filtros">
+      <label>Torre:</label>
+      <select [(ngModel)]="rescheduleTorre">
+        <option *ngFor="let t of torres" [value]="t.idTorre">{{ t.textTorre }}</option>
+      </select>
+
+      <label>Fecha:</label>
+      <input type="date" [(ngModel)]="rescheduleDate" />
+
+      <label>Hora:</label>
+      <select [(ngModel)]="rescheduleHour">
+        <option *ngFor="let h of timeSlots" [value]="h">{{ h }}</option>
+      </select>
+    </div>
+
+    <!-- Botones de acción -->
+    <div class="modal-buttons">
+      <button class="btn btn-success" (click)="confirmNewDate()">Cambiar</button>
+      <button class="btn btn-danger"  (click)="closeConflictModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
 
