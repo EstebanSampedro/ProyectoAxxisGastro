@@ -7,8 +7,9 @@ import config from '../config/util.json';
 
 export interface Admin {
   idmedico: number;
+  nombre: string;
+  permiso: string;
   codigoMedico: string;
-  permiso: string; // Campo para el rol del administrador
 }
 
 @Injectable({
@@ -20,7 +21,7 @@ export class AuthService {
   public currentUser: Observable<any>;
 
   /** Caché local de administradores (tabla medico) */
-  private admins: Admin[] = [];
+  public admins: Admin[] = [];
 
   constructor(private http: HttpClient, private router: Router) {
     const token = localStorage.getItem('token');
@@ -28,6 +29,7 @@ export class AuthService {
     this.currentUserSubject = new BehaviorSubject<any>(user);
     this.currentUser = this.currentUserSubject.asObservable();
   }
+
 
   public get currentUserValue(): any {
     return this.currentUserSubject.value;
@@ -105,11 +107,11 @@ export class AuthService {
   }
 
   getUsername(): string {
-    return this.currentUserValue?.user || 'Invitado';
+    return this.currentUserValue?.nombre || this.currentUserValue?.nomDoctor2 || 'Invitado';
   }
 
   getAdminId(): number {
-    return this.currentUserValue?.idmedico || 0;
+    return this.currentUserValue?.id || 0;
   }
 
   getDoctorId(): number {
@@ -126,9 +128,17 @@ export class AuthService {
    * Devuelve las siglas (codigoMedico) del admin con ese id,
    * o cadena vacía si no existe o no viene.
    */
-  getAdminCode(idmedico?: number): string {
-    if (idmedico == null) return '';
-    const found = this.admins.find((a) => a.idmedico === idmedico);
+  getAdminCode(id?: number): string {
+    if (id == null) return '';
+    const found = this.admins.find((a) => a.idmedico === id);
     return found ? found.codigoMedico : '';
+  }
+
+  /**
+ * Devuelve las siglas (codigoMedico) del admin con ese id,
+ * o cadena vacía si no existe o no viene.
+ */
+  getCurrentAdminCode(): string {
+    return this.currentUserValue.codigoMedico || 'N/A';
   }
 }

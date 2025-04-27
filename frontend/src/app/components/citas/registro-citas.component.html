@@ -3,17 +3,16 @@
 <div class="container">
   <div class="flex-row">
     <div class="flex-column">
-      <app-date-picker
-        (dateChange)="onPickerDateChange($event)">
+      <app-date-picker (dateChange)="onPickerDateChange($event)">
       </app-date-picker>
     </div>
     <div class="flex-column">
       <div class="action-icons">
         <button class="btn icon-btn" title="Buscar" (click)="onDateChange()">
-          Buscar 
+          Buscar
           <fa-icon [icon]="faSearch"></fa-icon>
         </button>
-    
+
         <button class="btn icon-btn" title="Imprimir" (click)="imprimir()">
           Imprimir
           <fa-icon [icon]="faPrint"></fa-icon>
@@ -24,17 +23,12 @@
 </div>
 <div class="observaciones-section container">
   <!-- Ahora SIEMPRE aparece -->
-<button class="btn icon-btn" title="Ver observaciones" (click)="verObservaciones()">
-  <fa-icon [icon]="faWarning"></fa-icon>
-</button>
+  <button class="btn icon-btn" title="Ver observaciones" (click)="verObservaciones()">
+    <fa-icon [icon]="faWarning"></fa-icon>
+  </button>
 
   <label for="observaciones">OBSERVACIONES:</label>
-  <textarea
-    id="observaciones"
-    rows="2"
-    [(ngModel)]="observaciones"
-    class="responsive-textarea"
-  ></textarea>
+  <textarea id="observaciones" rows="2" [(ngModel)]="observaciones" class="responsive-textarea"></textarea>
   <button (click)="guardarObservaciones()" class="btn">Guardar
     <fa-icon [icon]="faSave">
     </fa-icon>
@@ -42,12 +36,8 @@
 </div>
 <!-- Pestañas de torres -->
 <div class="tab-container">
-  <div
-    *ngFor="let torre of torres"
-    class="tab"
-    [class.active]="selectedTorreId === torre.idTorre"
-    (click)="selectTorre(torre.idTorre)"
-  >
+  <div *ngFor="let torre of torres" class="tab" [class.active]="selectedTorreId === torre.idTorre"
+    (click)="selectTorre(torre.idTorre)">
     {{ torre.textTorre }}
   </div>
 </div>
@@ -70,19 +60,16 @@
       <th>COLOR</th>
       <th class="col-confirmado">CONFIR.</th>
       <th class="col-responsable">RESP.</th>
-        <th class="options-col">OPCIONES</th>
+      <th class="options-col">OPCIONES</th>
     </tr>
   </thead>
   <!-- Se agrega cdkDropList al tbody -->
   <tbody cdkDropList (cdkDropListDropped)="drop($event)">
     <!-- Cada fila es draggable y se le asigna el dato de la cita (si existe) -->
-    <tr *ngFor="let slot of timeSlots" 
-        cdkDrag 
-        [cdkDragData]="getCitaBySlot(slot)" 
-        [ngStyle]="{ 'background-color': getCitaBySlot(slot)?.colorCita || '' }">
+    <tr *ngFor="let slot of timeSlots" cdkDrag [cdkDragData]="getCitaBySlot(slot)"
+      [ngStyle]="{ 'background-color': getCitaBySlot(slot)?.colorCita || '' }">
       <!-- Columna 1: HORA -->
       <td>{{ slot }}</td>
-      
       <!-- Verificamos si existe una cita en este slot -->
       <ng-container *ngIf="getCitaBySlot(slot) as cita; else sinCita">
         <ng-container *ngIf="editingCitaId === cita.idCita; else modoLectura">
@@ -327,8 +314,9 @@
             </td>
           </ng-template>
         </ng-template>
-      </tr>
-    </tbody>
+      </ng-template>
+    </tr>
+  </tbody>
 </table>
 
 <!-- Modal de Confirmación -->
@@ -366,21 +354,14 @@
 <div *ngIf="mostrarModalAdjuntos" class="modal-overlay">
   <div class="modal">
     <h3>Adjuntar PDF(s) para el procedimiento</h3>
-    
+
     <!-- Muestra el input y debajo un pequeño texto con la cantidad de archivos elegidos -->
     <div class="file-input-section">
       <label for="pdfInput" class="file-input-label">Examinar...</label>
-      <input
-        id="pdfInput"
-        type="file"
-        #fileInput
-        (change)="onFilesSelected($event)"
-        multiple
-        accept=".pdf"
-        class="file-input-element"
-      />
+      <input id="pdfInput" type="file" #fileInput (change)="onFilesSelected($event)" multiple accept=".pdf"
+        class="file-input-element" />
       <span class="file-input-info">
-        {{ selectedFiles?.length || 0 }} archivo(s) seleccionado(s).
+        {{ selectedFiles.length || 0 }} archivo(s) seleccionado(s).
       </span>
     </div>
 
@@ -399,12 +380,10 @@
     </div>
   </div>
 </div>
-
 <!-- … justo antes de cerrar </div> general … -->
 <div *ngIf="showRescheduleModal" class="modal-overlay">
   <div class="modal reschedule-modal">
     <h3>Reagendar cita de {{ citaToReschedule.paciente }}</h3>
-
     <table style="margin:0 auto; text-align:left">
       <tr><td><b>Fecha actual:</b></td><td>{{ citaToReschedule.fecha }}</td></tr>
       <tr><td><b>Hora actual:</b></td><td>{{ citaToReschedule.horaStr }}</td></tr>
@@ -412,29 +391,24 @@
       <tr><td><b>Doctor:</b></td><td>{{ getDoctorName(citaToReschedule.idDoctor_cita) }}</td></tr>
       <tr><td><b>Procedimiento:</b></td><td>{{ citaToReschedule.procedimiento }}</td></tr>
     </table>
-
     <div class="filtros" style="justify-content:center; margin-top:1rem">
       <label>Torre:</label>
       <select [(ngModel)]="rescheduleTorre">
         <option *ngFor="let t of torres" [value]="t.idTorre">{{ t.textTorre }}</option>
       </select>
-
       <label>Fecha:</label>
       <input type="date" [(ngModel)]="rescheduleDate" />
-
       <label>Hora:</label>
       <select [(ngModel)]="rescheduleHour">
         <option *ngFor="let h of timeSlots" [value]="h">{{ h }}</option>
       </select>
     </div>
-
     <div class="modal-buttons" style="margin-top:1rem">
       <button class="btn-submit" (click)="rescheduleCita()">Reagendar</button>
       <button class="btn-cancel" (click)="closeRescheduleModal()">Cancelar</button>
     </div>
   </div>
 </div>
-
 <!-- Mini-modal de conflicto -->
 <div *ngIf="showConflictModal" class="modal-overlay">
   <div class="modal conflict-modal">
@@ -465,7 +439,6 @@
         </tr>
       </tbody>
     </table>
-
     <!-- Detalles de la nueva cita que estamos creando -->
     <h4 class="detail-title">SELECCIONE LA NUEVA FECHA DE LA CITA MÉDICA</h4>
     <table class="detail-table">
@@ -476,17 +449,14 @@
       <tr><td><strong>Doctor:</strong></td><td>{{ getDoctorName(+selectedDoctorForCita) }}</td></tr>
       <tr><td><strong>Procedimiento:</strong></td><td>{{ newCitaData.procedimiento }}</td></tr>
     </table>
-
     <!-- Controles para elegir nueva fecha/torre/hora -->
     <div class="filtros">
       <label>Torre:</label>
       <select [(ngModel)]="rescheduleTorre">
         <option *ngFor="let t of torres" [value]="t.idTorre">{{ t.textTorre }}</option>
       </select>
-
       <label>Fecha:</label>
       <input type="date" [(ngModel)]="rescheduleDate" />
-
       <label>Hora:</label>
       <select [(ngModel)]="rescheduleHour">
         <option *ngFor="let h of timeSlots" [value]="h">{{ h }}</option>
@@ -500,4 +470,3 @@
     </div>
   </div>
 </div>
-

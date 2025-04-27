@@ -14,8 +14,12 @@ const {
   softDeleteCita,
   reagendarCita
 } = require("../controllers/cita.controller");
+const authMiddleware = require("../../middleware/authMiddleware");
 
 const router = express.Router();
+
+// Apply authMiddleware to all routes
+router.use(authMiddleware);
 
 router.post("/register", registerCita);
 router.get("/filter", filterCitas);
@@ -30,8 +34,6 @@ router.post("/confirmacion", createOrUpdateConfirmacion);
 router.post('/logs', createLog);
 router.patch("/:id/eliminar", softDeleteCita);
 router.patch('/:id/reagendar', reagendarCita);
-
-
 
 
 

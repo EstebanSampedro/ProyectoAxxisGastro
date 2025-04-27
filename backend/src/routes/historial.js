@@ -1,4 +1,5 @@
 const express = require('express');
+const authMiddleware = require("../../middleware/authMiddleware");
 const router = express.Router();
 const prisma = require('../../prisma/prismaClient');
 
@@ -21,7 +22,7 @@ function toLocalDate(date) {
   // así que sumamos en lugar de restar
   return new Date(date.getTime() + date.getTimezoneOffset() * 60000);
 }
-
+router.use(authMiddleware);
 router.get('/citas', async (req, res) => {
   try {
     const { from, to, doctorId, paciente } = req.query;
@@ -31,7 +32,7 @@ router.get('/citas', async (req, res) => {
 
     // Construimos las cláusulas WHERE y sus parámetros
     const whereParts = ['c.fecha BETWEEN ? AND ?'];
-    const params     = [new Date(from), new Date(to)];
+    const params = [new Date(from), new Date(to)];
 
     if (doctorId) {
       whereParts.push('c.idDoctor_cita = ?');
