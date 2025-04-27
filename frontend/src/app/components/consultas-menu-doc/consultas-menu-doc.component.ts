@@ -65,6 +65,19 @@ export class ConsultasMenuDocComponent implements OnInit {
   faSave = faSave;
   faWarning = faWarning;
 
+  faCalendarAlt = faCalendarAlt;
+  faSaveAlt = faFloppyDisk;
+  faCancelAlt = faTimesCircle;
+
+  //Propiedades para reagendar ---
+  citaToReschedule: any = null;
+  rescheduleDate: string = '';
+  rescheduleTorre: number = 1;
+  rescheduleHour: string = '';
+  showRescheduleModal = false;
+  rescheduleEndHour!: string;
+
+
 
   // Objeto que guarda los datos del formulario inline (para nuevo registro o edición)
   newCitaData: any = {};
@@ -1001,9 +1014,102 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
     });
   }
 
+  openRescheduleModal(cita: any, slot: string) {
+    this.citaToReschedule = cita;
+    this.rescheduleDate = cita.fecha;           // p.ej. "2025-04-27"
+    this.rescheduleHour = slot;                 // p.ej. "10:00:00"
+    this.rescheduleEndHour =
+      this.calcularFin(this.rescheduleHour, 30);   // "10:30:00"
+    this.rescheduleTorre = this.selectedTorreId;
+    this.showRescheduleModal = true;
+  }
+
+  updateEndHour(newHour: string) {
+    this.rescheduleEndHour = this.calcularFin(newHour, 30);
+  }
+
+  // --- 1.3 Cerrar modal ---
+  closeRescheduleModal() {
+    this.showRescheduleModal = false;
+    this.citaToReschedule = null;
+  }
+
+
+  rescheduleCita(): void {
+    const fechaStr = this.rescheduleDate; // "YYYY-MM-DD" (string)
+
+    // 1) Comprobar que no choque con otra consulta (mismo día y hora)
+    this.citaService.getCitasByDate(fechaStr).subscribe({
+      next: allCitas => {
+        const otroChoque = allCitas
+          .filter(c => c.idCita !== this.citaToReschedule.idCita)
+          .some(c => this.extraerHora(c.hora) === this.rescheduleHour);
+
+        if (otroChoque) {
+          alert('❌ Ya existe otra consulta en esa fecha y hora.');
+          return;
+        }
+
+        // 2) Calculamos la hora de fin original sumando 30 min
+        const endOriginal = this.calcularFin(this.rescheduleHour, 30); // e.g. "10:30:00"
+
+        // 3) Aplicamos offset –5h a hora de inicio
+        const [h, m] = this.rescheduleHour.split(':').map(n => +n);
+        const dtStart = new Date(Date.UTC(1970, 0, 1, h, m));
+        dtStart.setUTCHours(dtStart.getUTCHours() - 5);
+        const hhStart = dtStart.getUTCHours().toString().padStart(2, '0');
+        const mmStart = dtStart.getUTCMinutes().toString().padStart(2, '0');
+        const horaOffset = `${hhStart}:${mmStart}:00`;
+
+        // 4) Aplicamos offset –5h a hora de fin
+        const [eh, em] = endOriginal.split(':').map(n => +n);
+        const dtEnd = new Date(Date.UTC(1970, 0, 1, eh, em));
+        dtEnd.setUTCHours(dtEnd.getUTCHours() - 5);
+        const hhEnd = dtEnd.getUTCHours().toString().padStart(2, '0');
+        const mmEnd = dtEnd.getUTCMinutes().toString().padStart(2, '0');
+        const horaFinOffset = `${hhEnd}:${mmEnd}:00`;
+
+        // 5) Enviamos el PATCH con fecha, torre (la original), hora y horaTermina
+        const body = {
+          fecha: fechaStr,
+          torre: this.citaToReschedule.torre,
+          hora: horaOffset,
+          horaTermina: horaFinOffset
+        };
+
+        this.http
+          .patch(
+            `http://localhost:3000/api/citas/${this.citaToReschedule.idCita}/reagendar`,
+            body
+          )
+          .subscribe({
+            next: () => {
+              alert('✅ Consulta reagendada correctamente');
+              this.closeRescheduleModal();
+              // Salir de cualquier modo edición/creación
+              this.editingCitaId = null;
+              this.editingSlot = null;
+              this.cargarConsultas();
+            },
+            error: err => {
+              console.error('Error al reagendar consulta:', err);
+              alert('No se pudo reagendar la consulta');
+            }
+          });
+      },
+      error: err => {
+        console.error('Error comprobando consultas existentes:', err);
+        alert('No se pudo verificar conflicto con otras consultas');
+      }
+    });
+  }
+
+
+
+
   // Métodos de navegación del menú
   goToInicio(): void {
-    window.location.href = 'http://tuservidor/axxis-citas/paginas/principal';
+    this.router.navigate(['/menu']);;
   }
   goToHistorialCitas(): void {
     this.router.navigate(['/historial-citas']);

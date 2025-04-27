@@ -469,3 +469,34 @@
 .btn-cancel:hover {
   background-color: #5a6268;
 }
+
+
+/* ==================================
+   Botones verdes y rojos en modals
+   ================================== */
+
+/* Reagendar (verde) */
+.modal.reschedule-modal .btn-submit,
+.modal.conflict-modal .btn-success {
+  background-color: #28a745 !important;
+  border-color:     #28a745 !important;
+  color:            #fff !important;
+}
+.modal.reschedule-modal .btn-submit:hover,
+.modal.conflict-modal .btn-success:hover {
+  background-color: #218838 !important;
+  border-color:     #1e7e34 !important;
+}
+
+/* Cancelar (rojo) */
+.modal.reschedule-modal .btn-cancel,
+.modal.conflict-modal .btn-danger {
+  background-color: #dc3545 !important;
+  border-color:     #dc3545 !important;
+  color:            #fff !important;
+}
+.modal.reschedule-modal .btn-cancel:hover,
+.modal.conflict-modal .btn-danger:hover {
+  background-color: #c82333 !important;
+  border-color:     #bd2130 !important;
+}

@@ -85,6 +85,9 @@
   .observaciones-section button:hover {
     background-color: #e6b800;
   }
+
+
+
   
   /* ===================== TABLA DE CITAS ===================== */
   .citas-table {
@@ -146,6 +149,17 @@
 .header-right img {
   max-height: 45px; /* antes 50px */
 }
+
+/* Sitúalo al final de tu fichero CSS */
+.modal.reschedule-modal {
+  /* ancho máximo razonable */
+  max-width: 600px !important;
+  /* o un porcentaje moderado */
+  width: 80vw       !important;
+  /* un poco de padding para respirar */
+  padding: 1.5rem 2rem !important;
+}
+
 
 /* ===================== BARRA DE MENÚ (NAV) ===================== */
 .navbar {
@@ -297,6 +311,90 @@
   width: 120px;
 }
 
+.consultas-table td input[type="number"] {
+  width: 7ch;           /* ancho suficiente para "100" o "120" */
+  max-width: 100%;      /* no desborde la celda */
+  box-sizing: border-box;
+  padding: 0.2rem;
+}
+
+input[type="number"] {
+  appearance: none;
+  -moz-appearance: textfield;
+}
+/* Webkit browsers (Chrome, Safari, Edge…) */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+
+.modal.conflict-modal {
+  /* ocupa el 80% del ancho de la ventana */
+  width: 80vw !important;
+  /* quita cualquier límite */
+  max-width: none !important;
+  /* aumenta también el padding si quieres más espacio interior */
+  padding: 2rem 3rem !important;
+}
+
+/* Tunea este modal para que sea más grande y legible */
+.conflict-modal {
+  width: 98%;
+  max-width: none;
+  padding: 2rem 3rem;
+}
+.conflict-title {
+  color: #c00;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.conflict-table, .detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+.conflict-table th, .conflict-table td,
+.detail-table td {
+  border: 1px solid #333;
+  padding: 0.5rem;
+  text-align: center;
+}
+.detail-title {
+  text-align: center;
+  margin: 1rem 0 0.5rem;
+  font-style: italic;
+}
+.detail-table td:first-child {
+  text-align: right;
+  font-weight: bold;
+  width: 30%;
+}
+.filtros {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.filtros label {
+  font-weight: bold;
+}
+.modal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+.modal-buttons .btn {
+  padding: 0.5rem 1.5rem;
+  font-weight: bold;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+}
+.modal-buttons .btn-success { background: #28a745; color: #fff; }
+.modal-buttons .btn-danger  { background: #dc3545; color: #fff; }
 
 
 .consultas-table .col-paciente {
