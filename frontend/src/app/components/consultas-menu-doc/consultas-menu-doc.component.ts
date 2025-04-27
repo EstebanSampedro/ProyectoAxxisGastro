@@ -1,11 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms'; 
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { format, parseISO, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { AuthService } from '../../services/auth.service'; 
+import { AuthService } from '../../services/auth.service';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { formatDate, obtenerIdDoctorDesdeSessionStorage } from '../../shared/common';
 import { Cita } from '../../interfaces/cita';
@@ -13,15 +13,22 @@ import { ConfirmacionBody } from '../../interfaces/confirmacionBody';
 import { ApiResponse } from '../../interfaces/apiResponse';
 import { Observable } from 'rxjs/internal/Observable';
 import { catchError } from 'rxjs/internal/operators/catchError';
-import {faPrint, faMagnifyingGlass,faSave, faWarning} from '@fortawesome/free-solid-svg-icons'
+import { faPrint, faMagnifyingGlass, faSave, faWarning } from '@fortawesome/free-solid-svg-icons'
 import { Torre } from '../../interfaces/torre';
 import { TorreService } from '../../services/torres.service';
 import { Observacion } from '../../interfaces/observacion.general';
 import { ObservacionService } from '../../services/observaciones.generales.service';
 import { CitaService } from '../../services/cita.service';
-import { switchMap } from 'rxjs/operators';
+import { map, switchMap, tap } from 'rxjs/operators';
 import { of } from 'rxjs';
 
+interface SlotView {
+  slot: string;           // texto “HH:mm:ss” que mostramos en la primera columna
+  type: 'appointment'     // cita normal
+  | 'empty'          // hueco estándar que respeta slotDurationMin
+  | 'custom-empty';  // hueco extra entre horas, siempre editable
+  cita?: any;             // datos de cita cuando type==='appointment'
+}
 
 
 @Component({
@@ -43,8 +50,12 @@ export class ConsultasMenuDocComponent implements OnInit {
   // Lista de citas (transformadas con horaStr y horaFinStr)
   consultas: any[] = [];
 
-  // Slots de 7:00 a 20:00 (cada 30 min)
   timeSlots: string[] = [];
+  slotViews: SlotView[] = [];
+  slotDurationMin = 30;  // duración fija de cada slot
+  editingSlotIndex: number | null = null; // índice del slot que se está editando
+  errorSlots: SlotView[] = [];
+
 
   // Para controlar el modo de edición
   editingSlot: string | null = null;
@@ -76,21 +87,24 @@ export class ConsultasMenuDocComponent implements OnInit {
     '#00ff00': 'Verde',
     '#8080c0': 'Gris'
   };
+  // slot “fantasma” para errores
+  errorSlot: SlotView | null = null;
+
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private http: HttpClient,
     private authService: AuthService,
-    private observacionService : ObservacionService,
+    private observacionService: ObservacionService,
     private torreService: TorreService,
-    private citaService : CitaService
+    private citaService: CitaService
 
 
-  ) {}
+  ) { }
 
   ngOnInit(): void {
-    
+
     this.authService.fetchAllAdmins().subscribe({
       error: err => console.error('No cargan admins:', err)
     });
@@ -111,12 +125,19 @@ export class ConsultasMenuDocComponent implements OnInit {
   generarTimeSlots(): void {
     const startHour = 7;
     const endHour = 20;
-    for (let hour = startHour; hour < endHour; hour++) {
-      const slot1 = `${hour.toString().padStart(2, '0')}:00:00`;
-      this.timeSlots.push(slot1);
-      const slot2 = `${hour.toString().padStart(2, '0')}:30:00`;
-      this.timeSlots.push(slot2);
+    this.timeSlots = [];
+    for (let h = startHour; h <= endHour; h++) {
+      for (let m of [0, this.slotDurationMin]) {
+        const hh = h.toString().padStart(2, '0');
+        const mm = m.toString().padStart(2, '0');
+        this.timeSlots.push(`${hh}:${mm}:00`);
+      }
     }
+  }
+
+  get displaySlots(): SlotView[] {
+    // primero las que vinieron de overlap, luego el resto
+    return [...this.errorSlots, ...this.slotViews];
   }
 
   cargarTorres(): void {
@@ -145,12 +166,12 @@ export class ConsultasMenuDocComponent implements OnInit {
     this.cargarObservaciones();
   }
 
-  
-    onPickerDateChange(newDateStr: string) {
-      // newDateStr viene como "YYYY-MM-DD"
-      this.selectedDate = newDateStr;  // <— sigue siendo string
-      this.onDateChange(); // formatea y recarga citas y observaciones
-    }
+
+  onPickerDateChange(newDateStr: string) {
+    // newDateStr viene como "YYYY-MM-DD"
+    this.selectedDate = newDateStr;  // <— sigue siendo string
+    this.onDateChange(); // formatea y recarga citas y observaciones
+  }
 
   cargarNombreDoctor(): void {
     const url = `http://localhost:3000/api/doctores/${this.idDoctor}`;
@@ -166,54 +187,19 @@ export class ConsultasMenuDocComponent implements OnInit {
   }
 
   /** Crea un log de tipo 'edicion' o 'eliminacion' */
-private crearLog(citaId: number, tipo: 'edicion'|'eliminacion'): Observable<any> {
-  const body = {
-    cita_idCita:     citaId,
-    tipoCambio:      tipo,
-    medico_idMedico: this.authService.getAdminId()
-  };
-  return this.http.post('http://localhost:3000/api/citas/logs', body).pipe(
-    catchError(err => {
-      console.error(`Error creando log de ${tipo}:`, err);
-      return of(null);
-    })
-  );
-}
-
-
-cargarConsultas(): void {
-  const fechaStr = this.selectedDate; // "YYYY‑MM‑DD"
-  this.citaService
-    .getCitasByDateAndTower(fechaStr, this.selectedTorreId)
-    .subscribe({
-      next: data => {
-        // Filtra sólo tipoCita === 'consulta' y estado !== 'eliminado'
-        const soloConsultas = data.filter(cita =>
-          cita.tipoCita === 'consulta' &&
-          cita.estado !== 'eliminado'
-        );
-
-        // Mapear con horaStr, horaFinStr, responsable…
-        this.consultas = soloConsultas.map(cita => {
-          const horaStr    = this.extraerHora(cita.hora);
-          const horaFinStr = this.extraerHora(cita.horaTermina);
-          const responsable = cita.idConfirma_idMedico
-            ? this.authService.getAdminCode(cita.idConfirma_idMedico)
-            : '';
-          return {
-            ...cita,
-            horaStr,
-            horaFinStr,
-            cedula:           cita.cedula           || '',
-            recordatorioEnv:  cita.recordatorioEnv  || false,
-            responsable
-          };
-        });
-      },
-      error: err => console.error('Error al obtener consultas:', err)
-    });
-}
-
+  private crearLog(citaId: number, tipo: 'edicion' | 'eliminacion'): Observable<any> {
+    const body = {
+      cita_idCita: citaId,
+      tipoCambio: tipo,
+      medico_idMedico: this.authService.getAdminId()
+    };
+    return this.http.post('http://localhost:3000/api/citas/logs', body).pipe(
+      catchError(err => {
+        console.error(`Error creando log de ${tipo}:`, err);
+        return of(null);
+      })
+    );
+  }
 
   // Extrae la hora en formato "HH:mm:00" de una cadena tipo "1970-01-01T08:00:00.000Z"
   extraerHora(fechaString: string): string {
@@ -222,78 +208,163 @@ cargarConsultas(): void {
     return match ? `${match[1]}:00` : '';
   }
 
-    verObservaciones(): void {
-      // Formatea la fecha
-      const fechaDate = parseISO(this.selectedDate);
-      const formattedDate = formatDate(fechaDate);
-      // Guarda la fecha formateada en sessionStorage
-      sessionStorage.setItem('selectedDate', formattedDate);
-      console.log('Fecha guardada:', formattedDate);
-      // Navega a la ruta 'observaciones' sin recargar la página
-      this.router.navigate(['/observaciones']);
-    }
-
-    cargarObservaciones(): void {
-      this.http.get<any[]>(`http://localhost:3000/api/observaciones/filter`, {
-        params: {
-          doctorId: this.idDoctor,
-          fecha:    this.selectedDate
-        }
-      }).subscribe({
-        next: data => {
-          if (data.length > 0) {
-            const obs = data[0];
-            this.currentObservacionId = obs.idObser;    // guardamos el id
-            this.observaciones        = obs.textObser;  // mostramos el texto
-            this.flagObservaciones    = true;
-          } else {
-            this.currentObservacionId = null;
-            this.observaciones        = '';
-            this.flagObservaciones    = false;
-          }
-        },
-        error: err => console.error('Error al obtener observaciones:', err)
-      });
-    }
-    
-    /** Guarda o actualiza la observación del día */
-    guardarObservaciones(): void {
-      const body = {
-        docObser:   +this.idDoctor,
-        fechaObser: this.selectedDate,
-        textObser:  this.observaciones,
-        estado:     'Pendiente'
-      };
-    
-      if (this.currentObservacionId) {
-        // --> ACTUALIZAR
-        this.http.put(
-          `http://localhost:3000/api/observaciones/${this.currentObservacionId}`,
-          body
-        ).subscribe({
-          next: () => this.cargarObservaciones(),
-          error: err => console.error('Error al actualizar observación:', err)
-        });
-      } else {
-        // --> CREAR NUEVO
-        this.http.post(
-          'http://localhost:3000/api/observaciones/register',
-          body
-        ).subscribe({
-          next: () => this.cargarObservaciones(),
-          error: err => console.error('Error al crear observación:', err)
-        });
-      }
-    }
-  getCitaBySlot(slot: string): any {
-    return this.consultas.find(c => c.horaStr === slot);
+  verObservaciones(): void {
+    // Formatea la fecha
+    const fechaDate = parseISO(this.selectedDate);
+    const formattedDate = formatDate(fechaDate);
+    // Guarda la fecha formateada en sessionStorage
+    sessionStorage.setItem('selectedDate', formattedDate);
+    console.log('Fecha guardada:', formattedDate);
+    // Navega a la ruta 'observaciones' sin recargar la página
+    this.router.navigate(['/observaciones']);
   }
 
-  // Modo creación de nueva cita
-  iniciarCita(slot: string): void {
-    this.editingSlot = slot;
+  cargarObservaciones(): void {
+    this.http.get<any[]>(`http://localhost:3000/api/observaciones/filter`, {
+      params: {
+        doctorId: this.idDoctor,
+        fecha: this.selectedDate
+      }
+    }).subscribe({
+      next: data => {
+        if (data.length > 0) {
+          const obs = data[0];
+          this.currentObservacionId = obs.idObser;    // guardamos el id
+          this.observaciones = obs.textObser;  // mostramos el texto
+          this.flagObservaciones = true;
+        } else {
+          this.currentObservacionId = null;
+          this.observaciones = '';
+          this.flagObservaciones = false;
+        }
+      },
+      error: err => console.error('Error al obtener observaciones:', err)
+    });
+  }
+
+  /** Guarda o actualiza la observación del día */
+  guardarObservaciones(): void {
+    const body = {
+      docObser: +this.idDoctor,
+      fechaObser: this.selectedDate,
+      textObser: this.observaciones,
+      estado: 'Pendiente'
+    };
+
+    if (this.currentObservacionId) {
+      // --> ACTUALIZAR
+      this.http.put(
+        `http://localhost:3000/api/observaciones/${this.currentObservacionId}`,
+        body
+      ).subscribe({
+        next: () => this.cargarObservaciones(),
+        error: err => console.error('Error al actualizar observación:', err)
+      });
+    } else {
+      // --> CREAR NUEVO
+      this.http.post(
+        'http://localhost:3000/api/observaciones/register',
+        body
+      ).subscribe({
+        next: () => this.cargarObservaciones(),
+        error: err => console.error('Error al crear observación:', err)
+      });
+    }
+  }
+
+
+  //-----------------------------------------------------------------------------------------------------
+  // CRUD Consultas
+
+  /**
+   *  getCitaBySlot(slot: string): any {
+    return this.consultas.find(c => c.horaStr === slot);
+  }**/
+
+  /** Carga las consultas y reconstruye la vista de slots */
+  cargarConsultas(): void {
+    const fechaStr = this.selectedDate;
+    this.citaService.getCitasByDateAndTower(fechaStr, this.selectedTorreId)
+      .pipe(
+        map((data: any[]) =>
+          data
+            .filter(c => c.tipoCita === 'consulta' && c.estado !== 'eliminado')
+            .map(cita => ({
+              ...cita,
+              horaStr: this.extraerHora(cita.hora),
+              horaFinStr: this.extraerHora(cita.horaTermina)
+            }))
+        )
+      )
+      .subscribe({
+        next: consultas => {
+          // 1) Extraigo las solapadas (confirmado==='error')
+          this.errorSlots = consultas
+            .filter(c => c.confirmado === 'error')
+            .map(c => ({
+              slot: '00:00:00',
+              type: 'appointment' as const,
+              cita: c
+            }));
+          // 2) El resto las uso para construir los slots
+          this.consultas = consultas.filter(c => c.confirmado !== 'error');
+          this.buildSlotViews();
+        },
+        error: err => console.error(err)
+      });
+  }
+
+  private timeToMinutes(hhmmss: string): number {
+    const [h, m] = hhmmss.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  private buildSlotViews(): void {
+    const slotMin = this.slotDurationMin;
+    const sorted = [...this.consultas].sort(
+      (a, b) => this.timeToMinutes(a.horaStr) - this.timeToMinutes(b.horaStr)
+    );
+
+    this.slotViews = [];
+    let skip = 0, ci = 0;
+    for (let slot of this.timeSlots) {
+      if (skip > 0) { skip--; continue; }
+      const baseMin = this.timeToMinutes(slot);
+      const cita = sorted[ci];
+      if (cita) {
+        const startMin = this.timeToMinutes(cita.horaStr);
+        if (startMin >= baseMin && startMin < baseMin + slotMin) {
+          const endMin = this.timeToMinutes(cita.horaFinStr);
+          const durSlots = Math.ceil((endMin - startMin) / slotMin);
+          this.slotViews.push({ slot, type: 'appointment', cita });
+          skip = durSlots - 1;
+          ci++;
+          continue;
+        }
+      }
+      // slot vacío exacto
+      this.slotViews.push({ slot, type: 'empty' });
+      // slot vacío custom (entre horas)
+      this.slotViews.push({ slot, type: 'custom-empty' });
+    }
+  }
+
+
+
+
+  /** Devuelve la cita solo en el slot inicial (para binding en el template) */
+  getViewByIndex(i: number): SlotView {
+    return this.slotViews[i];
+  }
+
+  iniciarCita(index: number): void {
+    this.editingSlotIndex = index;
     this.editingCitaId = null;
+    // pre-set con slot y por defecto +30 min
+    const base = this.slotViews[index].slot; // e.g. "08:00:00"
     this.newCitaData = {
+      hora: base.substr(0, 5),
+      horaTermina: this.calcularFin(base, this.slotDurationMin),
       paciente: '',
       telefono: '',
       seguro: '',
@@ -304,47 +375,53 @@ cargarConsultas(): void {
     };
   }
 
-  // Modo edición: al presionar el botón de editar (lápiz)
-  editarConsulta(cita: any): void {
-    this.editingCitaId = cita.idCita;
-    this.editingSlot = cita.horaStr;
-    this.newCitaData = { 
-      ...cita, 
-      hora: cita.horaStr, 
-      horaTermina: cita.horaFinStr, 
-      cedula: cita.cedula || '',
-      recordatorioEnv: cita.recordatorioEnv || false,
-      modificado: true
+  guardarCita(index: number): void {
+    const fechaStr = this.selectedDate;
+    const doctorId = +this.idDoctor;
+    const adminId = this.authService.getAdminId();
+    let { hora, horaTermina } = this.newCitaData;
+
+    // 1) Validar que existan ambas horas
+    if (!hora || !horaTermina) {
+      return alert('Debes indicar hora de inicio y hora de fin');
+    }
+
+    // 2) Normalizar formato "HH:mm:00"
+    const fmtFull = (hhmm: string) => {
+      const [h, m] = hhmm.split(':').map(p => p.padStart(2, '0'));
+      return `${h}:${m}:00`;
     };
-  }
+    hora = fmtFull(hora);
+    horaTermina = fmtFull(horaTermina);
 
+    // 3) Validar orden de tiempos
+    const toMin = (s: string) => {
+      const [H, M] = s.split(':').map(Number);
+      return H * 60 + M;
+    };
+    const startMin = toMin(hora), endMin = toMin(horaTermina);
+    if (endMin <= startMin) {
+      return alert('La hora de fin debe ser posterior a la de inicio');
+    }
 
-// Guarda la nueva consulta (creación)
-guardarCita(slot: string): void {
-  const fechaStr = this.selectedDate;                // "YYYY-MM-DD"
-  const doctorIdNum = parseInt(this.idDoctor, 10);
-  const adminId     = this.authService.getAdminId();
-
-  // 1) Primero comprobamos en todas las torres si el doctor ya tiene cita a esa hora ese día
-  this.citaService.getCitasByDoctorAndDate(doctorIdNum, fechaStr)
-    .subscribe({
-      next: citasDoctor => {
-        const ocupado = citasDoctor.some(c => this.extraerHora(c.hora) === slot);
-        if (ocupado) {
-          return alert('❌ Doctor ocupado en este horario');
-        }
-
-        // 2) Si está libre, seguimos con la creación
-        const horaFin = this.calcularFin(slot, 30);
+    // 4) Comprobar solapamiento
+    this.citaService.getCitasByDoctorAndDate(doctorId, fechaStr).pipe(
+      map(citasDoc => citasDoc.some(c => {
+        const exStart = toMin(this.extraerHora(c.hora));
+        const exEnd = toMin(this.extraerHora(c.horaTermina));
+        return startMin < exEnd && endMin > exStart;
+      })),
+      switchMap(overlap => {
+        // 5) Construir el body con marcado de error si hay solapamiento
         const body = {
           idResponsable_idMedico: adminId,
-          idDoctor_cita: doctorIdNum,
+          idDoctor_cita: doctorId,
           fecha: fechaStr,
           torre: this.selectedTorreId,
-          hora: slot,
-          horaTermina: horaFin,
+          hora,
+          horaTermina,
           paciente: this.newCitaData.paciente || 'Paciente X',
-          edad: this.newCitaData.edad || null,
+          edad: this.newCitaData.edad ?? null,
           telefono: this.newCitaData.telefono || '',
           procedimiento: this.newCitaData.procedimiento || '',
           imagen: this.newCitaData.imagen || '',
@@ -355,111 +432,168 @@ guardarCita(slot: string): void {
           confirmado: 'pendiente',
           observaciones: this.newCitaData.observaciones || '',
           observaciones2: '',
-          colorCita: this.newCitaData.colorCita || '#FFFFFF',
+          colorCita: this.newCitaData.colorCita,
           cedula: this.newCitaData.cedula || '',
           recordatorioEnv: false,
           tipoCita: 'consulta'
         };
 
-        this.http.post('http://localhost:3000/api/citas/register', body).subscribe({
-          next: resp => {
-            console.log('Consulta agregada:', resp);
-            this.editingSlot = null;
-            this.newCitaData = {};
-            this.cargarConsultas();
-          },
-          error: err => {
-            console.error('Error al agregar consulta:', err);
-            alert('No se pudo guardar la consulta.');
-          }
-        });
-      },
-      error: err => {
-        console.error('Error comprobando disponibilidad:', err);
-        alert('No se pudo verificar la disponibilidad. Inténtalo de nuevo.');
-      }
-    });
-}
-
-
-
-  // Guarda la edición de una cita existente (PUT)
-  guardarEdicion(): void {
-    const id = this.newCitaData.idCita!;
-    const url = `http://localhost:3000/api/citas/${id}`;
-    const adminId = this.authService.getAdminId();
-  
-    const body = {
-      idResponsable_idMedico: adminId,
-      idDoctor_cita:          parseInt(this.idDoctor, 10),
-      fecha:                  this.selectedDate,
-      torre:                  this.selectedTorreId,
-      hora:                   this.newCitaData.hora,
-      horaTermina:            this.newCitaData.horaTermina,
-      paciente:               this.newCitaData.paciente    || 'Paciente X',
-      edad:                   this.newCitaData.edad        || 30,
-      telefono:               this.newCitaData.telefono    || '',
-      procedimiento:          this.newCitaData.procedimiento || '',
-      imagen:                 this.newCitaData.imagen      || '',
-      pedido:                 this.newCitaData.pedido      || '',
-      institucion:            this.newCitaData.institucion || '',
-      seguro:                 this.newCitaData.seguro      || '',
-      estado:                 this.newCitaData.estado      || 'activo',
-      confirmado:             this.newCitaData.confirmado  || 'pendiente',
-      observaciones:          this.newCitaData.observaciones || '',
-      observaciones2:         this.newCitaData.observaciones2 || '',
-      colorCita:              this.newCitaData.colorCita   || '#FFFFFF',
-      cedula:                 this.newCitaData.cedula      || '',
-      recordatorioEnv:        this.newCitaData.recordatorioEnv || false
-    };
-  
-    this.http.put(url, body).pipe(
-      switchMap(() => this.crearLog(id, 'edicion'))
+        // 6) Siempre hacemos POST (incluso en overlap) para que ID exista en BD
+        return this.http.post<{ idCita: number }>(
+          'http://localhost:3000/api/citas/register',
+          body
+        ).pipe(
+          tap(resp => {
+            if (overlap) {
+              // 7) Inyectar localmente en errorSlots para feedback inmediato
+              this.errorSlots.unshift({
+                slot: '00:00:00',
+                type: 'appointment',
+                cita: {
+                  ...this.newCitaData,
+                  idCita: resp.idCita,
+                  horaStr: hora,
+                  horaFinStr: horaTermina,
+                  confirmado: 'pendiente'
+                }
+              });
+            }
+          })
+        );
+      })
     ).subscribe({
       next: () => {
-        console.log('Cita editada y log de edición creado');
-        this.editingCitaId = null;
-        this.newCitaData   = {};
+        // 8) Limpiar estado y recargar desde BD (incluirá tu cita recién creada)
+        this.editingSlotIndex = null;
+        this.newCitaData = {};
         this.cargarConsultas();
       },
-      error: err => console.error('Error al editar cita o crear log:', err)
+      error: err => {
+        console.error('Error creando la cita:', err);
+        alert('Ocurrió un error al guardar la cita.');
+      }
     });
   }
 
+  editarConsulta(view: SlotView, idx: number): void {
+    const cita = view.cita!;
+    this.editingCitaId = cita.idCita;
+    this.editingSlotIndex = null;
+    this.newCitaData = {
+      ...cita,
+      hora: cita.horaStr,
+      horaTermina: cita.horaFinStr,
+      cedula: cita.cedula || '',
+      recordatorioEnv: cita.recordatorioEnv || false
+    };
+  }
+
   eliminarConsulta(cita: any): void {
+    const id = cita?.idCita;
+    if (!id) {
+      return alert('No se pudo eliminar: ID de cita inválido');
+    }
     if (!confirm(`¿Está seguro de eliminar la cita de "${cita.paciente}"?`)) {
       return;
     }
-  
     this.http
-      .patch(
-        `http://localhost:3000/api/citas/${cita.idCita}/eliminar`,
-        { medico_idMedico: this.authService.getAdminId() }
-      )
-      .pipe(
-        switchMap(() => this.crearLog(cita.idCita, "eliminacion"))
-      )
+      .patch(`http://localhost:3000/api/citas/${id}/eliminar`, { medico_idMedico: this.authService.getAdminId() })
+      .pipe(switchMap(() => this.crearLog(id, 'eliminacion')))
       .subscribe({
         next: () => {
-          console.log("Cita marcada como eliminada y log creado");
           this.cargarConsultas();
         },
         error: err => {
-          console.error("Error al eliminar cita o crear log:", err);
-          alert("No se pudo eliminar la cita");
+          console.error('Error al eliminar cita o crear log:', err);
+          alert('No se pudo eliminar la cita');
         }
       });
   }
 
+
+  guardarEdicion(): void {
+    const id = this.newCitaData.idCita;
+    if (!id) {
+      return alert('No se pudo editar: ID de cita inválido');
+    }
+    const url = `http://localhost:3000/api/citas/${id}`;
+    const adminId = this.authService.getAdminId();
+
+    // 1) Extraer y validar horas
+    let { hora, horaTermina } = this.newCitaData;
+    if (!hora || !horaTermina) {
+      return alert('Debes indicar hora de inicio y hora de fin');
+    }
+
+    // 2) Formatear a "HH:mm:00"
+    const formatFull = (hhmm: string) => {
+      const [h, m] = hhmm.split(':').map(p => p.padStart(2, '0'));
+      return `${h}:${m}:00`;
+    };
+    hora = formatFull(hora);
+    horaTermina = formatFull(horaTermina);
+
+    // 3) Validar orden
+    const toMin = (s: string) => {
+      const [H, M] = s.split(':').map(Number);
+      return H * 60 + M;
+    };
+    if (toMin(horaTermina) <= toMin(hora)) {
+      return alert('La hora de fin debe ser posterior a la de inicio');
+    }
+
+    // 4) Armar el body usando las horas formateadas
+    const body = {
+      idResponsable_idMedico: adminId,
+      idDoctor_cita: +this.idDoctor,
+      fecha: this.selectedDate,
+      torre: this.selectedTorreId,
+      hora,
+      horaTermina,
+      paciente: this.newCitaData.paciente || 'Paciente X',
+      edad: this.newCitaData.edad ?? 30,
+      telefono: this.newCitaData.telefono || '',
+      procedimiento: this.newCitaData.procedimiento || '',
+      imagen: this.newCitaData.imagen || '',
+      pedido: this.newCitaData.pedido || '',
+      institucion: this.newCitaData.institucion || '',
+      seguro: this.newCitaData.seguro || '',
+      estado: this.newCitaData.estado || 'activo',
+      confirmado: this.newCitaData.confirmado || 'pendiente',
+      observaciones: this.newCitaData.observaciones || '',
+      observaciones2: this.newCitaData.observaciones2 || '',
+      colorCita: this.newCitaData.colorCita || '#FFFFFF',
+      cedula: this.newCitaData.cedula || '',
+      recordatorioEnv: !!this.newCitaData.recordatorioEnv
+    };
+
+    this.http.put(url, body).pipe(
+      switchMap(() => this.crearLog(id, 'edicion'))
+    ).subscribe({
+      next: () => {
+        this.editingCitaId = null;
+        this.newCitaData = {};
+        this.cargarConsultas();
+      },
+      error: err => {
+        console.error(err);
+        alert('Error editando la cita');
+      }
+    });
+  }
+
+
+  // Cancelar edición o creación
   cancelarEdicion(): void {
     this.editingCitaId = null;
     this.newCitaData = {};
   }
-
   cancelarCita(): void {
-    this.editingSlot = null;
+    this.editingSlotIndex = null;
     this.newCitaData = {};
   }
+
+  //-----------------------------------------------------------------------------------------------------
 
   calcularFin(slot: string, minutos: number): string {
     const [hh, mm] = slot.split(':');
@@ -478,9 +612,9 @@ guardarCita(slot: string): void {
   confirmarCita(cita: any): void {
     // Abre el modal que muestra 4 botones: SI, NO, PENDIENTE, CANCELAR
     this.citaToConfirm = cita;
-    this.showConfirmModal = true; 
+    this.showConfirmModal = true;
   }
-  
+
   // Cuando el usuario elige una opción en el modal:
   handleConfirmOption(opcion: string): void {
     if (opcion === 'cancelar') {
@@ -489,7 +623,7 @@ guardarCita(slot: string): void {
       this.citaToConfirm = null;
       return;
     }
-  
+
     // Dependiendo la opción, definimos "nuevoConfirmado" en la tabla cita
     // y "nuevoEstado" en la tabla confirmacion
     let nuevoConfirmado: string;
@@ -510,8 +644,8 @@ guardarCita(slot: string): void {
     }
     const adminId = this.authService.getAdminId();
 
-  
-    
+
+
     const updateBody = {
       idConfirma_idMedico: adminId,
       idDoctor_cita: this.citaToConfirm.idDoctor_cita,
@@ -535,19 +669,19 @@ guardarCita(slot: string): void {
       cedula: this.citaToConfirm.cedula || '',
       recordatorioEnv: this.citaToConfirm.recordatorioEnv || false
     };
-  
+
     // PUT a la cita
     const urlCita = `http://localhost:3000/api/citas/${this.citaToConfirm.idCita}`;
     this.http.put(urlCita, updateBody).subscribe({
       next: (resp: any) => {
         console.log('Cita actualizada:', resp);
-  
-        
+
+
         this.crearOActualizarConfirmacion(
           this.citaToConfirm,
           nuevoEstado  // "confirmado" | "denegado" | "pendiente"
         );
-  
+
         // Recargar la tabla y cerrar el modal
         this.cargarConsultas();
         this.showConfirmModal = false;
@@ -559,27 +693,27 @@ guardarCita(slot: string): void {
       }
     });
   }
-  
-private crearOActualizarConfirmacion(cita: Cita, estado: string): Observable<ApiResponse> {
-  const adminId = this.authService.getAdminId();
 
-  const body: ConfirmacionBody = {
-    fechaCita: cita.fecha,
-    idMedicoConfirma: adminId,
-    confDoctor: cita.idDoctor_cita,
-    confTorre1: 'OK',
-    fechaConfirma: new Date().toISOString(),
-    estado,
-  };
+  private crearOActualizarConfirmacion(cita: Cita, estado: string): Observable<ApiResponse> {
+    const adminId = this.authService.getAdminId();
 
-  return this.http.post<ApiResponse>('http://localhost:3000/api/citas/confirmacion', body).pipe(
-    catchError((error) => {
-      console.error('Error al crear/actualizar confirmación:', error);
-      throw new Error('No se pudo crear/actualizar la confirmación');
-    })
-  );
-}
-  
+    const body: ConfirmacionBody = {
+      fechaCita: cita.fecha,
+      idMedicoConfirma: adminId,
+      confDoctor: cita.idDoctor_cita,
+      confTorre1: 'OK',
+      fechaConfirma: new Date().toISOString(),
+      estado,
+    };
+
+    return this.http.post<ApiResponse>('http://localhost:3000/api/citas/confirmacion', body).pipe(
+      catchError((error) => {
+        console.error('Error al crear/actualizar confirmación:', error);
+        throw new Error('No se pudo crear/actualizar la confirmación');
+      })
+    );
+  }
+
 
 
   enviarWhatsApp(cita: any): void {
@@ -591,20 +725,20 @@ private crearOActualizarConfirmacion(cita: Cita, estado: string): Observable<Api
     if (!phoneNumber.startsWith('+')) {
       phoneNumber = '+593' + phoneNumber;
     }
-  
+
     // Construir el mensaje de WhatsApp según el tipo de cita
     const parsedDate = parse(this.selectedDate, "yyyy-MM-dd", new Date());
     const fechaFormateada = format(parsedDate, "EEEE dd 'de' MMMM 'del' yyyy", { locale: es });
     let mensaje = '';
     const tipo = cita.tipoCita ? cita.tipoCita.toLowerCase() : '';
-  
+
     if (tipo === 'consulta') {
       // Mensaje para CONSULTA
       mensaje = `Señor(a) ${cita.paciente}, su cita de consulta médica con Dr(a) ${this.doctorName} ha sido programada para el día ${fechaFormateada} a las ${cita.horaStr}. En el área de gastroenterología primer piso del Hospital Axxis, Av. 10 de agosto N39-155 y Av. América frente al Coral de la Y. Favor se solicita su puntual asistencia el día de la consulta. Además, le comunicamos que un día antes de su consulta se volverá a confirmar.`;
     } else if (tipo === 'cita') {
       // Mensaje para CITA (procedimiento)
-      mensaje = 
-      `Señor(a) ${cita.paciente} de Axxisgastro le saludamos para recordarle: el día ${fechaFormateada} a las ${cita.horaStr} usted tiene cita para realizarse el procedimiento *${cita.procedimiento}* con Dr(a). ${this.doctorName}.
+      mensaje =
+        `Señor(a) ${cita.paciente} de Axxisgastro le saludamos para recordarle: el día ${fechaFormateada} a las ${cita.horaStr} usted tiene cita para realizarse el procedimiento *${cita.procedimiento}* con Dr(a). ${this.doctorName}.
       
 Para el día del examen debe acudir con 45 minutos de anticipación a la hora señalada del procedimiento.
       
@@ -620,7 +754,7 @@ Adicionalmente, por favor confírmenos si toma las siguientes pastillas:
       // Si no es ninguno de los anteriores, usa un mensaje por defecto
       mensaje = `Hola ${cita.paciente}, su cita está programada para el día ${this.selectedDate} a las ${cita.horaStr}.`;
     }
-  
+
     // Envía el mensaje vía el endpoint de WhatsApp en el backend
     this.http.post('http://localhost:3000/api/whatsapp/send', {
       phone: phoneNumber,
@@ -636,9 +770,9 @@ Adicionalmente, por favor confírmenos si toma las siguientes pastillas:
       }
     });
   }
-  
-  
-  
+
+
+
   enviarRecordatorio(cita: any): void {
     if (cita.recordatorioEnv) {
       alert('El recordatorio ya fue enviado.');
@@ -647,7 +781,7 @@ Adicionalmente, por favor confírmenos si toma las siguientes pastillas:
     if (!confirm(`¿Está seguro de enviar el recordatorio al paciente "${cita.paciente}"?`)) {
       return;
     }
-  
+
     // Formateo del número (asegura formato E.164)
     let phoneNumber = cita.telefono.trim();
     if (phoneNumber.startsWith('0')) {
@@ -656,21 +790,21 @@ Adicionalmente, por favor confírmenos si toma las siguientes pastillas:
     if (!phoneNumber.startsWith('+')) {
       phoneNumber = '+593' + phoneNumber;
     }
-  
+
     // Obtener la fecha de mañana (basada en la fecha seleccionada)
     const fechaHoy = new Date(this.selectedDate);
     fechaHoy.setDate(fechaHoy.getDate() + 1);
     // Utilizamos date-fns para formatear la fecha en español
     const fechaMananaFormateada = format(fechaHoy, "EEEE dd 'de' MMMM 'del' yyyy", { locale: es });
-    
+
     let mensaje = '';
     const tipo = cita.tipoCita ? cita.tipoCita.toLowerCase() : '';
-  
+
     // Diferencia de mensajes según el doctor: evaluamos this.doctorName (ya cargado en el componente)
     if (this.doctorName.toLowerCase().includes("marco luna")) {
       // Mensaje para DR. MARCO LUNA (consulta)
-      mensaje = 
-  `Buenas tardes de Axxis Gastro, le saludamos de parte del consultorio del Dr. Marco Luna. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
+      mensaje =
+        `Buenas tardes de Axxis Gastro, le saludamos de parte del consultorio del Dr. Marco Luna. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
 
 El valor de la consulta médica es de $50 dólares, que lo puede cancelar en efectivo o transferencia bancaria.
 El ingreso al parqueadero actualmente es por la calle Vozandes, y la salida es por la Avenida 10 de agosto.
@@ -681,12 +815,12 @@ Tome en cuenta que el hospital se encuentra ubicado en una zona de alto tráfico
 Si desea certificado médico por su asistencia, hágalo saber en recepción el mismo día de la consulta; caso contrario, tendrá que acercarse posteriormente para solicitar el documento.
 
 Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
-    
+
     } else if (this.doctorName.toLowerCase().includes("coello")) {
       // Mensaje para DR. COELLO (consulta) y dependiente de seguro
       if (!cita.seguro || cita.seguro.trim() === "") {
-        mensaje = 
-  `Buenos días de Axxis Gastro, le saludamos de parte del consultorio del Dr. Ramiro Coello. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr} de la mañana.
+        mensaje =
+          `Buenos días de Axxis Gastro, le saludamos de parte del consultorio del Dr. Ramiro Coello. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr} de la mañana.
 
 El valor de la consulta es de $60 dólares, que lo puede cancelar en efectivo o transferencia bancaria.
 El ingreso al parqueadero es por la calle Vozandes, y la salida es por la Avenida 10 de agosto.
@@ -699,7 +833,7 @@ Si desea certificado médico por su asistencia, hágalo saber en recepción el m
 Por favor, confirme su cita. En el caso de no tener respuesta, su consulta será cancelada.`;
       } else {
         mensaje =
-  `Buenos días de Axxis Gastro, le saludamos de parte del consultorio del Dr. Ramiro Coello. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr} de la mañana.
+          `Buenos días de Axxis Gastro, le saludamos de parte del consultorio del Dr. Ramiro Coello. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr} de la mañana.
 El valor de la consulta lo puede cancelar en efectivo o transferencia bancaria, de acuerdo al copago que tenga con su seguro médico.
 
 El ingreso al parqueadero es por la calle Vozandes, y la salida es por la Avenida 10 de agosto.
@@ -715,7 +849,7 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
     } else if (this.doctorName.toLowerCase().includes("cargua")) {
       // Mensaje para DR. OSWALDO CARGUA
       mensaje =
-  `Buenos días de Axxis Gastro, le saludamos de parte del consultorio del Dr. Oswaldo Cargua. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
+        `Buenos días de Axxis Gastro, le saludamos de parte del consultorio del Dr. Oswaldo Cargua. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
 El valor de la consulta médica lo puede cancelar en efectivo o transferencia bancaria.
 
 El ingreso al parqueadero es por la calle Vozandes, y la salida es por la Avenida 10 de agosto.
@@ -725,8 +859,8 @@ Si desea certificado médico por su asistencia, hágalo saber en recepción el m
 
 Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
     } else if (this.doctorName.toLowerCase().includes("orellana")) {
-    // Mensaje para DRA. IVONNE ORELLANA
-    mensaje = `Buenos días de Axxis Gastro, le saludamos de parte del consultorio de la Dra. Ivonne Orellana. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
+      // Mensaje para DRA. IVONNE ORELLANA
+      mensaje = `Buenos días de Axxis Gastro, le saludamos de parte del consultorio de la Dra. Ivonne Orellana. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
 El valor de la consulta médica lo puede cancelar en efectivo o transferencia bancaria.
 
 El ingreso al parqueadero es por la calle Vozandes, y la salida es por la Avenida 10 de agosto.
@@ -736,9 +870,9 @@ Si desea certificado médico por su asistencia, hágalo saber en recepción el m
 
 Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
 
-  } else if (this.doctorName.toLowerCase().includes("escudero")) {
-    // Mensaje para DRA. PÍA ESCUDERO
-    mensaje = `Buenos días de Axxis Gastro, le saludamos de parte del consultorio de la Dra. Pía Escudero. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
+    } else if (this.doctorName.toLowerCase().includes("escudero")) {
+      // Mensaje para DRA. PÍA ESCUDERO
+      mensaje = `Buenos días de Axxis Gastro, le saludamos de parte del consultorio de la Dra. Pía Escudero. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
 El valor de la consulta médica lo puede cancelar en efectivo o transferencia bancaria.
 
 El ingreso al parqueadero es por la calle Vozandes, y la salida es por la Avenida 10 de agosto.
@@ -748,9 +882,9 @@ Si desea certificado médico por su asistencia, hágalo saber en recepción el m
 
 Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
 
-  } else if (this.doctorName.toLowerCase().includes("flamain")) {
-    // Mensaje para DR. CARLOS CASTILLO FLAMAIN
-    mensaje = `Buenos días de Axxis Gastro, le saludamos de parte del consultorio del Dr. Carlos Castillo Flamain. Por recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
+    } else if (this.doctorName.toLowerCase().includes("flamain")) {
+      // Mensaje para DR. CARLOS CASTILLO FLAMAIN
+      mensaje = `Buenos días de Axxis Gastro, le saludamos de parte del consultorio del Dr. Carlos Castillo Flamain. Por recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
 Por favor, si dispone de resultados recientes o antiguos (laboratorio, rayos X u otra especialidad) que el doctor aún no haya revisado referentes a su estado de salud, acuda con una copia física. Estos resultados serán anexados a su historia clínica y servirán como antecedente en su tratamiento.
 Recuerde que el valor de la consulta lo puede cancelar en cheque, efectivo o transferencia. Por favor, ayude facilitando la búsqueda de su historia clínica proporcionando los nombres completos del paciente.
 
@@ -760,7 +894,7 @@ Actualmente, el ingreso es por la calle Vozandes y la salida por la Avenida 10 d
 Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
 
 
-} else {
+    } else {
       mensaje = `Buenos días de Axxis Gastro, le saludamos de parte del consultorio de ${this.doctorName}. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
 El valor de la consulta médica lo puede cancelar en efectivo o transferencia bancaria.
 
@@ -770,7 +904,7 @@ Si desea certificado médico por su asistencia, hágalo saber en recepción el m
 
 Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
     }
-  
+
     // Envía el recordatorio vía el endpoint de WhatsApp
     this.http.post('http://localhost:3000/api/whatsapp/send', {
       phone: phoneNumber,
@@ -779,11 +913,11 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
       next: (resp: any) => {
         console.log('Recordatorio enviado:', resp);
         alert('Recordatorio de WhatsApp enviado con éxito');
-        
+
         // Actualiza la cita para marcar que ya se envió el recordatorio
         const updateBody = {
           idDoctor_cita: cita.idDoctor_cita,
-          fecha: cita.fecha, 
+          fecha: cita.fecha,
           torre: cita.torre,
           hora: cita.horaStr,
           horaTermina: cita.horaFinStr,
@@ -803,7 +937,7 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
           cedula: cita.cedula,
           recordatorioEnv: true
         };
-        
+
         const url = `http://localhost:3000/api/citas/${cita.idCita}`;
         this.http.put(url, updateBody).subscribe({
           next: (resp: any) => {
@@ -823,48 +957,46 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
   }
 
   drop(event: CdkDragDrop<any[]>): void {
-    // Suponemos que el elemento arrastrado tiene asignado en su propiedad "data" el objeto "cita"
-    const draggedCita = event.item.data;
-    
-    // Determinamos el nuevo slot basándonos en la posición a la que se soltó el elemento.
-    // Por ejemplo, suponemos que el índice del contenedor corresponde al índice en el array "timeSlots".
-    const newSlot = this.timeSlots[event.currentIndex]; // formato "HH:mm:00"
-    const newHora = newSlot;
-    const newHoraFin = this.calcularFin(newSlot, 30);
-  
-    // Actualizamos el objeto para enviarlo al backend.
-    const updateBody = {
-      idDoctor_cita: draggedCita.idDoctor_cita,
-      fecha: draggedCita.fecha, // se asume que ya está en formato adecuado
-      torre: draggedCita.torre || 1,
-      hora: newHora,
-      horaTermina: newHoraFin,
-      paciente: draggedCita.paciente,
-      edad: draggedCita.edad,
-      telefono: draggedCita.telefono,
-      procedimiento: draggedCita.procedimiento || '',
-      imagen: draggedCita.imagen || '',
-      pedido: draggedCita.pedido || '',
-      institucion: draggedCita.institucion || '',
-      seguro: draggedCita.seguro || '',
-      estado: draggedCita.estado || 'activo',
-      confirmado: draggedCita.confirmado || 'pendiente',
-      observaciones: draggedCita.observaciones || '',
-      observaciones2: draggedCita.observaciones2 || '',
-      colorCita: draggedCita.colorCita,
-      cedula: draggedCita.cedula,
-      recordatorioEnv: draggedCita.recordatorioEnv || false
+    const dragged: any = event.item.data;
+    // 1) índice en displaySlots
+    const target = this.displaySlots[event.currentIndex];
+    if (!dragged?.idCita) return alert('ID de cita inválido');
+
+    // 2) nueva hora de inicio = slot del target
+    const newStart = target.slot;               // "HH:mm:ss"
+    // 3) conservar duración original
+    const toMin = (s: string) => {
+      const [H, M] = s.split(':').map(Number);
+      return H * 60 + M;
     };
-  
-    // Realizamos el PUT para actualizar la cita con los nuevos horarios.
-    const url = `http://localhost:3000/api/citas/${draggedCita.idCita}`;
-    this.http.put(url, updateBody).subscribe({
-      next: (resp: any) => {
-        console.log('Cita actualizada tras drop:', resp);
-        this.cargarConsultas();
-      },
-      error: (err) => {
-        console.error('Error al actualizar cita tras drop:', err);
+    const oldStartMin = toMin(dragged.horaStr);
+    const oldEndMin = toMin(dragged.horaFinStr);
+    const durMin = oldEndMin - oldStartMin;
+
+    // 4) calcular nueva hora fin
+    const calculateEnd = (start: string, dur: number) => {
+      const [h, m] = start.split(':').map(Number);
+      const total = h * 60 + m + dur;
+      const nh = Math.floor((total / 60) % 24);
+      const nm = total % 60;
+      return `${nh.toString().padStart(2, '0')}:${nm.toString().padStart(2, '0')}:00`;
+    };
+    const newEnd = calculateEnd(newStart, durMin);
+
+    // 5) armar body
+    const url = `http://localhost:3000/api/citas/${dragged.idCita}`;
+    const body = {
+      ...dragged,
+      hora: newStart,
+      horaTermina: newEnd
+    };
+
+    // 6) enviar PUT
+    this.http.put(url, body).subscribe({
+      next: () => this.cargarConsultas(),
+      error: err => {
+        console.error('Error al actualizar tras drag:', err);
+        alert('No se pudo mover la cita');
       }
     });
   }
