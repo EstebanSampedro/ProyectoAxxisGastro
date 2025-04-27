@@ -429,7 +429,7 @@ export class ConsultasMenuDocComponent implements OnInit {
           institucion: this.newCitaData.institucion || '',
           seguro: this.newCitaData.seguro || '',
           estado: 'activo',
-          confirmado: 'pendiente',
+          confirmado: overlap ? 'error' : 'pendiente',
           observaciones: this.newCitaData.observaciones || '',
           observaciones2: '',
           colorCita: this.newCitaData.colorCita,
@@ -454,7 +454,7 @@ export class ConsultasMenuDocComponent implements OnInit {
                   idCita: resp.idCita,
                   horaStr: hora,
                   horaFinStr: horaTermina,
-                  confirmado: 'pendiente'
+                  confirmado: 'error'
                 }
               });
             }

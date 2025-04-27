@@ -101,4 +101,5 @@ enum cita_confirmado {
   si
   no
   pendiente
+  error
 }
