@@ -216,7 +216,7 @@ const createOrUpdateConfirmacion = async (req, res) => {
     const existente = await prisma.confirmacion.findFirst({
       where: {
         confDoctor: parseInt(confDoctor, 10),
-        fechaCita:  new Date(fechaCita)
+        fechaCita: new Date(fechaCita)
       }
     });
 
@@ -227,7 +227,7 @@ const createOrUpdateConfirmacion = async (req, res) => {
         where: { idConfirmacion: existente.idConfirmacion },
         data: {
           idMedicoConfirma: parseInt(idMedicoConfirma, 10),
-          fechaConfirma:    new Date(fechaConfirma),
+          fechaConfirma: new Date(fechaConfirma),
           estado,
           confTorre1,
           confTorre2,
@@ -239,10 +239,10 @@ const createOrUpdateConfirmacion = async (req, res) => {
       // Crear
       resultado = await prisma.confirmacion.create({
         data: {
-          fechaCita:        new Date(fechaCita),
+          fechaCita: new Date(fechaCita),
           idMedicoConfirma: parseInt(idMedicoConfirma, 10),
-          confDoctor:       parseInt(confDoctor, 10),
-          fechaConfirma:    new Date(fechaConfirma),
+          confDoctor: parseInt(confDoctor, 10),
+          fechaConfirma: new Date(fechaConfirma),
           estado,
           confTorre1,
           confTorre2,
@@ -278,8 +278,8 @@ const createLog = async (req, res) => {
     // 1) Creamos el log en UTC
     const nuevoLog = await prisma.logs.create({
       data: {
-        cita_idCita:     Number(cita_idCita),
-        tipoCambio:      String(tipoCambio),
+        cita_idCita: Number(cita_idCita),
+        tipoCambio: String(tipoCambio),
         medico_idMedico: Number(medico_idMedico),
         // fechaLog se asigna ahora en UTC automáticamente
       },
@@ -412,16 +412,16 @@ function formatHora(fechaHora) {
 
 // Definición de columnas para la tabla (los anchos están en puntos)
 const columns = [
-  { header: "HORA",          width: 40  },
-  { header: "MEDICO",        width: 100 },
-  { header: "PACIENTE",      width: 100 },
-  { header: "EDAD",          width: 30  },
-  { header: "PROCEDIMI.",    width: 100 },
-  { header: "IMAGEN",        width: 50  },
-  { header: "SOLICITADO",    width: 100 },
-  { header: "INSTITU.",      width: 60  },
-  { header: "SEGURO",        width: 70  },
-  { header: "RESP",          width: 30  },
+  { header: "HORA", width: 40 },
+  { header: "MEDICO", width: 100 },
+  { header: "PACIENTE", width: 100 },
+  { header: "EDAD", width: 30 },
+  { header: "PROCEDIMI.", width: 100 },
+  { header: "IMAGEN", width: 50 },
+  { header: "SOLICITADO", width: 100 },
+  { header: "INSTITU.", width: 60 },
+  { header: "SEGURO", width: 70 },
+  { header: "RESP", width: 30 },
   { header: "OBSERVACIONES", width: 120 },
 ];
 
@@ -446,15 +446,15 @@ function drawRow(doc, startX, startY, rowData) {
   const lastColIndex = columns.length - 1;
   const lastColWidth = columns[lastColIndex].width;
   const lastColText = rowData[lastColIndex] || "";
-  
+
   // Calcular la altura necesaria para la última columna (MultiCell)
   doc.font("Helvetica").fontSize(8);
   const neededHeight = doc.heightOfString(lastColText, { width: lastColWidth - 4 });
-  
+
   // Altura mínima para las otras columnas (puedes ajustar)
   const baseHeight = 15;
   const rowHeight = Math.max(baseHeight, neededHeight + 4);
-  
+
   let currentX = startX;
   // Dibujar cada celda de la fila
   for (let i = 0; i < columns.length; i++) {
@@ -477,9 +477,9 @@ async function exportImprimirPDF(req, res) {
     if (!f) {
       return res.status(400).json({ error: "Se requiere la fecha (f)" });
     }
-    const fecha     = f; // "YYYY-MM-DD"
+    const fecha = f; // "YYYY-MM-DD"
     const startDate = new Date(fecha);
-    const endDate   = new Date(fecha);
+    const endDate = new Date(fecha);
     endDate.setDate(endDate.getDate() + 1);
 
     // Consultar datos de confirmación global (para confTorreX)
@@ -498,10 +498,10 @@ async function exportImprimirPDF(req, res) {
 
     // ——— ENCABEZADO ———
     const pageWidth = doc.page.width;
-    const headerY   = 10;
-    const logoSize  = 60;
-    const boxW      = 80;
-    const boxH      = 24;
+    const headerY = 10;
+    const logoSize = 60;
+    const boxW = 80;
+    const boxH = 24;
 
     // Logo más grande
     const logoPath = path.join(__dirname, "../public/images/axxis-gastro.png");
@@ -514,7 +514,7 @@ async function exportImprimirPDF(req, res) {
     doc.text(title, (pageWidth - titleWidth) / 2, headerY + 5);
 
     // Día de la semana
-    const dias = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+    const dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
     const dayName = dias[new Date(fecha).getDay()] || "";
     const dayX = pageWidth - boxW * 2 - 40;
     doc
@@ -558,7 +558,7 @@ async function exportImprimirPDF(req, res) {
       const confT = confirmacion[`confTorre${torre}`] || "";
       const tableW = columns.reduce((sum, col) => sum + col.width, 0);
       doc.font("Helvetica-Bold").fontSize(10)
-         .text(`TORRE ${torre}  –  ${confT}`, 20, doc.y, { width: tableW, align: "center" });
+        .text(`TORRE ${torre}  –  ${confT}`, 20, doc.y, { width: tableW, align: "center" });
       doc.moveDown(0.5);
 
       // Encabezados
@@ -567,7 +567,7 @@ async function exportImprimirPDF(req, res) {
       doc.font("Helvetica-Bold").fontSize(8);
       for (const col of columns) {
         doc.rect(x, headerY2, col.width, 15).stroke();
-        doc.text(col.header, x+2, headerY2+4, { width: col.width-4, align: "center" });
+        doc.text(col.header, x + 2, headerY2 + 4, { width: col.width - 4, align: "center" });
         x += col.width;
       }
       doc.y = headerY2 + 15;
@@ -577,16 +577,16 @@ async function exportImprimirPDF(req, res) {
       for (const fila of filas) {
         const row = [
           formatHora(fila.hora),
-          fila.nomDoctor    || "",
-          fila.paciente     || "",
-          fila.edad!=null?String(fila.edad):"",
-          fila.procedimiento||"",
-          fila.imagen       ||"",
-          fila.pedido       ||"",
-          fila.institucion  ||"",
-          fila.seguro       ||"",
-          fila.codigoMedico ||"",   // ← aquí está el RESPONSABLE real
-          fila.observaciones||""
+          fila.nomDoctor || "",
+          fila.paciente || "",
+          fila.edad != null ? String(fila.edad) : "",
+          fila.procedimiento || "",
+          fila.imagen || "",
+          fila.pedido || "",
+          fila.institucion || "",
+          fila.seguro || "",
+          fila.codigoMedico || "",   // ← aquí está el RESPONSABLE real
+          fila.observaciones || ""
         ];
         doc.y = drawRow(doc, 20, doc.y, row);
       }
@@ -595,18 +595,18 @@ async function exportImprimirPDF(req, res) {
 
     // ——— FIRMAS ———
     doc.moveDown(5);
-    const y0    = doc.y;
+    const y0 = doc.y;
     const pageW2 = doc.page.width;
-    const colW   = (pageW2 - 40) / 2;
-    const lineW  = colW * 0.5;
-    const off    = (colW - lineW) / 2;
+    const colW = (pageW2 - 40) / 2;
+    const lineW = colW * 0.5;
+    const off = (colW - lineW) / 2;
 
-    doc.moveTo(20+off, y0).lineTo(20+off+lineW, y0).stroke();
-    doc.moveTo(20+colW+20+off, y0).lineTo(20+colW+20+off+lineW, y0).stroke();
+    doc.moveTo(20 + off, y0).lineTo(20 + off + lineW, y0).stroke();
+    doc.moveTo(20 + colW + 20 + off, y0).lineTo(20 + colW + 20 + off + lineW, y0).stroke();
 
     doc.font("Helvetica").fontSize(10)
-       .text(`Responsable: ${confirmacion.nombreMedico||""}`, 20,   y0+5, { width: colW, align: "center" })
-       .text("Aprobado por:",             20+colW+20, y0+5, { width: colW, align: "center" });
+      .text(`Responsable: ${confirmacion.nombreMedico || ""}`, 20, y0 + 5, { width: colW, align: "center" })
+      .text("Aprobado por:", 20 + colW + 20, y0 + 5, { width: colW, align: "center" });
 
     doc.end();
   } catch (err) {
@@ -615,23 +615,40 @@ async function exportImprimirPDF(req, res) {
   }
 }
 
-
 // PATCH /api/citas/:id/reagendar
 const reagendarCita = async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
-    const { fecha, torre, hora } = req.body;
+    const { fecha, torre, hora, horaTermina } = req.body;
     if (!fecha || !torre || !hora) {
       return res.status(400).json({ error: 'fecha, torre y hora son obligatorios' });
     }
+    // obtenemos el valor actual de horaTermina si no nos la pasan
+    const citaActual = await prisma.cita.findUnique({
+      where: { idCita: id },
+      select: { horaTermina: true }
+    });
+    if (!citaActual) {
+      return res.status(404).json({ error: 'Cita no encontrada' });
+    }
+
+    // construimos el objeto para update
+    const data = {
+      fecha: new Date(fecha),
+      torre: Number(torre),
+      // se añade ":00Z" para forzar UTC
+      hora: new Date(`${fecha}T${hora}:00Z`),
+      confirmado: 'pendiente'
+    };
+    if (horaTermina) {
+      data.horaTermina = new Date(`${fecha}T${horaTermina}:00Z`);
+    } else {
+      data.horaTermina = citaActual.horaTermina;
+    }
+
     const updated = await prisma.cita.update({
       where: { idCita: id },
-      data: {
-        fecha: new Date(fecha),
-        torre: Number(torre),
-        hora: new Date(`${fecha}T${hora}`),
-        horaTermina: new Date(`${fecha}T${hora}`) // o bien recalcula fin si quieres
-      }
+      data
     });
     res.json(updated);
   } catch (err) {
