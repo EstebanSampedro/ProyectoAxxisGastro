@@ -615,24 +615,40 @@ async function exportImprimirPDF(req, res) {
   }
 }
 
-
 // PATCH /api/citas/:id/reagendar
 const reagendarCita = async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
-    const { fecha, torre, hora } = req.body;
+    const { fecha, torre, hora, horaTermina } = req.body;
     if (!fecha || !torre || !hora) {
       return res.status(400).json({ error: 'fecha, torre y hora son obligatorios' });
     }
+    // obtenemos el valor actual de horaTermina si no nos la pasan
+    const citaActual = await prisma.cita.findUnique({
+      where: { idCita: id },
+      select: { horaTermina: true }
+    });
+    if (!citaActual) {
+      return res.status(404).json({ error: 'Cita no encontrada' });
+    }
+
+    // construimos el objeto para update
+    const data = {
+      fecha: new Date(fecha),
+      torre: Number(torre),
+      // se añade ":00Z" para forzar UTC
+      hora: new Date(`${fecha}T${hora}:00Z`),
+      confirmado: 'pendiente'
+    };
+    if (horaTermina) {
+      data.horaTermina = new Date(`${fecha}T${horaTermina}:00Z`);
+    } else {
+      data.horaTermina = citaActual.horaTermina;
+    }
+
     const updated = await prisma.cita.update({
       where: { idCita: id },
-      data: {
-        fecha: new Date(fecha),
-        torre: Number(torre),
-        hora: new Date(`${fecha}T${hora}`),
-        horaTermina: new Date(`${fecha}T${hora}`), // o bien recalcula fin si quieres,
-        confirmado: "pendiente"
-      }
+      data
     });
     res.json(updated);
   } catch (err) {

@@ -1045,63 +1045,60 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
     return `${hh}:${mm}:00`;
   }
 
-
   rescheduleCita(): void {
     const id = this.citaToReschedule?.idCita;
-    const fecha = this.rescheduleDate;
-    let h = this.rescheduleHour;
-    let f = this.rescheduleEndHour;
+    const fecha = this.rescheduleDate;        // "YYYY-MM-DD"
+    let h = this.rescheduleHour;        // "H:MM" o "HH:MM"
+    let f = this.rescheduleEndHour;     // "H:MM" o "HH:MM"
 
     if (!id) return alert('ID de cita inválido');
     if (!fecha || !h || !f) return alert('Completa todos los campos');
-    if (this.isEndBeforeStart()) return alert('Hora fin debe ser posterior');
+    if (this.isEndBeforeStart()) return alert('La hora fin debe ser posterior');
 
-    // 1) Convertir ambos a "HH:mm:00"
-    const fmtFull = (s: string) => {
+    // 1) Homogeneizar a HH:mm
+    const fmtHHMM = (s: string) => {
       const [hh, mm] = s.split(':').map(p => p.padStart(2, '0'));
-      return `${hh}:${mm}:00`;
+      return `${hh}:${mm}`;
     };
-    const horaFull = fmtFull(h);
-    const finFull = fmtFull(f);
+    const horaStr = fmtHHMM(h);
+    const finStr = fmtHHMM(f);
 
-    // 2) Aplicar offset –5h de manera consistente
-    const horaOffset = this.applyOffset5h(horaFull);
-    const horaFinOffset = this.applyOffset5h(finFull);
-
-    // Solo comprobamos solapamientos sobre consultas activas
+    // 2) Validar solapamiento
     this.citaService.getCitasByDate(fecha).subscribe({
       next: all => {
         const clash = all
           .filter(c => c.idCita !== id && c.tipoCita === 'consulta' && c.estado !== 'eliminado')
-          .some(c => this.extraerHoraModal(c.hora) === h);
-        if (clash) {
-          return alert('❌ Ya existe otra consulta en esa fecha y hora.');
-        }
-        // Hacemos el PATCH mínimo
+          .some(c => this.extraerHoraModal(c.hora) === horaStr);
+        if (clash) return alert('❌ Ya existe otra consulta en esa fecha y hora.');
+
+        // 3) Enviamos strings al backend
         const body = {
-          fecha, torre: this.rescheduleTorre,
-          hora: horaOffset,
-          horaTermina: horaFinOffset
+          fecha,
+          torre: this.rescheduleTorre,
+          hora: horaStr,           // ej: "08:30"
+          horaTermina: finStr      // ej: "09:00"
         };
-        this.http.patch(`http://localhost:3000/api/citas/${id}/reagendar`, body).subscribe({
-          next: () => {
-            alert('✅ Consulta reagendada correctamente');
-            this.closeRescheduleModal();
-            this.editingCitaId = null;
-            this.editingSlot = null;
-            this.cargarConsultas();
-          },
-          error: e => {
-            console.error(e);
-            alert('Error al reagendar la consulta');
-          }
-        });
+
+        this.http
+          .patch(`http://localhost:3000/api/citas/${id}/reagendar`, body)
+          .subscribe({
+            next: () => {
+              alert('✅ Consulta reagendada correctamente');
+              this.closeRescheduleModal();
+              this.editingCitaId = null;
+              this.editingSlot = null;
+              this.cargarConsultas();
+            },
+            error: e => {
+              console.error(e);
+              alert('Error al reagendar la consulta');
+            }
+          });
       },
-      error: () => {
-        alert('No se pudo verificar conflicto con otras consultas');
-      }
+      error: () => alert('No se pudo verificar conflicto con otras consultas')
     });
   }
+
 
   /** Helper: devuelve "HH:mm" desde un "HH:mm:ss" */
   extraerHoraModal(horaStr: string): string {
