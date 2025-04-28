@@ -65,19 +65,6 @@ export class ConsultasMenuDocComponent implements OnInit {
   faSave = faSave;
   faWarning = faWarning;
 
-  faCalendarAlt = faCalendarAlt;
-  faSaveAlt = faFloppyDisk;
-  faCancelAlt = faTimesCircle;
-
-  //Propiedades para reagendar ---
-  citaToReschedule: any = null;
-  rescheduleDate: string = '';
-  rescheduleTorre: number = 1;
-  rescheduleHour: string = '';
-  showRescheduleModal = false;
-  rescheduleEndHour!: string;
-
-
 
   // Objeto que guarda los datos del formulario inline (para nuevo registro o edición)
   newCitaData: any = {};
@@ -301,10 +288,7 @@ export class ConsultasMenuDocComponent implements OnInit {
       .pipe(
         map((data: any[]) =>
           data
-            .filter(c =>
-              c.estado !== 'eliminado' &&
-              (c.tipoCita === 'consulta' || c.tipoCita === 'cita')
-            )
+            .filter(c => c.tipoCita === 'consulta' && c.estado !== 'eliminado')
             .map(cita => ({
               ...cita,
               horaStr: this.extraerHora(cita.hora),
@@ -422,13 +406,18 @@ export class ConsultasMenuDocComponent implements OnInit {
 
     // 4) Comprobar solapamiento
     this.citaService.getCitasByDoctorAndDate(doctorId, fechaStr).pipe(
-      map(citasDoc => citasDoc.some(c => {
-        const exStart = toMin(this.extraerHora(c.hora));
-        const exEnd = toMin(this.extraerHora(c.horaTermina));
-        return startMin < exEnd && endMin > exStart;
-      })),
+      map(citasDoc =>
+        citasDoc
+          .filter(c => c.estado === 'activo' && c.tipoCita === 'consulta') // Filtrar citas relevantes
+          .some(c => {
+            const exStart = toMin(this.extraerHora(c.hora));
+            const exEnd = toMin(this.extraerHora(c.horaTermina));
+            // Validar si hay solapamiento
+            return startMin < exEnd && endMin > exStart;
+          })
+      ),
       switchMap(overlap => {
-        // 5) Construir el body con marcado de error si hay solapamiento
+        // 5) Construir el body
         const body = {
           idResponsable_idMedico: adminId,
           idDoctor_cita: doctorId,
@@ -436,7 +425,7 @@ export class ConsultasMenuDocComponent implements OnInit {
           torre: this.selectedTorreId,
           hora,
           horaTermina,
-          paciente: this.newCitaData.paciente || 'Paciente no proporcionado',
+          paciente: this.newCitaData.paciente || 'Paciente X',
           edad: this.newCitaData.edad ?? null,
           telefono: this.newCitaData.telefono || '',
           procedimiento: this.newCitaData.procedimiento || '',
@@ -454,39 +443,24 @@ export class ConsultasMenuDocComponent implements OnInit {
           tipoCita: 'consulta'
         };
 
-        // 6) Siempre hacemos POST (incluso en overlap) para que ID exista en BD
+        // 6) POST para registrar la cita
         return this.http.post<{ idCita: number }>(
           'http://localhost:3000/api/citas/register',
           body
-        ).pipe(
-          tap(resp => {
-            if (overlap) {
-              // 7) Inyectar localmente en errorSlots para feedback inmediato
-              this.errorSlots.unshift({
-                slot: '00:00:00',
-                type: 'appointment',
-                cita: {
-                  ...this.newCitaData,
-                  idCita: resp.idCita,
-                  horaStr: hora,
-                  horaFinStr: horaTermina,
-                  confirmado: 'error'
-                }
-              });
-            }
-          })
         );
       })
     ).subscribe({
       next: () => {
-        // 8) Limpiar estado y recargar desde BD (incluirá tu cita recién creada)
+        // 7) Limpiar estado y recargar desde BD
         this.editingSlotIndex = null;
         this.newCitaData = {};
         this.cargarConsultas();
       },
       error: err => {
-        console.error('Error creando la cita:', err);
-        alert('Ocurrió un error al guardar la cita.');
+        if (err.message !== 'Solapamiento detectado') {
+          console.error('Error creando la cita:', err);
+          alert('Ocurrió un error al guardar la cita.');
+        }
       }
     });
   }
@@ -566,7 +540,7 @@ export class ConsultasMenuDocComponent implements OnInit {
       torre: this.selectedTorreId,
       hora,
       horaTermina,
-      paciente: this.newCitaData.paciente || 'Paciente no proporcionado',
+      paciente: this.newCitaData.paciente || 'Paciente X',
       edad: this.newCitaData.edad ?? 30,
       telefono: this.newCitaData.telefono || '',
       procedimiento: this.newCitaData.procedimiento || '',
@@ -1017,6 +991,17 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
     });
   }
   // -----------------------------------------------------------------------------------------------------
+  //Propiedades para reagendar ---
+  citaToReschedule: any = null;
+  rescheduleDate: string = '';
+  rescheduleTorre: number = 1;
+  rescheduleHour: string = '';
+  showRescheduleModal = false;
+  rescheduleEndHour!: string;
+
+  faCalendarAlt = faCalendarAlt;
+  faSaveAlt = faFloppyDisk;
+  faCancelAlt = faTimesCircle;
   // Métodos para el modal de reagendar cita
   // Abre el modal y pre‐carga *sin* segundos, usando horaStr/ horaFinStr
   openRescheduleModal(cita: any) {
@@ -1122,11 +1107,9 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
   extraerHoraModal(horaStr: string): string {
     return horaStr?.substr(0, 5) || '';
   }
-
-  //-----------------------------------------------------------------------------------------------------
   // Métodos de navegación del menú
   goToInicio(): void {
-    this.router.navigate(['/menu']);;
+    window.location.href = 'http://tuservidor/axxis-citas/paginas/principal';
   }
   goToHistorialCitas(): void {
     this.router.navigate(['/historial-citas']);
