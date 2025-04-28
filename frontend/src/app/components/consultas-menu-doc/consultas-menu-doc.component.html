@@ -58,13 +58,11 @@
 
       <!-- 1) HORA (columna 1): sólo para empty y appointment -->
       <td *ngIf="view.type !== 'custom-empty'">{{ view.slot.substr(0,5) }}</td>
-      <td *ngIf="view.type === 'custom-empty'"></td>
 
       <!-- 2) APPOINTMENT (incluye errorSlots porque type==='appointment') -->
       <ng-container *ngIf="view.type==='appointment'; else slotEmpty">
         <!-- 2.1) Edición de cita -->
         <ng-container *ngIf="editingCitaId === view.cita.idCita; else lecturaCita">
-          <td><input type="text" [(ngModel)]="newCitaData.hora" maxlength="5" placeholder="HH:mm" /></td>
           <td><input type="text" [(ngModel)]="newCitaData.horaTermina" maxlength="5" placeholder="HH:mm" /></td>
           <td><input type="text" [(ngModel)]="newCitaData.cedula" placeholder="Cédula" /></td>
           <td><input type="text" [(ngModel)]="newCitaData.paciente" placeholder="Paciente" /></td>
@@ -155,13 +153,11 @@
         <!-- 3.2) Solo ➕ -->
         <ng-template #plusOnly>
           <td colspan="9"></td>
-          <td><span class="placeholder-text"></span></td>
           <td>
             <button class="plus-btn" (click)="iniciarCita(i)">➕</button>
           </td>
         </ng-template>
       </ng-template>
-
     </tr>
   </tbody>
 </table>
