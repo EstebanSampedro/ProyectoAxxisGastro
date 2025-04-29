@@ -1275,11 +1275,19 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
   }
 
   imprimir() {
-    // Convertir la fecha seleccionada a "YYYY-MM-DD"
     const fechaStr = this.selectedDate.toISOString().split('T')[0];
-    // Llama al endpoint del backend para generar el PDF
-    // Ajusta la URL de acuerdo a la ruta y dominio de tu backend
-    window.open(`http://localhost:3000/api/citas/imprimir?f=${fechaStr}`, '_blank');
+
+    this.http.get(`http://localhost:3000/api/citas/imprimir?f=${fechaStr}`, { responseType: 'blob' })
+      .subscribe({
+        next: (blob) => {
+          const blobUrl = URL.createObjectURL(blob);
+          window.open(blobUrl, '_blank');
+        },
+        error: (err) => {
+          console.error('Error generando el PDF:', err);
+          alert('No se pudo generar el PDF.');
+        }
+      });
   }
 
   // Al pulsar el botón de calendario en la fila en edición
