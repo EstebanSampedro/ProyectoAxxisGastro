@@ -9,39 +9,56 @@ import {
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { Router } from '@angular/router';
-import { ConfigService } from '../services/config.service';
+import { environment } from '../../environments/environment';
 
 @Injectable()
 export class ApiKeyInterceptor implements HttpInterceptor {
-    constructor(private configService: ConfigService, private router: Router) { }
+    private readonly excludedEndpoints = [
+        'auth/login',
+    ];
+
+    constructor(private router: Router) { }
 
     intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-        // Verificar si la configuración está cargada
-        if (!this.configService.isLoaded()) {
-            // Si la configuración no está cargada, simplemente pasar la solicitud sin modificar
+        // Excluir endpoints que no necesitan API key
+        if (this.isExcludedEndpoint(req.url)) {
             return next.handle(req);
         }
 
-        const apiKey = this.configService.get('apiKey'); // Obtiene la clave de la API desde el servicio
+        // Verificar si es una solicitud a nuestro backend
+        if (!req.url.startsWith(environment.api.baseUrl)) {
+            return next.handle(req);
+        }
 
-        // Solo modificar la solicitud si hay una apiKey disponible
-        const clonedRequest = apiKey
-            ? req.clone({
-                setHeaders: {
-                    'x-api-key': apiKey,
-                },
-            })
-            : req;
+        if (!environment.api.apiKey) {
+            console.error('API Key no configurada en environment');
+            return throwError(() => new Error('API Key no configurada'));
+        }
 
-        // Manejar la respuesta y redirigir en caso de 403
+        const clonedRequest = req.clone({
+            setHeaders: {
+                'x-api-key': environment.api.apiKey,
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+        });
+
         return next.handle(clonedRequest).pipe(
             catchError((error: HttpErrorResponse) => {
                 if (error.status === 403) {
-                    console.error('Acceso denegado (403). Redirigiendo al login...');
-                    this.router.navigate(['/not-authorized']); // Redirige al login
+                    console.error('Acceso denegado (403)');
+                    this.router.navigate(['/not-authorized'], {
+                        queryParams: { returnUrl: this.router.url }
+                    });
                 }
-                return throwError(() => error); // Propaga el error
+                return throwError(() => error);
             })
+        );
+    }
+
+    private isExcludedEndpoint(url: string): boolean {
+        return this.excludedEndpoints.some(endpoint =>
+            url.includes(endpoint)
         );
     }
 }
