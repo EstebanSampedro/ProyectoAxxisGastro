@@ -1,113 +1,159 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, throwError } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
-import config from '../config/util.json';
-
-export interface Admin {
-  idmedico: number;
-  nombre: string;
-  permiso: string;
-  codigoMedico: string;
-}
+import { BehaviorSubject, Observable, throwError, of } from 'rxjs';
+import { catchError, tap, map, switchMap, take } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
+import { JwtHelperService } from '@auth0/angular-jwt';
+import { Admin } from '../interfaces/admin';
+import { LoginCredentials } from '../interfaces/login.credentials';
+import { AuthResponse } from '../interfaces/auth.response';
+import { User } from '../interfaces/user';
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class AuthService {
-  private baseUrl: string = config.api.baseUrl;
-  private currentUserSubject: BehaviorSubject<any>;
-  public currentUser: Observable<any>;
+  private readonly http = inject(HttpClient);
+  private readonly router = inject(Router);
+  private readonly jwtHelper = inject(JwtHelperService);
 
-  /** Caché local de administradores (tabla medico) */
+  private readonly tokenKey = 'token';
+  private readonly refreshTokenKey = 'auth_refresh_token';
+  private readonly userKey = 'user';
+  private readonly tokenRefreshInProgress$ = new BehaviorSubject<boolean>(false);
+
+  private currentUserSubject = new BehaviorSubject<User | null>(null);
+  public currentUser$ = this.currentUserSubject.asObservable();
+
   public admins: Admin[] = [];
 
-  constructor(private http: HttpClient, private router: Router) {
-    const token = localStorage.getItem('token');
-    const user = token ? JSON.parse(localStorage.getItem('user') || '{}') : null;
-    this.currentUserSubject = new BehaviorSubject<any>(user);
-    this.currentUser = this.currentUserSubject.asObservable();
+  constructor() {
+    this.initializeAuthState();
   }
 
+  /**
+   * Inicializa el estado de autenticación al cargar el servicio
+   */
+  private initializeAuthState(): void {
+    const token = this.getToken();
+    const user = this.getStoredUser();
 
-  public get currentUserValue(): any {
-    return this.currentUserSubject.value;
-  }
-
-  private cleanSession(): void {
-    sessionStorage.clear();
-    localStorage.clear();
-    this.currentUserSubject.next(null);
-    this.admins = []; // Limpia la caché de administradores
+    if (token && user && !this.isTokenExpired(token)) {
+      this.currentUserSubject.next(user);
+    } else {
+      this.clearSession();
+    }
   }
 
   /**
    * Login para administradores
    */
-  loginAdmin(credentials: { user: string; password: string }): Observable<any> {
-    this.cleanSession();
-    const endpoint = config.api.endpoints.authAdmin;
-
-    // Validación del endpoint
-    if (!endpoint) {
-      throw new Error('Endpoint para administradores no configurado en config.');
-    }
-
-    return this.http.post<any>(`${this.baseUrl}${endpoint}`, credentials).pipe(
-      tap((response) => {
-        // Procesa la respuesta del backend
-        const user = {
-          ...response.user,
-        };
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('user', JSON.stringify(user));
-        this.currentUserSubject.next(user);
-      }),
-      catchError((error) => {
-        console.error('Error en login admin:', error);
-        return throwError(() => new Error('Error al iniciar sesión. Verifica tus credenciales.'));
-      })
-    );
+  loginAdmin(credentials: LoginCredentials): Observable<User> {
+    return this.authenticate(credentials, 'admin');
   }
+
   /**
    * Login para doctores
    */
-  loginDoctor(credentials: { user: string; password: string }): Observable<any> {
-    this.cleanSession();
-    const endpoint = config.api.endpoints.authDoctor;
+  loginDoctor(credentials: LoginCredentials): Observable<User> {
+    return this.authenticate(credentials, 'doctor');
+  }
+
+  private authenticate(credentials: LoginCredentials, userType: 'admin' | 'doctor'): Observable<User> {
+    this.clearSession();
+
+    const endpoint = userType === 'admin' ?
+      environment.api.endpoints.authAdmin :
+      environment.api.endpoints.authDoctor;
+
     if (!endpoint) {
-      throw new Error('Endpoint para doctores no configurado en config.');
+      return throwError(() => new Error(`Endpoint para ${userType} no configurado`));
     }
-    return this.http.post<any>(`${this.baseUrl}${endpoint}`, credentials).pipe(
-      tap((response) => {
-        const user = {
-          ...response.user,
-          permiso: 'doctor', // Asigna el rol fijo como "doctor"
-        };
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('user', JSON.stringify(user));
-        this.currentUserSubject.next(user);
+
+    return this.http.post<AuthResponse>(`${environment.api.baseUrl}${endpoint}`, credentials).pipe(
+      tap((response) => this.setSession(response, userType)),
+      map(response => response.user),
+      catchError(error => {
+        console.error(`Error en login ${userType}:`, error);
+        return throwError(() => this.handleLoginError(error));
       })
     );
   }
 
-  logout(): void {
-    this.cleanSession();
-    this.router.navigate(['/login']);
+  private setSession(authResponse: AuthResponse, userType: string): void {
+    const user = {
+      ...authResponse.user,
+      permiso: userType === 'doctor' ? 'doctor' : authResponse.user.permiso
+    };
+
+    localStorage.setItem(this.tokenKey, authResponse.token);
+    if (authResponse.refreshToken) {
+      localStorage.setItem(this.refreshTokenKey, authResponse.refreshToken);
+    }
+    localStorage.setItem(this.userKey, JSON.stringify(user));
+
+    this.currentUserSubject.next(user);
+  }
+
+  logout(redirect: boolean = true): void {
+    this.clearSession();
+    if (redirect) {
+      this.router.navigate(['/login'], {
+        queryParams: { logout: true }
+      });
+    }
+  }
+
+  clearSession(): void {
+    localStorage.removeItem(this.tokenKey);
+    localStorage.removeItem(this.refreshTokenKey);
+    localStorage.removeItem(this.userKey);
+    sessionStorage.clear();
+    this.currentUserSubject.next(null);
+    this.admins = [];
   }
 
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('token');
+    const token = this.getToken();
+    return !!token && !this.isTokenExpired(token);
   }
 
-  hasRole(role: string): boolean {
-    const userRole = this.currentUserValue?.role?.toLowerCase();
+  getToken(): string | null {
+    return localStorage.getItem(this.tokenKey);
+  }
+
+  getRefreshToken(): string | null {
+    return localStorage.getItem(this.refreshTokenKey);
+  }
+
+  private getStoredUser(): User | null {
+    const userJson = localStorage.getItem(this.userKey);
+    return userJson ? JSON.parse(userJson) : null;
+  }
+
+  isTokenExpired(token: string): boolean {
+    return this.jwtHelper.isTokenExpired(token);
+  }
+
+  get currentUserValue(): User | null {
+    return this.currentUserSubject.value;
+  }
+
+  hasRole(role: string | string[]): boolean {
+    const userRole = this.currentUserValue?.permiso?.toLowerCase();
+    if (!userRole) return false;
+
+    if (Array.isArray(role)) {
+      return role.some(r => r.toLowerCase() === userRole);
+    }
     return userRole === role.toLowerCase();
   }
 
   getUsername(): string {
-    return this.currentUserValue?.nombre || this.currentUserValue?.nomDoctor2 || 'Invitado';
+    return this.currentUserValue?.nombre ||
+      this.currentUserValue?.nomDoctor2 ||
+      'Invitado';
   }
 
   getAdminId(): number {
@@ -119,26 +165,33 @@ export class AuthService {
   }
 
   fetchAllAdmins(): Observable<Admin[]> {
-    return this.http
-      .get<Admin[]>(`${this.baseUrl}/auth/usuarios`)
-      .pipe(tap((list) => (this.admins = list)));
+    return this.http.get<Admin[]>(`${environment.api.baseUrl}/auth/usuarios`).pipe(
+      tap(admins => this.admins = admins),
+      catchError(error => {
+        console.error('Error fetching admins:', error);
+        return of([]);
+      })
+    );
   }
 
-  /**
-   * Devuelve las siglas (codigoMedico) del admin con ese id,
-   * o cadena vacía si no existe o no viene.
-   */
   getAdminCode(id?: number): string {
     if (id == null) return '';
-    const found = this.admins.find((a) => a.idmedico === id);
-    return found ? found.codigoMedico : '';
+    const found = this.admins.find(a => a.idmedico === id);
+    return found?.codigoMedico || '';
   }
 
-  /**
- * Devuelve las siglas (codigoMedico) del admin con ese id,
- * o cadena vacía si no existe o no viene.
- */
   getCurrentAdminCode(): string {
-    return this.currentUserValue.codigoMedico || 'N/A';
+    return this.currentUserValue?.codigoMedico || 'N/A';
+  }
+
+
+  private handleLoginError(error: any): Error {
+    if (error.status === 401) {
+      return new Error('Credenciales inválidas');
+    }
+    if (error.status === 0) {
+      return new Error('No se puede conectar al servidor');
+    }
+    return new Error('Error al iniciar sesión. Intente nuevamente.');
   }
 }

@@ -34,17 +34,11 @@ import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { ApiKeyInterceptor } from './interceptors/api-key.interceptor';
 import { NotAuthorizedComponent } from './components/not-authorized/not-authorized.component';
 import { ConfigService } from './services/config.service';
+import { JWT_OPTIONS, JwtHelperService } from '@auth0/angular-jwt';
 
 const routes: Routes = [
   // Define tus rutas aquí
 ];
-
-export function initializeApp(configService: ConfigService) {
-  return () => configService.loadConfig().toPromise().catch(() => {
-    configService.loadDefaultConfig();
-    return Promise.resolve(); // para continuar incluso si falla
-  });
-}
 
 @NgModule({
   declarations: [
@@ -91,11 +85,10 @@ export function initializeApp(configService: ConfigService) {
     },
     ConfigService,
     {
-      provide: APP_INITIALIZER,
-      useFactory: initializeApp,
-      deps: [ConfigService],
-      multi: true
-    }
+      provide: JWT_OPTIONS,
+      useValue: JWT_OPTIONS
+    },
+    JwtHelperService
   ],
   bootstrap: [AppComponent]
 })

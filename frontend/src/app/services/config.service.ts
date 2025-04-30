@@ -1,60 +1,108 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpBackend } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { map, catchError, tap } from 'rxjs/operators';
-import * as yaml from 'js-yaml';
+import { environment } from '../../environments/environment';
 
 @Injectable({
-    providedIn: 'root',
+    providedIn: 'root'
 })
 export class ConfigService {
-    private config: any = null;
-    private httpClientWithoutInterceptors: HttpClient;
+    private readonly config = environment;
 
-    constructor(private http: HttpClient, private httpBackend: HttpBackend) {
-        // Crear una instancia de HttpClient que no use interceptores
-        this.httpClientWithoutInterceptors = new HttpClient(httpBackend);
+    constructor() {
+        this.validateEnvironment();
     }
 
-    loadConfig(): Observable<any> {
-        // Usar el cliente HTTP que evita los interceptores
-        return this.httpClientWithoutInterceptors.get('assets/config.yaml', { responseType: 'text' })
-            .pipe(
-                tap(yamlText => {
-                    try {
-                        this.config = yaml.load(yamlText);
-                        console.log('Configuración cargada correctamente');
-                    } catch (error) {
-                        console.error('Error al parsear el archivo YAML:', error);
-                        throw error;
-                    }
-                }),
-                map(() => this.config),
-                catchError(error => {
-                    console.error('Error al cargar el archivo de configuración:', error);
-                    throw error;
-                })
-            );
+    /**
+     * Obtiene el valor de configuración completo
+     */
+    getAll(): any {
+        return this.config;
     }
 
-    get(key: string): any {
-        if (!this.config) {
-            console.warn('Se intentó acceder a la configuración antes de cargarla');
-            return null;
+    /**
+     * Obtiene la URL base de la API
+     */
+    getApiUrl(): string {
+        return this.config.api.baseUrl;
+    }
+
+    /**
+     * Obtiene un endpoint específico
+     * @param path Ruta del endpoint (puede ser anidada con puntos)
+     * @example getEndpoint('authAdmin') -> '/auth/admin'
+     * @example getEndpoint('citas.filterByDate') -> '/citas/byDate'
+     */
+    getEndpoint(path: string): string {
+        const parts = path.split('.');
+        let result: any = this.config.api.endpoints;
+
+        for (const part of parts) {
+            if (result[part] === undefined) {
+                console.error(`Endpoint no encontrado: ${path}`);
+                return '';
+            }
+            result = result[part];
         }
-        return key ? this.config[key] : this.config;
+
+        return result;
+    }
+    /**
+     * Obtiene la URL completa para un endpoint
+     * @param module Nombre del módulo (ej: 'citas', 'auth')
+     * @param endpoint Nombre del endpoint específico (ej: 'getAll', 'register')
+     * @returns URL completa formada por baseUrl + endpoint
+     * @throws Error si el módulo o endpoint no existen
+     */
+    getFullUrl(module: string, endpoint?: string): string {
+        // 1. Obtener base URL
+        const baseUrl = environment.api.baseUrl.replace(/\/$/, '');
+
+        // 2. Obtener ruta del endpoint
+        const moduleEndpoints = (environment.api.endpoints as Record<string, any>)[module];
+
+        let path = '';
+        if (endpoint && moduleEndpoints && typeof moduleEndpoints === 'object') {
+            path = moduleEndpoints[endpoint] || '';
+        } else if (typeof moduleEndpoints === 'string') {
+            path = moduleEndpoints;
+        }
+
+        // 3. Combinar evitando dobles barras
+        return `${baseUrl}/${path.replace(/^\//, '')}`;
+    }
+    /**
+     * Verifica si estamos en entorno de producción
+     */
+    isProduction(): boolean {
+        return this.config.production;
     }
 
+    /**
+     * Valida que la configuración mínima requerida esté presente
+     */
+    private validateEnvironment(): void {
+        if (!this.config.api?.baseUrl) {
+            console.error('Configuración de API no encontrada en environment');
+        }
+
+        if (!this.config.api?.endpoints?.authAdmin) {
+            console.warn('Endpoint authAdmin no configurado');
+        }
+    }
+
+    /**
+     * Método para compatibilidad con versiones anteriores
+     * @deprecated Usar getEndpoint() o getFullUrl() en su lugar
+     */
+    get(key: string): any {
+        console.warn('Método get() está deprecado. Usar getEndpoint() o getFullUrl()');
+        return this.getEndpoint(key);
+    }
+
+    /**
+     * Método para compatibilidad con versiones anteriores
+     * @deprecated Ya no es necesario cargar la configuración
+     */
     isLoaded(): boolean {
-        return this.config !== null;
-    }
-
-    // Método para cargar configuración de respaldo si falla la carga principal
-    loadDefaultConfig(): void {
-        this.config = {
-            apiKey: 'asdfghjklqwertyuiopzxcvbnm1234567890',
-            apiBaseUrl: 'http://localhost:3000/api'
-        };
-        console.warn('Se ha cargado la configuración por defecto debido a un error');
+        return true; // Siempre está cargado cuando usamos environment.ts
     }
 }

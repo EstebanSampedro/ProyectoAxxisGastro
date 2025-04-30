@@ -191,3 +191,5 @@ build/
 .npmrc
 .yarnrc
 backend/prisma/schema.prisma
+frontend/src/environments/environment.ts
+frontend/src/environments/environment.prod.ts

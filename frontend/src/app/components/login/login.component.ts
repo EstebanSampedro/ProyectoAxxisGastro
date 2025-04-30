@@ -32,15 +32,15 @@ export class LoginComponent {
       return;
     }
     console.log('Credenciales:', this.credentials);
-    const { user, password } = this.credentials;
+
     if (this.role === 'admin') {
       this.authService
-        .loginAdmin({ user: this.credentials.user, password: this.credentials.password })
+        .loginAdmin(this.credentials)
         .subscribe({
           next: (res) => {
             console.log('Login de admin exitoso:', res);
             // Redirige según el permiso del administrador
-            const userRole = res.user.permiso.toLowerCase();
+            const userRole = res.permiso.toLowerCase();
             if (userRole === 'administrador') {
               this.router.navigate(['/menu']); // Navega al menú principal
             } else if (userRole === 'usuario') {
@@ -60,8 +60,6 @@ export class LoginComponent {
         .subscribe({
           next: (res) => {
             console.log('Login de doctor exitoso:', res);
-            sessionStorage.setItem('token', res.token);
-            localStorage.setItem('idDoctor', res.user.idDoctor2)
             this.router.navigate(['/userdoc-menu']);
           },
           error: (err) => {
