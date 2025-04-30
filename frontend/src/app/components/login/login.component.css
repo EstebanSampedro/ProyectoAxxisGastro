@@ -30,7 +30,8 @@
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
-  height: 150px; /* Ajusta la altura según sea necesario */
+  height: 150px;
+  /* Ajusta la altura según sea necesario */
 }
 
 /* Título en amarillo */
@@ -111,13 +112,13 @@
 }
 
 /* Estado seleccionado: se cambia el color y se muestra un indicador */
-.role-option input[type="radio"]:checked + span {
+.role-option input[type="radio"]:checked+span {
   font-weight: bold;
   color: #ffc107;
 }
 
 /* Indicador visual al seleccionar (tick) */
-.role-option input[type="radio"]:checked + span::after {
+.role-option input[type="radio"]:checked+span::after {
   content: ' ✔';
 }
 
@@ -145,4 +146,47 @@ button:hover {
   color: #ff5252;
   margin-top: 1rem;
   font-size: 0.9rem;
+}
+
+
+/* Estilos CSS para los mensajes */
+.error-message {
+  padding: 10px 15px;
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  animation: fadeIn 0.3s ease-in;
+}
+
+.error-text {
+  color: #dc3545;
+  font-size: 0.875em;
+  margin-top: 5px;
+}
+
+.fade-out {
+  animation: fadeOut 0.5s ease-out 4.5s forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Estilo para campos inválidos */
+.ng-invalid.ng-touched:not(form) {
+  border-color: #dc3545;
 }
