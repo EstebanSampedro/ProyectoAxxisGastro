@@ -41,7 +41,6 @@
     <tr>
       <th>HORA</th>
       <th>HORA FIN</th>
-      <th>CEDULA</th>
       <th>PACIENTE</th>
       <th>TELÉFONO</th>
       <th>SEGURO</th>
@@ -53,57 +52,77 @@
     </tr>
   </thead>
   <tbody cdkDropList (cdkDropListDropped)="drop($event)">
-
     <tr *ngFor="let view of displaySlots; let i = index" [ngStyle]="{ 'background-color': view.cita?.colorCita || '' }">
-
-      <!-- 1) HORA (columna 1): sólo para empty y appointment -->
+      <!-- 1) HORA: solo para appointment y empty (no custom-empty) -->
       <td *ngIf="view.type !== 'custom-empty'">{{ view.slot.substr(0,5) }}</td>
-
-      <!-- 2) APPOINTMENT (incluye errorSlots porque type==='appointment') -->
-      <ng-container *ngIf="view.type==='appointment'; else slotEmpty">
-        <!-- 2.1) Edición de cita -->
-        <ng-container *ngIf="editingCitaId === view.cita.idCita; else lecturaCita">
-          <td><input type="text" [(ngModel)]="newCitaData.horaTermina" maxlength="5" placeholder="HH:mm" /></td>
-          <td><input type="text" [(ngModel)]="newCitaData.cedula" placeholder="Cédula" /></td>
-          <td><input type="text" [(ngModel)]="newCitaData.paciente" placeholder="Paciente" /></td>
-          <td><input type="text" [(ngModel)]="newCitaData.telefono" placeholder="Teléfono" /></td>
-          <td><input type="text" [(ngModel)]="newCitaData.seguro" placeholder="Seguro" /></td>
-          <td><input type="text" [(ngModel)]="newCitaData.observaciones" placeholder="Observaciones" /></td>
-          <td>
-            <select [(ngModel)]="newCitaData.colorCita">
-              <option value="#FFFFFF">Ninguno</option>
-              <option value="#ffff00">Amarillo</option>
-              <option value="#ff0000">Rojo</option>
-              <option value="#0000ff">Azul</option>
-              <option value="#FEBB02">Naranja</option>
-              <option value="#00ff00">Verde</option>
-              <option value="#8080c0">Gris</option>
-            </select>
-          </td>
-          <td>
-            <input type="text" [(ngModel)]="newCitaData.confirmado" disabled />
-          </td>
-          <td>
-            <input type="text" [(ngModel)]="newCitaData.codigoMedico" disabled />
-          </td>
-          <td>
-            <div class="horizontal-btns">
-              <button class="btn-save" title="Guardar cambios" (click)="guardarEdicion()">
+      <td *ngIf="view.type === 'custom-empty'"></td>
+      <!-- 2) APPOINTMENT (citas y consultas) -->
+      <ng-container *ngIf="view.type === 'appointment'; else slotEmpty">
+        <!-- 2.1) CONSULTA -->
+        <ng-container *ngIf="view.cita.tipoCita === 'consulta'; else citaOnly">
+          <!-- Edición de consulta -->
+          <ng-container *ngIf="editingCitaId === view.cita.idCita; else lecturaConsulta">
+            <!-- hora inicio read‑only -->
+            <td>
+              <input type="text" [(ngModel)]="newCitaData.hora" maxlength="5" placeholder="HH:mm" disabled />
+            </td>
+            <!-- hora fin read‑only -->
+            <td>
+              <input type="text" [(ngModel)]="newCitaData.horaTermina" maxlength="5" placeholder="HH:mm" disabled />
+            </td>
+            <!-- resto de campos editables -->
+            <td><input type="text" [(ngModel)]="newCitaData.paciente" placeholder="Paciente" /></td>
+            <td><input type="text" [(ngModel)]="newCitaData.telefono" placeholder="Teléfono" /></td>
+            <td><input type="text" [(ngModel)]="newCitaData.seguro" placeholder="Seguro" /></td>
+            <td><input type="text" [(ngModel)]="newCitaData.observaciones" placeholder="Observaciones" /></td>
+            <td>
+              <select [(ngModel)]="newCitaData.colorCita">
+                <option value="#FFFFFF">Ninguno</option>
+                <option value="#ffff00">Amarillo</option>
+                <option value="#ff0000">Rojo</option>
+                <option value="#0000ff">Azul</option>
+                <option value="#FEBB02">Naranja</option>
+                <option value="#00ff00">Verde</option>
+                <option value="#8080c0">Gris</option>
+              </select>
+            </td>
+            <td><input type="text" [(ngModel)]="newCitaData.confirmado" disabled /></td>
+            <td><input type="text" [(ngModel)]="newCitaData.codigoMedico" disabled /></td>
+            <td class="horizontal-btns">
+              <button class="btn-save" (click)="guardarEdicion()">
                 <fa-icon [icon]="faSaveAlt"></fa-icon>
               </button>
-              <button title="Cancelar edición" (click)="cancelarEdicion()">
+              <button (click)="cancelarEdicion()">
                 <fa-icon [icon]="faCancelAlt"></fa-icon>
               </button>
-              <button title="Reagendar cita" (click)="openRescheduleModal(view.cita)">
+              <button (click)="openRescheduleModal(view.cita)">
                 <fa-icon [icon]="faCalendarAlt"></fa-icon>
               </button>
-            </div>
-          </td>
+            </td>
+          </ng-container>
+          <!-- Lectura de consulta -->
+          <ng-template #lecturaConsulta>
+            <td>{{ view.cita.horaFinStr.substr(0,5) }}</td>
+            <td>{{ view.cita.paciente }}</td>
+            <td>{{ view.cita.telefono }}</td>
+            <td>{{ view.cita.seguro }}</td>
+            <td>{{ view.cita.observaciones }}</td>
+            <td>{{ colorNames[view.cita.colorCita] || view.cita.colorCita }}</td>
+            <td>{{ view.cita.confirmado }}</td>
+            <td>{{ view.cita.responsable }}</td>
+            <td class="horizontal-btns">
+              <button (click)="enviarWhatsApp(view.cita)">📞</button>
+              <button (click)="enviarRecordatorio(view.cita)">🔔</button>
+              <button (click)="confirmarCita(view.cita)">✔</button>
+              <button (click)="editarConsulta(view, i)">✏️</button>
+              <button (click)="eliminarConsulta(view.cita)">❌</button>
+            </td>
+          </ng-template>
         </ng-container>
-        <!-- 2.2) Lectura de cita -->
-        <ng-template #lecturaCita>
+
+        <!-- 2.2) CITA (solo lectura, sin opciones) -->
+        <ng-template #citaOnly>
           <td>{{ view.cita.horaFinStr.substr(0,5) }}</td>
-          <td>{{ view.cita.cedula }}</td>
           <td>{{ view.cita.paciente }}</td>
           <td>{{ view.cita.telefono }}</td>
           <td>{{ view.cita.seguro }}</td>
@@ -111,23 +130,16 @@
           <td>{{ colorNames[view.cita.colorCita] || view.cita.colorCita }}</td>
           <td>{{ view.cita.confirmado }}</td>
           <td>{{ view.cita.responsable }}</td>
-          <td class="horizontal-btns">
-            <button (click)="enviarWhatsApp(view.cita)">📞</button>
-            <button (click)="enviarRecordatorio(view.cita)">🔔</button>
-            <button (click)="confirmarCita(view.cita)">✔</button>
-            <button (click)="editarConsulta(view, i)">✏️</button>
-            <button (click)="eliminarConsulta(view.cita)">❌</button>
-          </td>
+          <!-- columna de opciones vacía para citas -->
+          <td></td>
         </ng-template>
       </ng-container>
 
       <!-- 3) EMPTY / CUSTOM-EMPTY -->
       <ng-template #slotEmpty>
-        <!-- 3.1) Modo creación SOLO en editingSlotIndex -->
         <ng-container *ngIf="editingSlotIndex === i; else plusOnly">
           <td><input type="text" [(ngModel)]="newCitaData.hora" maxlength="5" placeholder="HH:mm" /></td>
           <td><input type="text" [(ngModel)]="newCitaData.horaTermina" maxlength="5" placeholder="HH:mm" /></td>
-          <td><input type="text" [(ngModel)]="newCitaData.cedula" placeholder="Cédula" /></td>
           <td><input type="text" [(ngModel)]="newCitaData.paciente" placeholder="Paciente" /></td>
           <td><input type="text" [(ngModel)]="newCitaData.telefono" placeholder="Teléfono" /></td>
           <td><input type="text" [(ngModel)]="newCitaData.seguro" placeholder="Seguro" /></td>
@@ -150,12 +162,9 @@
             <button (click)="cancelarCita()">Cancelar</button>
           </td>
         </ng-container>
-        <!-- 3.2) Solo ➕ -->
         <ng-template #plusOnly>
-          <td colspan="9"></td>
-          <td>
-            <button class="plus-btn" (click)="iniciarCita(i)">➕</button>
-          </td>
+          <td colspan="8"></td>
+          <td><button class="plus-btn" (click)="iniciarCita(i)">➕</button></td>
         </ng-template>
       </ng-template>
     </tr>

@@ -12,7 +12,10 @@ const {
   createOrUpdateConfirmacion,
   createLog,
   softDeleteCita,
-  reagendarCita
+  reagendarCita,
+  getConsultasByDateAndTower,
+  getConsultasActive,
+  getCitasActive
 } = require("../controllers/cita.controller");
 const authMiddleware = require("../../middleware/authMiddleware");
 
@@ -34,7 +37,8 @@ router.post("/confirmacion", createOrUpdateConfirmacion);
 router.post('/logs', createLog);
 router.patch("/:id/eliminar", softDeleteCita);
 router.patch('/:id/reagendar', reagendarCita);
-
+router.get('/consultasActive', getConsultasActive);
+router.get('/citasActive', getCitasActive);
 
 
 module.exports = router;
