@@ -721,11 +721,11 @@ const reagendarCita = async (req, res) => {
       fecha: new Date(fecha),
       torre: Number(torre),
       // se añade ":00Z" para forzar UTC
-      hora: new Date(`${fecha}T${hora}:00Z`),
+      hora: new Date(`${fecha}T${hora}`),
       confirmado: 'pendiente'
     };
     if (horaTermina) {
-      data.horaTermina = new Date(`${fecha}T${horaTermina}:00Z`);
+      data.horaTermina = new Date(`${fecha}T${horaTermina}`);
     } else {
       data.horaTermina = citaActual.horaTermina;
     }
