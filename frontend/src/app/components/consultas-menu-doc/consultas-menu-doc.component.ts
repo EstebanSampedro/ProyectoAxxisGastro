@@ -118,7 +118,6 @@ export class ConsultasMenuDocComponent implements OnInit {
 
     this.cargarNombreDoctor();
     this.cargarConsultas();
-    this.cargarTorres();
     this.cargarObservaciones();
   }
 
@@ -138,25 +137,6 @@ export class ConsultasMenuDocComponent implements OnInit {
   get displaySlots(): SlotView[] {
     // primero las que vinieron de overlap, luego el resto
     return [...this.errorSlots, ...this.slotViews];
-  }
-
-  cargarTorres(): void {
-    this.torreService.getAllTorres().subscribe(
-      (data) => {
-        this.torres = data;
-        if (this.torres.length > 0) {
-          this.selectedTorreId = this.torres[0].idTorre; // Seleccionar la primera torre por defecto
-          this.cargarConsultas(); // Cargar citas de la primera torre
-        }
-      },
-      (error) => console.error('Error al cargar torres:', error)
-    );
-  }
-
-  selectTorre(torreId: number): void {
-    this.selectedTorreId = torreId;
-    this.editingSlot = null;
-    this.cargarConsultas();
   }
 
   onDateChange(): void {
@@ -360,7 +340,7 @@ export class ConsultasMenuDocComponent implements OnInit {
           // y dejamos intacto si es una consulta
           const citaConColor = {
             ...cita,
-            colorCita: cita.tipoCita === 'cita' ? '#ff2b2b' : (cita.colorCita || '#FFFFFF')
+            colorCita: cita.tipoCita === 'cita' ? '#FF3F38' : (cita.colorCita || '#FFFFFF')
           };
 
           this.slotViews.push({
@@ -372,13 +352,16 @@ export class ConsultasMenuDocComponent implements OnInit {
           const durSlots = Math.ceil((endMin - startMin) / slotMin);
           skip = durSlots - 1;
           ci++;
-          continue;
+        } else {
+          // No hay cita que empiece aquí → slot vacío
+          this.slotViews.push({ slot, type: 'empty' });
         }
+      } else {
+        // No quedan más citas → slot vacío
+        this.slotViews.push({ slot, type: 'empty' });
       }
 
-      // slot vacío exacto
-      this.slotViews.push({ slot, type: 'empty' });
-      // slot vacío custom (entre horas)
+      // 3) **Siempre** después de cada slot base, insertamos un custom-empty para entrada libre
       this.slotViews.push({ slot, type: 'custom-empty' });
     }
   }
@@ -618,7 +601,7 @@ export class ConsultasMenuDocComponent implements OnInit {
   }
 
   //-----------------------------------------------------------------------------------------------------
-
+  // Lógica de confirmaciones
   calcularFin(slot: string, minutos: number): string {
     const [hh, mm] = slot.split(':');
     const totalMin = parseInt(mm) + minutos;
@@ -980,50 +963,6 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
     });
   }
 
-  drop(event: CdkDragDrop<any[]>): void {
-    const dragged: any = event.item.data;
-    // 1) índice en displaySlots
-    const target = this.displaySlots[event.currentIndex];
-    if (!dragged?.idCita) return alert('ID de cita inválido');
-
-    // 2) nueva hora de inicio = slot del target
-    const newStart = target.slot;               // "HH:mm:ss"
-    // 3) conservar duración original
-    const toMin = (s: string) => {
-      const [H, M] = s.split(':').map(Number);
-      return H * 60 + M;
-    };
-    const oldStartMin = toMin(dragged.horaStr);
-    const oldEndMin = toMin(dragged.horaFinStr);
-    const durMin = oldEndMin - oldStartMin;
-
-    // 4) calcular nueva hora fin
-    const calculateEnd = (start: string, dur: number) => {
-      const [h, m] = start.split(':').map(Number);
-      const total = h * 60 + m + dur;
-      const nh = Math.floor((total / 60) % 24);
-      const nm = total % 60;
-      return `${nh.toString().padStart(2, '0')}:${nm.toString().padStart(2, '0')}:00`;
-    };
-    const newEnd = calculateEnd(newStart, durMin);
-
-    // 5) armar body
-    const url = `http://localhost:3000/api/citas/${dragged.idCita}`;
-    const body = {
-      ...dragged,
-      hora: newStart,
-      horaTermina: newEnd
-    };
-
-    // 6) enviar PUT
-    this.http.put(url, body).subscribe({
-      next: () => this.cargarConsultas(),
-      error: err => {
-        console.error('Error al actualizar tras drag:', err);
-        alert('No se pudo mover la cita');
-      }
-    });
-  }
   // -----------------------------------------------------------------------------------------------------
   //Propiedades para reagendar ---
   citaToReschedule: any = null;
@@ -1067,17 +1006,15 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
    * Aplica offset -5h a una hora en formato "HH:mm:00" y devuelve "HH:mm:00",
    * trabajando siempre en UTC para evitar mezclas de local/UTC.
    */
-  private applyOffset5h(timeFull: string): string {
-    // Partimos de un UTC date a medianoche + tu hora
-    const [H, M] = timeFull.split(':').map(Number);
-    const dt = new Date(Date.UTC(1970, 0, 1, H, M));
-    // Restamos 5 horas en UTC
+  // 6) Offset −5h a fecha+hora
+  applyOffset(hhmm: string) {
+    const [h, m] = hhmm.split(':').map(Number);
+    const dt = new Date(Date.UTC(1970, 0, 1, h, m));
     dt.setUTCHours(dt.getUTCHours() - 5);
-    // Extraemos hora y minuto en UTC
-    const hh = dt.getUTCHours().toString().padStart(2, '0');
-    const mm = dt.getUTCMinutes().toString().padStart(2, '0');
-    return `${hh}:${mm}:00`;
-  }
+    const H2 = dt.getUTCHours().toString().padStart(2, '0');
+    const M2 = dt.getUTCMinutes().toString().padStart(2, '0');
+    return `${H2}:${M2}:00`;
+  };
 
   /** Reagenda pero primero valida overlap contra *todas* las citas y consultas */
   rescheduleCita(): void {
@@ -1134,17 +1071,8 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
             return alert('❌ Este rango solapa con otra cita/consulta.');
           }
 
-          // 6) Offset −5h a fecha+hora
-          const applyOffset = (hhmm: string) => {
-            const [h, m] = hhmm.split(':').map(Number);
-            const dt = new Date(Date.UTC(1970, 0, 1, h, m));
-            dt.setUTCHours(dt.getUTCHours() - 5);
-            const H2 = dt.getUTCHours().toString().padStart(2, '0');
-            const M2 = dt.getUTCMinutes().toString().padStart(2, '0');
-            return `${H2}:${M2}:00`;
-          };
-          const horaOffset = applyOffset(horaStr);
-          const horaTermOffset = applyOffset(finStr);
+          const horaOffset = this.applyOffset(horaStr);
+          const horaTermOffset = this.applyOffset(finStr);
 
           // 7) Enviar PATCH con inicio y fin offseteados
           const url = `http://localhost:3000/api/citas/${cita.idCita}/reagendar`;
@@ -1176,7 +1104,55 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
       });
   }
 
+  // -----------------------------------------------------------------------------------------------------
+  // Método para mover la cita al soltarla en el nuevo slot
 
+  /** drop(event: CdkDragDrop<any[]>): void {
+     const dragged: any = event.item.data;
+     // 1) índice en displaySlots
+     const target = this.displaySlots[event.currentIndex];
+     if (!dragged?.idCita) return alert('ID de cita inválido');
+ 
+     // 2) nueva hora de inicio = slot del target
+     const newStart = target.slot;               // "HH:mm:ss"
+     // 3) conservar duración original
+     const toMin = (s: string) => {
+       const [H, M] = s.split(':').map(Number);
+       return H * 60 + M;
+     };
+     const oldStartMin = toMin(dragged.horaStr);
+     const oldEndMin = toMin(dragged.horaFinStr);
+     const durMin = oldEndMin - oldStartMin;
+ 
+     // 4) calcular nueva hora fin
+     const calculateEnd = (start: string, dur: number) => {
+       const [h, m] = start.split(':').map(Number);
+       const total = h * 60 + m + dur;
+       const nh = Math.floor((total / 60) % 24);
+       const nm = total % 60;
+       return `${nh.toString().padStart(2, '0')}:${nm.toString().padStart(2, '0')}:00`;
+     };
+     const newEnd = calculateEnd(newStart, durMin);
+ 
+     // 5) armar body
+     const url = `http://localhost:3000/api/citas/${dragged.idCita}`;
+     const body = {
+       ...dragged,
+       hora: newStart,
+       horaTermina: newEnd
+     };
+ 
+     // 6) enviar PUT
+     this.http.put(url, body).subscribe({
+       next: () => this.cargarConsultas(),
+       error: err => {
+         console.error('Error al actualizar tras drag:', err);
+         alert('No se pudo mover la cita');
+       }
+     });
+   } */
+
+  // -----------------------------------------------------------------------------------------------------
 
   /** Helper: devuelve "HH:mm" desde un "HH:mm:ss" */
   extraerHoraModal(horaStr: string): string {
