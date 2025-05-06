@@ -122,7 +122,9 @@
           <td>{{ view.cita.paciente }}</td>
           <td>{{ view.cita.telefono }}</td>
           <td>{{ view.cita.seguro }}</td>
-          <td>{{ view.cita.observaciones }}</td>
+          <td>CITA MÉDICA - {{ view.cita.procedimiento }}
+            <div style="margin-top: 4px;" class="obser2-col">{{view.cita.observaciones2}}</div>
+          </td>
           <td>{{ colorNames[view.cita.colorCita] || view.cita.colorCita }}</td>
           <td>{{ view.cita.confirmado }}</td>
           <td>{{ view.cita.responsable }}</td>

@@ -872,3 +872,16 @@ input[type="number"]::-webkit-inner-spin-button {
   text-align: center;
   font-weight: bold;
 }
+
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  vertical-align: middle;
+}
+
+.obser2-col {
+  color: #0069d9;
+  background-color: rgb(211, 211, 211);
+}
