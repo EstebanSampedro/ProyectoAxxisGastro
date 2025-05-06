@@ -104,39 +104,18 @@ export class ConsultasMenuDocComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-
-    this.authService.fetchAllAdmins().subscribe({
-      error: err => console.error('No cargan admins:', err)
-    });
-
+    // Cargamos admins y doctor
+    this.authService.fetchAllAdmins().subscribe({ error: err => console.error(err) });
     this.idDoctor = this.route.snapshot.paramMap.get('idDoctor') || '';
-    this.generarTimeSlots();
 
+    // Generamos slots y fijamos fecha
+    this.generarTimeSlots();
     const hoy = new Date();
     this.selectedDate = hoy.toISOString().split('T')[0];
+
+    // Disparamos carga de consultas y observaciones
     this.onDateChange();
-
     this.cargarNombreDoctor();
-    this.cargarConsultas();
-    this.cargarObservaciones();
-  }
-
-  generarTimeSlots(): void {
-    const startHour = 7;
-    const endHour = 21;
-    this.timeSlots = [];
-    for (let h = startHour; h <= endHour; h++) {
-      for (let m of [0, this.slotDurationMin]) {
-        const hh = h.toString().padStart(2, '0');
-        const mm = m.toString().padStart(2, '0');
-        this.timeSlots.push(`${hh}:${mm}:00`);
-      }
-    }
-  }
-
-  get displaySlots(): SlotView[] {
-    // primero las que vinieron de overlap, luego el resto
-    return [...this.errorSlots, ...this.slotViews];
   }
 
   onDateChange(): void {
@@ -262,6 +241,11 @@ export class ConsultasMenuDocComponent implements OnInit {
   }**/
   /** Carga las citas + consultas y reconstruye la vista de slots */
   cargarConsultas(): void {
+    // Limpia antes de cargar
+    this.errorSlots = [];
+    this.consultas = [];
+    this.slotViews = [];
+
     const fechaStr = this.selectedDate;                       // "YYYY-MM-DD"
     const doctorId = parseInt(this.idDoctor, 10);
     const torreId = this.selectedTorreId;
@@ -312,18 +296,32 @@ export class ConsultasMenuDocComponent implements OnInit {
     });
   }
 
+  /** Genera los slots cada slotDurationMin desde startHour hasta endHour */
+  generarTimeSlots(): void {
+    const startHour = 7;  // hora de inicio
+    const endHour = 21; // hora de fin
+    this.timeSlots = [];
 
+    for (let h = startHour; h <= endHour; h++) {
+      for (let m of [0, this.slotDurationMin]) {
+        const hh = h.toString().padStart(2, '0');
+        const mm = m.toString().padStart(2, '0');
+        this.timeSlots.push(`${hh}:${mm}:00`);
+      }
+    }
+  }
 
+  /** Convierte "HH:mm:ss" a minutos desde medianoche */
   private timeToMinutes(hhmmss: string): number {
     const [h, m] = hhmmss.split(':').map(Number);
     return h * 60 + m;
   }
 
+  /** Construye slotViews sin huecos extra y hasta la última cita */
   private buildSlotViews(): void {
     const slotMin = this.slotDurationMin;
-    const sorted = [...this.consultas].sort(
-      (a, b) => this.timeToMinutes(a.horaStr) - this.timeToMinutes(b.horaStr)
-    );
+    const sorted = [...this.consultas]
+      .sort((a, b) => this.timeToMinutes(a.horaStr) - this.timeToMinutes(b.horaStr));
 
     this.slotViews = [];
     let skip = 0, ci = 0;
@@ -335,39 +333,46 @@ export class ConsultasMenuDocComponent implements OnInit {
 
       if (cita) {
         const startMin = this.timeToMinutes(cita.horaStr);
+        // Si arranca dentro de este slot base…
         if (startMin >= baseMin && startMin < baseMin + slotMin) {
-          // —— Aquí inyectamos color rojo si es una cita —— 
-          // y dejamos intacto si es una consulta
+          // 1) Usamos la hora exacta de la cita en vez del slot
+          const rowSlot = cita.horaStr;
+
+          // 2) Inyectamos color según tipo
           const citaConColor = {
             ...cita,
-            colorCita: cita.tipoCita === 'cita' ? '#FF3F38' : (cita.colorCita || '#FFFFFF')
+            colorCita: cita.tipoCita === 'cita'
+              ? '#FF3F38'
+              : (cita.colorCita || '#FFFFFF')
           };
 
           this.slotViews.push({
-            slot,
+            slot: rowSlot,
             type: 'appointment',
             cita: citaConColor
           });
+
+          // 3) Saltamos los slots que ocupa
           const endMin = this.timeToMinutes(cita.horaFinStr);
           const durSlots = Math.ceil((endMin - startMin) / slotMin);
           skip = durSlots - 1;
           ci++;
-        } else {
-          // No hay cita que empiece aquí → slot vacío
-          this.slotViews.push({ slot, type: 'empty' });
+          continue;
         }
-      } else {
-        // No quedan más citas → slot vacío
-        this.slotViews.push({ slot, type: 'empty' });
       }
 
-      // 3) **Siempre** después de cada slot base, insertamos un custom-empty para entrada libre
+      // Si no hay cita en este slot → vacio
+      this.slotViews.push({ slot, type: 'empty' });
+      // y hueco editable
       this.slotViews.push({ slot, type: 'custom-empty' });
     }
   }
 
 
-
+  /** Combina errores (provenientes de errorSlots) y slotViews */
+  get displaySlots(): SlotView[] {
+    return [...this.errorSlots, ...this.slotViews];
+  }
 
   /** Devuelve la cita solo en el slot inicial (para binding en el template) */
   getViewByIndex(i: number): SlotView {
