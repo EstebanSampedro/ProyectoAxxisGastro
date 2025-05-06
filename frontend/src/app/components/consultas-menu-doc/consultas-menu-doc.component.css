@@ -5,31 +5,42 @@
   align-items: center;
   background-color: #1e1e1e;
   color: #ffc107;
-  padding: 0.5rem 1rem; /* reduje un poco */
+  padding: 0.5rem 1rem;
+  /* reduje un poco */
   border-radius: 8px;
-  margin-bottom: 0.75rem; /* reduje un poco */
+  margin-bottom: 0.75rem;
+  /* reduje un poco */
 }
 
 /* ===================== SECCIÓN DE ACCIONES (FECHA, BOTONES) ===================== */
 /* 1) En el row que envuelve date‑picker + buscar, quita el stretch */
-.container > .flex-row {
-  display: flex;       /* asegúrate de que esté en modo flex */
-  flex-wrap: nowrap;   /* que no se rompa en varias filas */
-  align-items: center; /* alinea verticalmente en el centro */
-  justify-content: flex-start; /* todo empieza a la izquierda */
-  gap: 0.5rem;         /* un espacio pequeñito entre columnas */
+.container>.flex-row {
+  display: flex;
+  /* asegúrate de que esté en modo flex */
+  flex-wrap: nowrap;
+  /* que no se rompa en varias filas */
+  align-items: center;
+  /* alinea verticalmente en el centro */
+  justify-content: flex-start;
+  /* todo empieza a la izquierda */
+  gap: 0.5rem;
+  /* un espacio pequeñito entre columnas */
 }
 
 /* 2) Evita que las columnas ocupen todo el ancho */
-.container > .flex-row > .flex-column {
-  flex: none;     /* que sólo ocupen lo que realmente pesan */
-  width: auto;    /* ancho automático según su contenido */
+.container>.flex-row>.flex-column {
+  flex: none;
+  /* que sólo ocupen lo que realmente pesan */
+  width: auto;
+  /* ancho automático según su contenido */
 }
 
 /* 3) Opcionalmente afina la posición vertical del botón */
 .action-icons {
-  align-self: flex-start; /* súbelo un pelín hacia arriba */
-  margin-top: 0.2rem;     /* ajusta a tu gusto */
+  align-self: flex-start;
+  /* súbelo un pelín hacia arriba */
+  margin-top: 0.2rem;
+  /* ajusta a tu gusto */
 }
 
 .action-icons .btn {
@@ -43,6 +54,7 @@
   align-items: center;
   gap: 0.5rem;
 }
+
 .action-icons .btn:hover {
   background-color: #e6b800;
 }
@@ -61,7 +73,8 @@
 }
 
 .observaciones-section textarea {
-  width: 60%;    /* igualito a registro‑citas */
+  width: 60%;
+  /* igualito a registro‑citas */
   resize: vertical;
 }
 
@@ -76,6 +89,7 @@
   font-weight: bold;
   transition: background-color 0.3s ease;
 }
+
 .observaciones-section button:hover {
   background-color: #e6b800;
 }
@@ -90,16 +104,19 @@
 
 .header-left h2 {
   margin: 0;
-  font-size: 1.2rem; /* antes 1.4rem */
+  font-size: 1.2rem;
+  /* antes 1.4rem */
 }
 
 .header-left span {
-  font-size: 0.85rem; /* antes 0.9rem */
+  font-size: 0.85rem;
+  /* antes 0.9rem */
   font-weight: bold;
 }
 
 .header-right img {
-  max-height: 45px; /* antes 50px */
+  max-height: 45px;
+  /* antes 50px */
 }
 
 /* ===================== SECCIÓN DE FECHA Y BOTONES ===================== */
@@ -109,15 +126,18 @@
   gap: 0.5rem;
   margin-bottom: 1rem;
 }
+
 .date-section label {
   font-weight: bold;
   color: #333;
 }
+
 .date-section input[type="date"] {
   padding: 0.4rem 0.8rem;
   border: 1px solid #ccc;
   border-radius: 4px;
 }
+
 .action-icons .btn {
   background-color: #ffc107;
   border: none;
@@ -129,13 +149,16 @@
   transition: background-color 0.3s ease;
   margin-right: 0.5rem;
 }
+
 .action-icons .btn:hover {
   background-color: #e6b800;
 }
+
 .action-icons {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 1rem; /* un pequeño espacio debajo */
+  margin-bottom: 1rem;
+  /* un pequeño espacio debajo */
 }
 
 
@@ -147,6 +170,7 @@
   border-bottom: 2px solid #ccc;
   margin-bottom: 1rem;
 }
+
 .tab {
   padding: 0.5rem 1rem;
   cursor: pointer;
@@ -157,6 +181,7 @@
   border-radius: 5px 5px 0 0;
   transition: background-color 0.2s;
 }
+
 .tab.active {
   background-color: #007bff;
   color: #fff;
@@ -167,7 +192,8 @@
 /* ===================== BARRA DE MENÚ (NAV) ===================== */
 .navbar {
   background-color: #333;
-  margin-bottom: 0.75rem; /* reduje un poco */
+  margin-bottom: 0.75rem;
+  /* reduje un poco */
   border-radius: 8px;
   overflow: hidden;
 }
@@ -187,7 +213,8 @@
   display: block;
   color: #fff;
   text-decoration: none;
-  padding: 0.5rem 0.75rem; /* reduje un poco */
+  padding: 0.5rem 0.75rem;
+  /* reduje un poco */
   transition: background-color 0.3s ease;
 }
 
@@ -217,7 +244,8 @@
 
 .dropdown-content a {
   display: block;
-  padding: 0.5rem 0.75rem; /* reduje un poco */
+  padding: 0.5rem 0.75rem;
+  /* reduje un poco */
   color: #fff;
 }
 
@@ -228,11 +256,13 @@
 /* ===================== ENCABEZADO DEL DOCTOR ===================== */
 .header-doc {
   text-align: center;
-  margin-bottom: 0.75rem; /* reduje un poco */
+  margin-bottom: 0.75rem;
+  /* reduje un poco */
 }
 
 .header-doc h1 {
-  font-size: 1.3rem; /* antes 1.5rem */
+  font-size: 1.3rem;
+  /* antes 1.5rem */
   color: #333;
 }
 
@@ -240,8 +270,10 @@
 .date-section {
   display: flex;
   align-items: center;
-  gap: 0.4rem; /* reduje un poco */
-  margin-bottom: 0.75rem; /* reduje un poco */
+  gap: 0.4rem;
+  /* reduje un poco */
+  margin-bottom: 0.75rem;
+  /* reduje un poco */
 }
 
 .formatted-date {
@@ -273,7 +305,8 @@
   border: none;
   border-radius: 4px;
   color: #121212;
-  padding: 0.4rem 0.8rem; /* reduje un poco */
+  padding: 0.4rem 0.8rem;
+  /* reduje un poco */
   cursor: pointer;
   font-weight: bold;
   transition: background-color 0.3s ease;
@@ -291,8 +324,9 @@
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 2rem;
-  table-layout: fixed; 
-  font-size: 0.8rem; /* antes 0.9rem */
+  table-layout: fixed;
+  font-size: 0.8rem;
+  /* antes 0.9rem */
 }
 
 .consultas-table thead {
@@ -301,7 +335,8 @@
 
 .consultas-table th,
 .consultas-table td {
-  padding: 0.3rem; /* antes 0.75rem */
+  padding: 0.3rem;
+  /* antes 0.75rem */
   text-align: center;
   border: 1px solid #ccc;
   word-wrap: break-word;
@@ -319,12 +354,15 @@
 /* Ajustar tamaño de botones en la columna de OPCIONES */
 .horizontal-btns {
   display: inline-flex;
-  gap: 2px; /* menos separación */
+  gap: 2px;
+  /* menos separación */
 }
 
 .horizontal-btns button {
-  font-size: 0.6rem; /* más pequeño */
-  padding: 0.2rem 0.3rem; /* más compacto */
+  font-size: 0.6rem;
+  /* más pequeño */
+  padding: 0.2rem 0.3rem;
+  /* más compacto */
 }
 
 /* Botón "+" centrado */
@@ -344,7 +382,8 @@
 /* Para que los <input> y <select> dentro de la tabla ocupen el ancho de la celda */
 .consultas-table td input[type="text"],
 .consultas-table td select {
-  width: 100%;          /* ocupa todo el ancho de la celda */
+  width: 100%;
+  /* ocupa todo el ancho de la celda */
   box-sizing: border-box;
   font-size: 0.8rem;
   padding: 0.2rem;
@@ -408,7 +447,8 @@
   margin-top: 1rem;
   display: flex;
   justify-content: space-between;
-  flex-wrap: wrap; /* Para que en pantallas pequeñas pasen a otra línea */
+  flex-wrap: wrap;
+  /* Para que en pantallas pequeñas pasen a otra línea */
   gap: 0.5rem;
 }
 
@@ -422,14 +462,16 @@
   font-size: 0.85rem;
   font-weight: bold;
   transition: background-color 0.3s ease;
-  color: #fff; /* color de texto blanco por defecto */
+  color: #fff;
+  /* color de texto blanco por defecto */
 }
 
 /* =====================
    Botón Confirmar (SI)
 ===================== */
 .btn-confirm {
-  background-color: #28a745; /* Verde */
+  background-color: #28a745;
+  /* Verde */
 }
 
 .btn-confirm:hover {
@@ -440,7 +482,8 @@
    Botón Denegar (NO)
 ===================== */
 .btn-deny {
-  background-color: #dc3545; /* Rojo */
+  background-color: #dc3545;
+  /* Rojo */
 }
 
 .btn-deny:hover {
@@ -451,8 +494,10 @@
    Botón Pendiente
 ===================== */
 .btn-pending {
-  background-color: #ffc107; /* Amarillo */
-  color: #212529;            /* Texto oscuro para contraste */
+  background-color: #ffc107;
+  /* Amarillo */
+  color: #212529;
+  /* Texto oscuro para contraste */
 }
 
 .btn-pending:hover {
@@ -463,7 +508,8 @@
    Botón Cancelar
 ===================== */
 .btn-cancel {
-  background-color: #6c757d; /* Gris */
+  background-color: #6c757d;
+  /* Gris */
 }
 
 .btn-cancel:hover {
@@ -479,24 +525,32 @@
 .modal.reschedule-modal .btn-submit,
 .modal.conflict-modal .btn-success {
   background-color: #28a745 !important;
-  border-color:     #28a745 !important;
-  color:            #fff !important;
+  border-color: #28a745 !important;
+  color: #fff !important;
 }
+
 .modal.reschedule-modal .btn-submit:hover,
 .modal.conflict-modal .btn-success:hover {
   background-color: #218838 !important;
-  border-color:     #1e7e34 !important;
+  border-color: #1e7e34 !important;
 }
 
 /* Cancelar (rojo) */
 .modal.reschedule-modal .btn-cancel,
 .modal.conflict-modal .btn-danger {
   background-color: #dc3545 !important;
-  border-color:     #dc3545 !important;
-  color:            #fff !important;
+  border-color: #dc3545 !important;
+  color: #fff !important;
 }
+
 .modal.reschedule-modal .btn-cancel:hover,
 .modal.conflict-modal .btn-danger:hover {
   background-color: #c82333 !important;
-  border-color:     #bd2130 !important;
+  border-color: #bd2130 !important;
+}
+
+
+.obser2-col {
+  color: #0069d9;
+  background-color: rgb(211, 211, 211);
 }

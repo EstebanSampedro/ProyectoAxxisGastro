@@ -54,7 +54,7 @@ export class RegistroCitasComponent implements OnInit {
   rescheduleDate: string = '';
   rescheduleTorre: number = 1;
   rescheduleHour: string = '';
-
+  showSecondObs: boolean = false;
   faPhone = faPhone;
   faBell = faBell;
   faCheck = faCheck;
@@ -368,7 +368,7 @@ export class RegistroCitasComponent implements OnInit {
                 estado: 'activo',
                 confirmado: 'pendiente',
                 observaciones: this.newCitaData.observaciones || '',
-                observaciones2: '',
+                observaciones2: this.newCitaData.observaciones2 || '',
                 colorCita: this.newCitaData.colorCita || '#FFFFFF',
                 cedula: this.newCitaData.cedula || '',
                 recordatorioEnv: false,

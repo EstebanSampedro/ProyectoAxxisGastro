@@ -20,7 +20,7 @@ import { Observacion } from '../../interfaces/observacion.general';
 import { ObservacionService } from '../../services/observaciones.generales.service';
 import { CitaService } from '../../services/cita.service';
 import { map, switchMap, tap } from 'rxjs/operators';
-import { of } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
 
 interface SlotView {
   slot: string;           // texto “HH:mm:ss” que mostramos en la primera columna
@@ -118,13 +118,12 @@ export class ConsultasMenuDocComponent implements OnInit {
 
     this.cargarNombreDoctor();
     this.cargarConsultas();
-    this.cargarTorres();
     this.cargarObservaciones();
   }
 
   generarTimeSlots(): void {
     const startHour = 7;
-    const endHour = 20;
+    const endHour = 21;
     this.timeSlots = [];
     for (let h = startHour; h <= endHour; h++) {
       for (let m of [0, this.slotDurationMin]) {
@@ -138,25 +137,6 @@ export class ConsultasMenuDocComponent implements OnInit {
   get displaySlots(): SlotView[] {
     // primero las que vinieron de overlap, luego el resto
     return [...this.errorSlots, ...this.slotViews];
-  }
-
-  cargarTorres(): void {
-    this.torreService.getAllTorres().subscribe(
-      (data) => {
-        this.torres = data;
-        if (this.torres.length > 0) {
-          this.selectedTorreId = this.torres[0].idTorre; // Seleccionar la primera torre por defecto
-          this.cargarConsultas(); // Cargar citas de la primera torre
-        }
-      },
-      (error) => console.error('Error al cargar torres:', error)
-    );
-  }
-
-  selectTorre(torreId: number): void {
-    this.selectedTorreId = torreId;
-    this.editingSlot = null;
-    this.cargarConsultas();
   }
 
   onDateChange(): void {
@@ -280,39 +260,59 @@ export class ConsultasMenuDocComponent implements OnInit {
    *  getCitaBySlot(slot: string): any {
     return this.consultas.find(c => c.horaStr === slot);
   }**/
-
-  /** Carga las consultas y reconstruye la vista de slots */
+  /** Carga las citas + consultas y reconstruye la vista de slots */
   cargarConsultas(): void {
-    const fechaStr = this.selectedDate;
-    this.citaService.getCitasByDateAndTower(fechaStr, this.selectedTorreId)
-      .pipe(
-        map((data: any[]) =>
-          data
-            .filter(c => c.tipoCita === 'consulta' && c.estado !== 'eliminado')
-            .map(cita => ({
-              ...cita,
-              horaStr: this.extraerHora(cita.hora),
-              horaFinStr: this.extraerHora(cita.horaTermina)
-            }))
-        )
-      )
-      .subscribe({
-        next: consultas => {
-          // 1) Extraigo las solapadas (confirmado==='error')
-          this.errorSlots = consultas
-            .filter(c => c.confirmado === 'error')
-            .map(c => ({
-              slot: '00:00:00',
-              type: 'appointment' as const,
-              cita: c
-            }));
-          // 2) El resto las uso para construir los slots
-          this.consultas = consultas.filter(c => c.confirmado !== 'error');
-          this.buildSlotViews();
-        },
-        error: err => console.error(err)
-      });
+    const fechaStr = this.selectedDate;                       // "YYYY-MM-DD"
+    const doctorId = parseInt(this.idDoctor, 10);
+    const torreId = this.selectedTorreId;
+
+    forkJoin({
+      citas: this.citaService.getCitasActivas(fechaStr, doctorId, torreId),
+      consultas: this.citaService.getConsultasActivas(fechaStr, doctorId, torreId)
+    }).pipe(
+      map(({ citas, consultas }) => {
+        const mapSlot = (c: any) => ({
+          ...c,
+          horaStr: this.extraerHora(c.hora),
+          horaFinStr: this.extraerHora(c.horaTermina)
+        });
+
+        // 1) Primero todas las citas "normales"
+        const citasNorm = citas.normal.map(mapSlot);
+        // 2) Luego solo aquellas consultas que NO empalmen con ninguna cita
+        const citaHoras = new Set(citasNorm.map(c => c.horaStr));
+        const consultasNorm = consultas.normal
+          .map(mapSlot)
+          .filter(c => !citaHoras.has(c.horaStr));
+
+        // 3) Combinamos
+        const normales = [...citasNorm, ...consultasNorm];
+
+        // 4) Errores: igual, omitimos consultas que empalman con citas de error
+        const citasErr = citas.errors.map(mapSlot);
+        const errHoras = new Set(citasErr.map(c => c.horaStr));
+        const consultasErr = consultas.errors
+          .map(mapSlot)
+          .filter(c => !errHoras.has(c.horaStr));
+        const errores = [...citasErr, ...consultasErr];
+
+        return { normales, errores };
+      })
+    ).subscribe({
+      next: ({ normales, errores }) => {
+        this.errorSlots = errores.map(c => ({
+          slot: '00:00:00',
+          type: 'appointment' as const,
+          cita: c
+        }));
+        this.consultas = normales;
+        this.buildSlotViews();
+      },
+      error: err => console.error('Error cargando citas y consultas:', err)
+    });
   }
+
+
 
   private timeToMinutes(hhmmss: string): number {
     const [h, m] = hhmmss.split(':').map(Number);
@@ -327,24 +327,41 @@ export class ConsultasMenuDocComponent implements OnInit {
 
     this.slotViews = [];
     let skip = 0, ci = 0;
+
     for (let slot of this.timeSlots) {
       if (skip > 0) { skip--; continue; }
       const baseMin = this.timeToMinutes(slot);
       const cita = sorted[ci];
+
       if (cita) {
         const startMin = this.timeToMinutes(cita.horaStr);
         if (startMin >= baseMin && startMin < baseMin + slotMin) {
+          // —— Aquí inyectamos color rojo si es una cita —— 
+          // y dejamos intacto si es una consulta
+          const citaConColor = {
+            ...cita,
+            colorCita: cita.tipoCita === 'cita' ? '#FF3F38' : (cita.colorCita || '#FFFFFF')
+          };
+
+          this.slotViews.push({
+            slot,
+            type: 'appointment',
+            cita: citaConColor
+          });
           const endMin = this.timeToMinutes(cita.horaFinStr);
           const durSlots = Math.ceil((endMin - startMin) / slotMin);
-          this.slotViews.push({ slot, type: 'appointment', cita });
           skip = durSlots - 1;
           ci++;
-          continue;
+        } else {
+          // No hay cita que empiece aquí → slot vacío
+          this.slotViews.push({ slot, type: 'empty' });
         }
+      } else {
+        // No quedan más citas → slot vacío
+        this.slotViews.push({ slot, type: 'empty' });
       }
-      // slot vacío exacto
-      this.slotViews.push({ slot, type: 'empty' });
-      // slot vacío custom (entre horas)
+
+      // 3) **Siempre** después de cada slot base, insertamos un custom-empty para entrada libre
       this.slotViews.push({ slot, type: 'custom-empty' });
     }
   }
@@ -437,7 +454,7 @@ export class ConsultasMenuDocComponent implements OnInit {
           confirmado: overlap ? 'error' : 'pendiente',
           observaciones: this.newCitaData.observaciones || '',
           observaciones2: '',
-          colorCita: this.newCitaData.colorCita,
+          colorCita: overlap ? '#ffff00' : (this.newCitaData.colorCita || 'amarillo-opaco'),
           cedula: this.newCitaData.cedula || '',
           recordatorioEnv: false,
           tipoCita: 'consulta'
@@ -584,7 +601,7 @@ export class ConsultasMenuDocComponent implements OnInit {
   }
 
   //-----------------------------------------------------------------------------------------------------
-
+  // Lógica de confirmaciones
   calcularFin(slot: string, minutos: number): string {
     const [hh, mm] = slot.split(':');
     const totalMin = parseInt(mm) + minutos;
@@ -946,50 +963,6 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
     });
   }
 
-  drop(event: CdkDragDrop<any[]>): void {
-    const dragged: any = event.item.data;
-    // 1) índice en displaySlots
-    const target = this.displaySlots[event.currentIndex];
-    if (!dragged?.idCita) return alert('ID de cita inválido');
-
-    // 2) nueva hora de inicio = slot del target
-    const newStart = target.slot;               // "HH:mm:ss"
-    // 3) conservar duración original
-    const toMin = (s: string) => {
-      const [H, M] = s.split(':').map(Number);
-      return H * 60 + M;
-    };
-    const oldStartMin = toMin(dragged.horaStr);
-    const oldEndMin = toMin(dragged.horaFinStr);
-    const durMin = oldEndMin - oldStartMin;
-
-    // 4) calcular nueva hora fin
-    const calculateEnd = (start: string, dur: number) => {
-      const [h, m] = start.split(':').map(Number);
-      const total = h * 60 + m + dur;
-      const nh = Math.floor((total / 60) % 24);
-      const nm = total % 60;
-      return `${nh.toString().padStart(2, '0')}:${nm.toString().padStart(2, '0')}:00`;
-    };
-    const newEnd = calculateEnd(newStart, durMin);
-
-    // 5) armar body
-    const url = `http://localhost:3000/api/citas/${dragged.idCita}`;
-    const body = {
-      ...dragged,
-      hora: newStart,
-      horaTermina: newEnd
-    };
-
-    // 6) enviar PUT
-    this.http.put(url, body).subscribe({
-      next: () => this.cargarConsultas(),
-      error: err => {
-        console.error('Error al actualizar tras drag:', err);
-        alert('No se pudo mover la cita');
-      }
-    });
-  }
   // -----------------------------------------------------------------------------------------------------
   //Propiedades para reagendar ---
   citaToReschedule: any = null;
@@ -1033,55 +1006,84 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
    * Aplica offset -5h a una hora en formato "HH:mm:00" y devuelve "HH:mm:00",
    * trabajando siempre en UTC para evitar mezclas de local/UTC.
    */
-  private applyOffset5h(timeFull: string): string {
-    // Partimos de un UTC date a medianoche + tu hora
-    const [H, M] = timeFull.split(':').map(Number);
-    const dt = new Date(Date.UTC(1970, 0, 1, H, M));
-    // Restamos 5 horas en UTC
+  // 6) Offset −5h a fecha+hora
+  applyOffset(hhmm: string) {
+    const [h, m] = hhmm.split(':').map(Number);
+    const dt = new Date(Date.UTC(1970, 0, 1, h, m));
     dt.setUTCHours(dt.getUTCHours() - 5);
-    // Extraemos hora y minuto en UTC
-    const hh = dt.getUTCHours().toString().padStart(2, '0');
-    const mm = dt.getUTCMinutes().toString().padStart(2, '0');
-    return `${hh}:${mm}:00`;
-  }
+    const H2 = dt.getUTCHours().toString().padStart(2, '0');
+    const M2 = dt.getUTCMinutes().toString().padStart(2, '0');
+    return `${H2}:${M2}:00`;
+  };
 
+  /** Reagenda pero primero valida overlap contra *todas* las citas y consultas */
   rescheduleCita(): void {
-    const id = this.citaToReschedule?.idCita;
-    const fecha = this.rescheduleDate;        // "YYYY-MM-DD"
-    let h = this.rescheduleHour;        // "H:MM" o "HH:MM"
-    let f = this.rescheduleEndHour;     // "H:MM" o "HH:MM"
+    const cita = this.citaToReschedule;
+    if (!cita?.idCita) {
+      return alert('ID de cita inválido');
+    }
 
-    if (!id) return alert('ID de cita inválido');
-    if (!fecha || !h || !f) return alert('Completa todos los campos');
-    if (this.isEndBeforeStart()) return alert('La hora fin debe ser posterior');
+    const fecha = this.rescheduleDate;         // "YYYY-MM-DD"
+    const torre = this.rescheduleTorre;        // número
+    let start = this.rescheduleHour;           // "H:MM" o "HH:MM"
+    let end = this.rescheduleEndHour;        // "H:MM" o "HH:MM"
 
-    // 1) Homogeneizar a HH:mm
+    // 1) Validaciones básicas
+    if (!fecha || !start || !end) {
+      return alert('Completa todos los campos.');
+    }
+    if (this.isEndBeforeStart()) {
+      return alert('La hora fin debe ser posterior a la hora inicio.');
+    }
+
+    // 2) Homogeneizar formato a "HH:mm"
     const fmtHHMM = (s: string) => {
       const [hh, mm] = s.split(':').map(p => p.padStart(2, '0'));
       return `${hh}:${mm}`;
     };
-    const horaStr = fmtHHMM(h);
-    const finStr = fmtHHMM(f);
+    const horaStr = fmtHHMM(start);
+    const finStr = fmtHHMM(end);
 
-    // 2) Validar solapamiento
-    this.citaService.getCitasByDate(fecha).subscribe({
-      next: all => {
-        const clash = all
-          .filter(c => c.idCita !== id && c.tipoCita === 'consulta' && c.estado !== 'eliminado')
-          .some(c => this.extraerHoraModal(c.hora) === horaStr);
-        if (clash) return alert('❌ Ya existe otra consulta en esa fecha y hora.');
+    // 3) Extraer minutos para comparar rangos
+    const toMin = (hhmm: string) => {
+      const [H, M] = hhmm.split(':').map(Number);
+      return H * 60 + M;
+    };
+    const newStartMin = toMin(horaStr);
+    const newEndMin = toMin(finStr);
 
-        // 3) Enviamos strings al backend
-        const body = {
-          fecha,
-          torre: this.rescheduleTorre,
-          hora: horaStr,           // ej: "08:30"
-          horaTermina: finStr      // ej: "09:00"
-        };
+    // 4) Traer todas las citas y consultas de ese día/torre
+    this.citaService
+      .getCitasByDateAndTower(fecha, torre)
+      .subscribe({
+        next: all => {
+          // 5) Validar solapamiento de rangos
+          const overlap = all
+            .filter(c => c.idCita !== cita.idCita)         // except self
+            .some(c => {
+              const existStart = toMin(this.extraerHora(c.hora));
+              const existEnd = toMin(this.extraerHora(c.horaTermina));
+              // overlap if newStart < existEnd && newEnd > existStart
+              return newStartMin < existEnd && newEndMin > existStart;
+            });
 
-        this.http
-          .patch(`http://localhost:3000/api/citas/${id}/reagendar`, body)
-          .subscribe({
+          if (overlap) {
+            return alert('❌ Este rango solapa con otra cita/consulta.');
+          }
+
+          const horaOffset = this.applyOffset(horaStr);
+          const horaTermOffset = this.applyOffset(finStr);
+
+          // 7) Enviar PATCH con inicio y fin offseteados
+          const url = `http://localhost:3000/api/citas/${cita.idCita}/reagendar`;
+          const body = {
+            fecha,
+            torre,
+            hora: horaOffset,
+            horaTermina: horaTermOffset
+          };
+
+          this.http.patch(url, body).subscribe({
             next: () => {
               alert('✅ Consulta reagendada correctamente');
               this.closeRescheduleModal();
@@ -1089,16 +1091,68 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
               this.editingSlot = null;
               this.cargarConsultas();
             },
-            error: e => {
-              console.error(e);
-              alert('Error al reagendar la consulta');
+            error: err => {
+              console.error('Error al reagendar:', err);
+              alert('No se pudo reagendar la consulta');
             }
           });
-      },
-      error: () => alert('No se pudo verificar conflicto con otras consultas')
-    });
+        },
+        error: err => {
+          console.error('Error comprobando disponibilidad:', err);
+          alert('No se pudo verificar conflicto con otras citas/consultas');
+        }
+      });
   }
 
+  // -----------------------------------------------------------------------------------------------------
+  // Método para mover la cita al soltarla en el nuevo slot
+
+  /** drop(event: CdkDragDrop<any[]>): void {
+     const dragged: any = event.item.data;
+     // 1) índice en displaySlots
+     const target = this.displaySlots[event.currentIndex];
+     if (!dragged?.idCita) return alert('ID de cita inválido');
+ 
+     // 2) nueva hora de inicio = slot del target
+     const newStart = target.slot;               // "HH:mm:ss"
+     // 3) conservar duración original
+     const toMin = (s: string) => {
+       const [H, M] = s.split(':').map(Number);
+       return H * 60 + M;
+     };
+     const oldStartMin = toMin(dragged.horaStr);
+     const oldEndMin = toMin(dragged.horaFinStr);
+     const durMin = oldEndMin - oldStartMin;
+ 
+     // 4) calcular nueva hora fin
+     const calculateEnd = (start: string, dur: number) => {
+       const [h, m] = start.split(':').map(Number);
+       const total = h * 60 + m + dur;
+       const nh = Math.floor((total / 60) % 24);
+       const nm = total % 60;
+       return `${nh.toString().padStart(2, '0')}:${nm.toString().padStart(2, '0')}:00`;
+     };
+     const newEnd = calculateEnd(newStart, durMin);
+ 
+     // 5) armar body
+     const url = `http://localhost:3000/api/citas/${dragged.idCita}`;
+     const body = {
+       ...dragged,
+       hora: newStart,
+       horaTermina: newEnd
+     };
+ 
+     // 6) enviar PUT
+     this.http.put(url, body).subscribe({
+       next: () => this.cargarConsultas(),
+       error: err => {
+         console.error('Error al actualizar tras drag:', err);
+         alert('No se pudo mover la cita');
+       }
+     });
+   } */
+
+  // -----------------------------------------------------------------------------------------------------
 
   /** Helper: devuelve "HH:mm" desde un "HH:mm:ss" */
   extraerHoraModal(horaStr: string): string {

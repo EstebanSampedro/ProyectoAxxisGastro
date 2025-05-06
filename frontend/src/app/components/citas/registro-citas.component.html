@@ -114,7 +114,13 @@
             <input type="text" [(ngModel)]="newCitaData.seguro" placeholder="Seguro" />
           </td>
           <td>
-            <input type="text" [(ngModel)]="newCitaData.observaciones" placeholder="Observaciones" />
+            <!-- Input principal -->
+            <input type="text" [(ngModel)]="newCitaData.observaciones" placeholder="Observaciones"
+              [disabled]="editingSlot !== slot" />
+            <!-- Segundo input, visible solo en modo edición -->
+            <div style="margin-top: 4px;">
+              <input type="text" [(ngModel)]="newCitaData.observaciones2" placeholder="Observaciones adicionales" />
+            </div>
           </td>
           <td>
             <select [(ngModel)]="newCitaData.colorCita">
@@ -158,7 +164,9 @@
           <td>{{ cita.pedido }}</td>
           <td>{{ cita.institucion }}</td>
           <td>{{ cita.seguro }}</td>
-          <td>{{ cita.observaciones }}</td>
+          <td>{{ cita.observaciones }}
+            <div style="margin-top: 4px;" class="obser2-col">{{cita.observaciones2}}</div>
+          </td>
           <td>{{ colorNames[cita.colorCita] || cita.colorCita }}</td>
           <td>{{ cita.confirmado }}</td>
           <td>{{ cita.responsable }}</td>
@@ -248,6 +256,9 @@
           <!-- OBSERVACIONES -->
           <td>
             <input type="text" [(ngModel)]="newCitaData.observaciones" placeholder="Observaciones" />
+            <div style="margin-top: 4px;">
+              <input type="text" [(ngModel)]="newCitaData.observaciones2" placeholder="Observaciones adicionales" />
+            </div>
           </td>
 
           <!-- COLOR -->
@@ -292,7 +303,11 @@
           <td></td>
           <td></td>
           <td></td>
-          <td></td>
+          <td> <!-- Botón ➕ que activa modo edición y muestra segundo input -->
+            <button type="button" (click)="iniciarCita(slot)" class="btn-icon" style="margin-left: 4px;">
+              ➕
+            </button>
+          </td>
           <td></td>
           <td><span class="placeholder-text">pendiente</span></td>
           <td></td>

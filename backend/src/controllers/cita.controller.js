@@ -76,6 +76,90 @@ const filterCitasByDate = async (req, res) => {
   }
 };
 
+// GET /api/citas/consultas
+// Query params:
+//   fecha=YYYY-MM-DD    (requerido)
+//   doctorId=<número>   (requerido)
+// Responde: { normal: Cita[], errors: Cita[] }
+const getConsultasActive = async (req, res) => {
+  try {
+    const { fecha, doctorId, torre } = req.query;
+
+    if (!fecha) {
+      return res.status(400).json({ error: 'fecha es requerida' });
+    }
+    if (!doctorId) {
+      return res.status(400).json({ error: 'doctorId es requerido' });
+    }
+
+    // Construimos el filtro básico
+    const where = {
+      fecha: new Date(fecha),
+      tipoCita: 'consulta',
+      estado: { not: 'eliminado' },
+      idDoctor_cita: Number(doctorId),   // <-- ahora filtramos por doctor
+    };
+    if (torre) {
+      where.torre = Number(torre);
+    }
+
+    // Traemos todas las consultas (incluye las de confirmado="error")
+    const all = await prisma.cita.findMany({
+      where,
+      orderBy: { hora: 'asc' }
+    });
+
+    // Separamos las "normales" de las que tienen error
+    const normal = all.filter(c => c.confirmado !== 'error');
+    const errors = all.filter(c => c.confirmado === 'error');
+
+    return res.json({ normal, errors });
+  } catch (err) {
+    console.error('Error al obtener consultas:', err);
+    return res.status(500).json({ error: 'Error interno del servidor' });
+  }
+};
+/**
+ * Filtrar citas activas, por fecha, doctorId y torre (opcional)
+ * */
+const getCitasActive = async (req, res) => {
+  try {
+    const { fecha, doctorId, torre } = req.query;
+
+    if (!fecha) {
+      return res.status(400).json({ error: 'fecha es requerida' });
+    }
+    if (!doctorId) {
+      return res.status(400).json({ error: 'doctorId es requerido' });
+    }
+
+    // Construimos el filtro básico
+    const where = {
+      fecha: new Date(fecha),
+      tipoCita: 'cita',
+      estado: { not: 'eliminado' },
+      idDoctor_cita: Number(doctorId),   // <-- ahora filtramos por doctor
+    };
+    if (torre) {
+      where.torre = Number(torre);
+    }
+
+    // Traemos todas las citas (incluye las de confirmado="error")
+    const all = await prisma.cita.findMany({
+      where,
+      orderBy: { hora: 'asc' }
+    });
+
+    // Separamos las "normales" de las que tienen error
+    const normal = all.filter(c => c.confirmado !== 'error');
+    const errors = all.filter(c => c.confirmado === 'error');
+
+    return res.json({ normal, errors });
+  } catch (err) {
+    console.error('Error al obtener citas:', err);
+    return res.status(500).json({ error: 'Error interno del servidor' });
+  }
+}
 
 /**
  * Filtrar citas por fecha y torre
@@ -637,11 +721,11 @@ const reagendarCita = async (req, res) => {
       fecha: new Date(fecha),
       torre: Number(torre),
       // se añade ":00Z" para forzar UTC
-      hora: new Date(`${fecha}T${hora}:00Z`),
+      hora: new Date(`${fecha}T${hora}`),
       confirmado: 'pendiente'
     };
     if (horaTermina) {
-      data.horaTermina = new Date(`${fecha}T${horaTermina}:00Z`);
+      data.horaTermina = new Date(`${fecha}T${horaTermina}`);
     } else {
       data.horaTermina = citaActual.horaTermina;
     }
@@ -673,6 +757,7 @@ module.exports = {
   createOrUpdateConfirmacion,
   createLog,
   softDeleteCita,
-  reagendarCita
-
+  reagendarCita,
+  getCitasActive,
+  getConsultasActive
 };
