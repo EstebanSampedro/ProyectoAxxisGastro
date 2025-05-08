@@ -44,7 +44,7 @@ const routes: Routes = [
     path: 'consultas-menu-doc/:idDoctor',
     component: ConsultasMenuDocComponent,
     canActivate: [RoleGuard],
-    data: { role: ['administrador', 'doctor'] } // Administrador y doctor
+    data: { role: ['administrador', 'doctor', 'usuario'] } // Administrador y doctor
   },
   {
     path: 'configuraciones/doctores',
