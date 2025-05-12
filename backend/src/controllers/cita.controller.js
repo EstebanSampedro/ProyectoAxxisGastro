@@ -396,12 +396,12 @@ const exportExcelCitas = async (req, res) => {
 
     // Realizar un query manual con JOIN para obtener el nombre del doctor (nomDoctor2)
     const citas = await prisma.$queryRaw`
-      SELECT c.*, d.nomDoctor2
+      SELECT c.*, d.nomDoctor2, m.codigoMedico
       FROM cita c
       LEFT JOIN doctor2 d ON c.idDoctor_cita = d.idDoctor2
+      LEFT JOIN medico m ON c.idResponsable_idMedico = m.idmedico
       WHERE c.fecha >= ${new Date(fechaInicio)}
         AND c.fecha <= ${new Date(fechaFin)}
-        AND c.estado <> 'eliminado'
       ORDER BY c.fecha ASC, c.hora ASC
     `;
 
@@ -428,7 +428,7 @@ const exportExcelCitas = async (req, res) => {
       { header: "Observaciones", key: "observaciones", width: 25 },
       { header: "Observaciones 2", key: "observaciones2", width: 25 },
       { header: "Confirmado", key: "confirmado", width: 12 },
-      { header: "Persona Confirmó", key: "codigoMedico", width: 15 },
+      { header: "Responsable", key: "codigoMedico", width: 15 },
       { header: "Estado", key: "estado", width: 12 },
       { header: "Color", key: "colorCita", width: 12 },
       { header: "Cédula", key: "cedula", width: 15 },
@@ -587,13 +587,22 @@ async function exportImprimirPDF(req, res) {
     const boxW = 80;
     const boxH = 24;
 
+    // Dimensiones del cuadro que engloba todo el encabezado
+    const headerBoxX = 10;
+    const headerBoxY = headerY - 5;
+    const headerBoxWidth = pageWidth - 20;
+    const headerBoxHeight = logoSize - 12;
+    const headerFont = "Helvetica-Oblique";
+    // Dibujar el cuadro que engloba todo el encabezado
+    doc.rect(headerBoxX, headerBoxY, headerBoxWidth, headerBoxHeight).stroke();
+
     // Logo más grande
     const logoPath = path.join(__dirname, "../public/images/axxis-gastro.png");
     doc.image(logoPath, 20, headerY, { width: logoSize });
 
     // Título centrado y en 20 pt
     const title = "PROGRAMACIÓN DE PROCEDIMIENTOS";
-    doc.font("Helvetica-Bold").fontSize(20);
+    doc.font(headerFont).fontSize(20);
     const titleWidth = doc.widthOfString(title);
     doc.text(title, (pageWidth - titleWidth) / 2, headerY + 5);
 
@@ -602,13 +611,11 @@ async function exportImprimirPDF(req, res) {
     const dayName = dias[new Date(fecha).getDay()] || "";
     const dayX = pageWidth - boxW * 2 - 40;
     doc
-      .rect(dayX, headerY, boxW, boxH).stroke()
-      .font("Helvetica").fontSize(12)
+      .font(headerFont).fontSize(12)
       .text(dayName.toUpperCase(), dayX, headerY + 6, { width: boxW, align: "center" });
 
     // Fecha
     doc
-      .rect(dayX + boxW + 10, headerY, boxW, boxH).stroke()
       .text(fecha, dayX + boxW + 10, headerY + 6, { width: boxW, align: "center" });
 
     // Espacio antes de las tablas
