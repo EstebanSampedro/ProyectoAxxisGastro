@@ -74,6 +74,12 @@ const routes: Routes = [
   ],
   providers: [
     {
+      provide: APP_INITIALIZER,
+      useFactory: (config: ConfigService) => () => config.loadAppConfig(),
+      deps: [ConfigService],
+      multi: true
+    },
+    {
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptor,
       multi: true
