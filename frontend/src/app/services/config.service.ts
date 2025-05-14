@@ -1,14 +1,28 @@
 import { Injectable } from '@angular/core';
 import { environment } from '../../environments/environment';
-
+import { HttpClient } from '@angular/common/http';
+interface AppConfig { apiKey: string; }
 @Injectable({
     providedIn: 'root'
 })
 export class ConfigService {
     private readonly config = environment;
-
-    constructor() {
+    private appConfig!: AppConfig;        // se cargará desde JSON
+    constructor(private http: HttpClient) {
         this.validateEnvironment();
+    }
+
+    /** Llamado por APP_INITIALIZER: carga /assets/config.json */
+    loadAppConfig(): Promise<void> {
+        return this.http
+            .get<AppConfig>('/assets/config.json')
+            .toPromise()
+            .then(cfg => {
+                if (!cfg) {
+                    throw new Error('Failed to load app configuration from /assets/config.json');
+                }
+                this.appConfig = cfg;
+            });
     }
 
     /**
@@ -104,5 +118,13 @@ export class ConfigService {
      */
     isLoaded(): boolean {
         return true; // Siempre está cargado cuando usamos environment.ts
+    }
+
+    /** Nuevo: devuelve la API key cargada desde JSON */
+    get apiKey(): string {
+        if (!this.appConfig) {
+            throw new Error('ConfigService: no se cargó config.json');
+        }
+        return this.appConfig.apiKey;
     }
 }

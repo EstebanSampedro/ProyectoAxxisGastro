@@ -628,15 +628,18 @@ async function exportImprimirPDF(req, res) {
         SELECT 
           c.*,
           d.nomDoctor2    AS nomDoctor,
-          mc.codigoMedico AS codigoMedico
+          mc.codigoMedico AS codigoMedico,
+          t.textTorre     AS nomTorre
         FROM cita c
         LEFT JOIN doctor2 d
           ON d.idDoctor2 = c.idDoctor_cita
         LEFT JOIN confirmacion conf
           ON conf.confDoctor    = c.idDoctor_cita
-         AND conf.fechaCita     = ${fecha}
+        AND conf.fechaCita     = ${fecha}
         LEFT JOIN medico mc
           ON mc.idmedico        = conf.idMedicoConfirma
+        LEFT JOIN torres t
+          ON c.torre = t.idTorre
         WHERE c.torre      = ${torre}
           AND c.tipoCita   = 'cita'
           AND c.fecha     >= ${startDate}
@@ -648,10 +651,10 @@ async function exportImprimirPDF(req, res) {
       // Título de torre con su confTorreX
       const confT = confirmacion[`confTorre${torre}`] || "";
       const tableW = columns.reduce((sum, col) => sum + col.width, 0);
+      const torreNombre = filas[0]?.nomTorre || `TORRE ${torre}`;
       doc.font("Helvetica-Bold").fontSize(10)
-        .text(`TORRE ${torre}  –  ${confT}`, 20, doc.y, { width: tableW, align: "center" });
+        .text(`${torreNombre}  –  ${confT}`, 20, doc.y, { width: tableW, align: "center" });
       doc.moveDown(0.5);
-
       // Encabezados
       let x = 20;
       const headerY2 = doc.y;
