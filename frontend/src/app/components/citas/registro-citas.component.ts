@@ -960,6 +960,12 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
   }
 
   drop(event: CdkDragDrop<any[]>): void {
+    const slotDestino = this.timeSlots[event.currentIndex];
+    const citaDestino = this.getCitaBySlot(slotDestino);
+    if (citaDestino) {
+      alert('❌ Ya existe una cita en ese horario. No se puede mover aquí.');
+      return;
+    }
     const draggedCita = event.item.data;
     const newSlot = this.timeSlots[event.currentIndex]; // formato "HH:mm:00"
     const newHora = newSlot;
