@@ -276,8 +276,8 @@ export class RegistroCitasComponent implements OnInit {
           this.citas = activas.map(cita => {
             const horaStr = this.extraerHora(cita.hora);
             const horaFinStr = this.extraerHora(cita.horaTermina);
-            const responsable = cita.idConfirma_idMedico
-              ? this.authService.getAdminCode(cita.idConfirma_idMedico)
+            const responsable = cita.idResponsable_idMedico
+              ? this.authService.getAdminCode(cita.idResponsable_idMedico)
               : '';
 
             return {
