@@ -276,8 +276,8 @@ export class RegistroCitasComponent implements OnInit {
           this.citas = activas.map(cita => {
             const horaStr = this.extraerHora(cita.hora);
             const horaFinStr = this.extraerHora(cita.horaTermina);
-            const responsable = cita.idConfirma_idMedico
-              ? this.authService.getAdminCode(cita.idConfirma_idMedico)
+            const responsable = cita.idResponsable_idMedico
+              ? this.authService.getAdminCode(cita.idResponsable_idMedico)
               : '';
 
             return {
@@ -960,6 +960,12 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
   }
 
   drop(event: CdkDragDrop<any[]>): void {
+    const slotDestino = this.timeSlots[event.currentIndex];
+    const citaDestino = this.getCitaBySlot(slotDestino);
+    if (citaDestino) {
+      alert('❌ Ya existe una cita en ese horario. No se puede mover aquí.');
+      return;
+    }
     const draggedCita = event.item.data;
     const newSlot = this.timeSlots[event.currentIndex]; // formato "HH:mm:00"
     const newHora = newSlot;
@@ -1305,7 +1311,6 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
   }
   /** Lógica de reagendar */
   rescheduleCita() {
-    // 1) comprobar disponibilidad
     this.citaService
       .getCitasByDateAndTower(this.rescheduleDate, this.rescheduleTorre)
       .subscribe({
@@ -1313,36 +1318,33 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
           const occupied = citas
             .filter(c => c.idCita !== this.citaToReschedule.idCita)
             .some(c => this.extraerHora(c.hora) === this.rescheduleHour);
+
           if (occupied) {
-            return alert('❌ Ya existe otra cita en este torre/hora.');
+            return alert('❌ Ya existe otra cita en esta torre/hora.');
           }
 
-          // 2) preparamos el body con “offset −5h” en la hora
-          //    parseamos la hora elegida (formato "HH:mm:ss")
-          const [h, m, s] = this.rescheduleHour.split(':').map(n => +n);
-          // usamos un Date genérico en UTC
-          const dt = new Date(Date.UTC(1970, 0, 1, h, m, s));
-          // restamos 5 horas
-          dt.setUTCHours(dt.getUTCHours() - 5);
-          // formateamos de nuevo a "HH:mm:00"
-          const hh = dt.getUTCHours().toString().padStart(2, '0');
-          const mm = dt.getUTCMinutes().toString().padStart(2, '0');
-          const horaOffset = `${hh}:${mm}:00`;
+          const fechaStr = this.getFechaString(this.rescheduleDate);
+          const horaStr = this.getHoraString(this.rescheduleHour);
+
+          console.log('Debug - Datos a enviar:', {
+            fecha: fechaStr,
+            hora: horaStr,
+            torre: this.rescheduleTorre
+          });
 
           const url = `http://localhost:3000/api/citas/${this.citaToReschedule.idCita}/reagendar`;
           const body = {
-            fecha: this.rescheduleDate,   // sigue siendo "YYYY-MM-DD"
-            torre: this.rescheduleTorre,
-            hora: horaOffset
+            fecha: fechaStr,              // "2025-06-03"
+            torre: this.rescheduleTorre,  // 1
+            hora: horaStr                 // "08:00:00"
           };
 
-          // 3) enviamos el patch
           this.http.patch(url, body).subscribe({
             next: () => {
               alert('✅ Cita reagendada correctamente');
               this.closeRescheduleModal();
-              this.editingCitaId = null;    // Sale de “editar” para esa cita
-              this.editingSlot = null;    // Sale de “creación/edición” en ese slot
+              this.editingCitaId = null;
+              this.editingSlot = null;
               this.cargarCitas();
             },
             error: err => {
@@ -1357,4 +1359,59 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
         }
       });
   }
+
+  /**
+   * Obtiene la fecha en formato YYYY-MM-DD sin afectaciones de zona horaria
+   */
+  private getFechaString(date: string | Date): string {
+    if (typeof date === 'string') {
+      // Si ya es string, verificar que esté en formato correcto
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (dateRegex.test(date)) {
+        return date;
+      }
+      // Si no está en formato correcto, convertir
+      const d = new Date(date);
+      return this.formatDateToYMD(d);
+    } else {
+      // Si es Date object
+      return this.formatDateToYMD(date);
+    }
+  }
+
+  /**
+   * Obtiene la hora en formato HH:mm:ss
+   * Normaliza la hora ingresada en el formulario
+   */
+  private getHoraString(hora: string): string {
+
+    if (hora.length === 5 && hora.includes(':')) {
+      return `${hora}:00`;
+    }
+
+    if (hora.length === 8 && hora.split(':').length === 3) {
+      return hora;
+    }
+
+    const timeParts = hora.split(':');
+    const hours = timeParts[0]?.padStart(2, '0') || '00';
+    const minutes = timeParts[1]?.padStart(2, '0') || '00';
+    const seconds = timeParts[2]?.padStart(2, '0') || '00';
+
+    return `${hours}:${minutes}:${seconds}`;
+  }
+
+  /**
+   * Convierte Date a string YYYY-MM-DD respetando la fecha local
+   * SIN aplicar ajustes de zona horaria que puedan cambiar el día
+   */
+  formatDateToYMD(date: Date): string {
+    // Usar métodos locales para evitar problemas de zona horaria
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  }
+
 }
