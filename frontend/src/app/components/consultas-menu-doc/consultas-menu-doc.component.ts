@@ -133,7 +133,7 @@ export class ConsultasMenuDocComponent implements OnInit {
   }
 
   cargarNombreDoctor(): void {
-    const url = `http://localhost:3000/api/doctores/${this.idDoctor}`;
+    const url = `http://192.168.9.8:3000/api/doctores/${this.idDoctor}`;
     this.http.get<any>(url).subscribe({
       next: (data) => {
         this.doctorName = data.nomDoctor2 || 'DR. SIN NOMBRE';
@@ -152,7 +152,7 @@ export class ConsultasMenuDocComponent implements OnInit {
       tipoCambio: tipo,
       medico_idMedico: this.authService.getAdminId()
     };
-    return this.http.post('http://localhost:3000/api/citas/logs', body).pipe(
+    return this.http.post('http://192.168.9.8:3000/api/citas/logs', body).pipe(
       catchError(err => {
         console.error(`Error creando log de ${tipo}:`, err);
         return of(null);
@@ -179,7 +179,7 @@ export class ConsultasMenuDocComponent implements OnInit {
   }
 
   cargarObservaciones(): void {
-    this.http.get<any[]>(`http://localhost:3000/api/observaciones/filter`, {
+    this.http.get<any[]>(`http://192.168.9.8:3000/api/observaciones/filter`, {
       params: {
         doctorId: this.idDoctor,
         fecha: this.selectedDate
@@ -213,7 +213,7 @@ export class ConsultasMenuDocComponent implements OnInit {
     if (this.currentObservacionId) {
       // --> ACTUALIZAR
       this.http.put(
-        `http://localhost:3000/api/observaciones/${this.currentObservacionId}`,
+        `http://192.168.9.8:3000/api/observaciones/${this.currentObservacionId}`,
         body
       ).subscribe({
         next: () => this.cargarObservaciones(),
@@ -222,7 +222,7 @@ export class ConsultasMenuDocComponent implements OnInit {
     } else {
       // --> CREAR NUEVO
       this.http.post(
-        'http://localhost:3000/api/observaciones/register',
+        'http://192.168.9.8:3000/api/observaciones/register',
         body
       ).subscribe({
         next: () => this.cargarObservaciones(),
@@ -251,50 +251,62 @@ export class ConsultasMenuDocComponent implements OnInit {
     const torreId = this.selectedTorreId;
 
     forkJoin({
-      citas: this.citaService.getCitasActivas(fechaStr, doctorId, torreId),
-      consultas: this.citaService.getConsultasActivas(fechaStr, doctorId, torreId)
-    }).pipe(
-      map(({ citas, consultas }) => {
-        const mapSlot = (c: any) => ({
+    citas: this.citaService.getCitasActivas(fechaStr, doctorId, torreId),
+    consultas: this.citaService.getConsultasActivas(fechaStr, doctorId, torreId)
+  }).pipe(
+    map(({ citas, consultas }) => {
+      const mapSlot = (c: any) => {
+        const horaStr    = this.extraerHora(c.hora);
+        const horaFinStr = this.extraerHora(c.horaTermina);
+        // 👉 Aquí obtenemos el código (iniciales) del admin que creó el registro:
+        const responsable = c.idResponsable_idMedico
+          ? this.authService.getAdminCode(c.idResponsable_idMedico)
+          : '';
+
+        return {
           ...c,
-          horaStr: this.extraerHora(c.hora),
-          horaFinStr: this.extraerHora(c.horaTermina)
-        });
+          horaStr,
+          horaFinStr,
+          responsable       // ✅ ahora cada cita/consulta tiene su “responsable”
+        };
+      };
 
-        // 1) Primero todas las citas "normales"
-        const citasNorm = citas.normal.map(mapSlot);
-        // 2) Luego solo aquellas consultas que NO empalmen con ninguna cita
-        const citaHoras = new Set(citasNorm.map(c => c.horaStr));
-        const consultasNorm = consultas.normal
-          .map(mapSlot)
-          .filter(c => !citaHoras.has(c.horaStr));
+      // 1) Mapear todas las citas regulares
+      const citasNorm = citas.normal.map(mapSlot);
 
-        // 3) Combinamos
-        const normales = [...citasNorm, ...consultasNorm];
+      // 2) Filtrar consultas que no empalmen con cita
+      const citaHoras    = new Set(citasNorm.map(c => c.horaStr));
+      const consultasNorm = consultas.normal
+        .map(mapSlot)
+        .filter(c => !citaHoras.has(c.horaStr));
 
-        // 4) Errores: igual, omitimos consultas que empalman con citas de error
-        const citasErr = citas.errors.map(mapSlot);
-        const errHoras = new Set(citasErr.map(c => c.horaStr));
-        const consultasErr = consultas.errors
-          .map(mapSlot)
-          .filter(c => !errHoras.has(c.horaStr));
-        const errores = [...citasErr, ...consultasErr];
+      // 3) Unir
+      const normales = [...citasNorm, ...consultasNorm];
 
-        return { normales, errores };
-      })
-    ).subscribe({
-      next: ({ normales, errores }) => {
-        this.errorSlots = errores.map(c => ({
-          slot: '00:00:00',
-          type: 'appointment' as const,
-          cita: c
-        }));
-        this.consultas = normales;
-        this.buildSlotViews();
-      },
-      error: err => console.error('Error cargando citas y consultas:', err)
-    });
-  }
+      // 4) Errores igual
+      const citasErr  = citas.errors.map(mapSlot);
+      const errHoras  = new Set(citasErr.map(c => c.horaStr));
+      const consultasErr = consultas.errors
+        .map(mapSlot)
+        .filter(c => !errHoras.has(c.horaStr));
+      const errores = [...citasErr, ...consultasErr];
+
+      return { normales, errores };
+    })
+  ).subscribe({
+    next: ({ normales, errores }) => {
+      // Guardamos las “consultas” (que incluyen la propiedad responsable)
+      this.errorSlots = errores.map(c => ({
+        slot: '00:00:00',
+        type: 'appointment' as const,
+        cita: c
+      }));
+      this.consultas = normales;
+      this.buildSlotViews();
+    },
+    error: err => console.error('Error cargando citas y consultas:', err)
+  });
+}
 
   /** Genera los slots cada slotDurationMin desde startHour hasta endHour */
   generarTimeSlots(): void {
@@ -467,7 +479,7 @@ export class ConsultasMenuDocComponent implements OnInit {
 
         // 6) POST para registrar la cita
         return this.http.post<{ idCita: number }>(
-          'http://localhost:3000/api/citas/register',
+          'http://192.168.9.8:3000/api/citas/register',
           body
         );
       })
@@ -509,7 +521,7 @@ export class ConsultasMenuDocComponent implements OnInit {
       return;
     }
     this.http
-      .patch(`http://localhost:3000/api/citas/${id}/eliminar`, { medico_idMedico: this.authService.getAdminId() })
+      .patch(`http://192.168.9.8:3000/api/citas/${id}/eliminar`, { medico_idMedico: this.authService.getAdminId() })
       .pipe(switchMap(() => this.crearLog(id, 'eliminacion')))
       .subscribe({
         next: () => {
@@ -528,7 +540,7 @@ export class ConsultasMenuDocComponent implements OnInit {
     if (!id) {
       return alert('No se pudo editar: ID de cita inválido');
     }
-    const url = `http://localhost:3000/api/citas/${id}`;
+    const url = `http://192.168.9.8:3000/api/citas/${id}`;
     const adminId = this.authService.getAdminId();
 
     // 1) Extraer y validar horas
@@ -683,7 +695,7 @@ export class ConsultasMenuDocComponent implements OnInit {
     };
 
     // PUT a la cita
-    const urlCita = `http://localhost:3000/api/citas/${this.citaToConfirm.idCita}`;
+    const urlCita = `http://192.168.9.8:3000/api/citas/${this.citaToConfirm.idCita}`;
     this.http.put(urlCita, updateBody).subscribe({
       next: (resp: any) => {
         console.log('Cita actualizada:', resp);
@@ -718,7 +730,7 @@ export class ConsultasMenuDocComponent implements OnInit {
       estado,
     };
 
-    return this.http.post<ApiResponse>('http://localhost:3000/api/citas/confirmacion', body).pipe(
+    return this.http.post<ApiResponse>('http://192.168.9.8:3000/api/citas/confirmacion', body).pipe(
       catchError((error) => {
         console.error('Error al crear/actualizar confirmación:', error);
         throw new Error('No se pudo crear/actualizar la confirmación');
@@ -768,7 +780,7 @@ Adicionalmente, por favor confírmenos si toma las siguientes pastillas:
     }
 
     // Envía el mensaje vía el endpoint de WhatsApp en el backend
-    this.http.post('http://localhost:3000/api/whatsapp/send', {
+    this.http.post('http://192.168.9.8:3000/api/whatsapp/send', {
       phone: phoneNumber,
       message: mensaje
     }).subscribe({
@@ -918,7 +930,7 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
     }
 
     // Envía el recordatorio vía el endpoint de WhatsApp
-    this.http.post('http://localhost:3000/api/whatsapp/send', {
+    this.http.post('http://192.168.9.8:3000/api/whatsapp/send', {
       phone: phoneNumber,
       message: mensaje
     }).subscribe({
@@ -950,7 +962,7 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
           recordatorioEnv: true
         };
 
-        const url = `http://localhost:3000/api/citas/${cita.idCita}`;
+        const url = `http://192.168.9.8:3000/api/citas/${cita.idCita}`;
         this.http.put(url, updateBody).subscribe({
           next: (resp: any) => {
             console.log('Cita actualizada con recordatorio:', resp);
@@ -1008,105 +1020,155 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
   }
 
   /**
-   * Aplica offset -5h a una hora en formato "HH:mm:00" y devuelve "HH:mm:00",
-   * trabajando siempre en UTC para evitar mezclas de local/UTC.
+   * Reagenda una cita considerando hora de inicio y hora de fin ingresadas manualmente,
+   * validando solapamientos con otras citas y consultas en la misma fecha/torre.
    */
-  // 6) Offset −5h a fecha+hora
-  applyOffset(hhmm: string) {
-    const [h, m] = hhmm.split(':').map(Number);
-    const dt = new Date(Date.UTC(1970, 0, 1, h, m));
-    dt.setUTCHours(dt.getUTCHours() - 5);
-    const H2 = dt.getUTCHours().toString().padStart(2, '0');
-    const M2 = dt.getUTCMinutes().toString().padStart(2, '0');
-    return `${H2}:${M2}:00`;
-  };
-
-  /** Reagenda pero primero valida overlap contra *todas* las citas y consultas */
   rescheduleCita(): void {
     const cita = this.citaToReschedule;
     if (!cita?.idCita) {
       return alert('ID de cita inválido');
     }
 
-    const fecha = this.rescheduleDate;         // "YYYY-MM-DD"
-    const torre = this.rescheduleTorre;        // número
-    let start = this.rescheduleHour;           // "H:MM" o "HH:MM"
-    let end = this.rescheduleEndHour;        // "H:MM" o "HH:MM"
+    // 1) Obtener valores ingresados
+    const fechaRaw = this.rescheduleDate;        // Puede ser string "YYYY-MM-DD" o Date
+    const torre = this.rescheduleTorre;           // número
+    let startRaw = this.rescheduleHour;           // "H:mm" ó "HH:mm" ó incluso "HH:mm:ss"
+    let endRaw = this.rescheduleEndHour;          // "H:mm" ó "HH:mm" ó incluso "HH:mm:ss"
 
-    // 1) Validaciones básicas
-    if (!fecha || !start || !end) {
-      return alert('Completa todos los campos.');
+    // 2) Validaciones básicas de campos
+    if (!fechaRaw || !startRaw || !endRaw) {
+      return alert('Por favor, completa todos los campos (fecha, hora inicio, hora fin y torre).');
     }
-    if (this.isEndBeforeStart()) {
+
+    // 3) Obtener strings normalizados de fecha e hora (YYYY-MM-DD y HH:mm:ss)
+    const fecha = this.getFechaString(fechaRaw);
+    const horaStr = this.getHoraString(startRaw);
+    const horaTermStr = this.getHoraString(endRaw);
+
+    // 4) Convertir a minutos para comparar rangos
+    const newStartMin = this.convertToMinutes(horaStr);      // Ej: "08:30:00" → 510
+    const newEndMin = this.convertToMinutes(horaTermStr);     // Ej: "09:15:00" → 555
+
+    if (newEndMin <= newStartMin) {
       return alert('La hora fin debe ser posterior a la hora inicio.');
     }
 
-    // 2) Homogeneizar formato a "HH:mm"
-    const fmtHHMM = (s: string) => {
-      const [hh, mm] = s.split(':').map(p => p.padStart(2, '0'));
-      return `${hh}:${mm}`;
-    };
-    const horaStr = fmtHHMM(start);
-    const finStr = fmtHHMM(end);
+    // 5) Traer todas las citas/consultas de ese día y torre
+    this.citaService.getCitasByDateAndTower(fecha, torre).subscribe({
+      next: allCitas => {
+        // 6) Validar solapamiento: newStart < existEnd && newEnd > existStart
+        const overlap = allCitas
+          .filter(c => c.idCita !== cita.idCita)   // Excluir la misma cita que vamos a reagendar
+          .some(c => {
+            const existStartStr = this.extraerHora(c.hora);           // "HH:mm" extraído de c.hora ("HH:mm:ss")
+            const existEndStr = this.extraerHora(c.horaTermina);      // "HH:mm" extraído de c.horaTermina ("HH:mm:ss")
+            const existStartMin = this.convertToMinutes(existStartStr + ':00');
+            const existEndMin = this.convertToMinutes(existEndStr + ':00');
 
-    // 3) Extraer minutos para comparar rangos
-    const toMin = (hhmm: string) => {
-      const [H, M] = hhmm.split(':').map(Number);
-      return H * 60 + M;
-    };
-    const newStartMin = toMin(horaStr);
-    const newEndMin = toMin(finStr);
-
-    // 4) Traer todas las citas y consultas de ese día/torre
-    this.citaService
-      .getCitasByDateAndTower(fecha, torre)
-      .subscribe({
-        next: all => {
-          // 5) Validar solapamiento de rangos
-          const overlap = all
-            .filter(c => c.idCita !== cita.idCita)         // except self
-            .some(c => {
-              const existStart = toMin(this.extraerHora(c.hora));
-              const existEnd = toMin(this.extraerHora(c.horaTermina));
-              // overlap if newStart < existEnd && newEnd > existStart
-              return newStartMin < existEnd && newEndMin > existStart;
-            });
-
-          if (overlap) {
-            return alert('❌ Este rango solapa con otra cita/consulta.');
-          }
-
-          const horaOffset = this.applyOffset(horaStr);
-          const horaTermOffset = this.applyOffset(finStr);
-
-          // 7) Enviar PATCH con inicio y fin offseteados
-          const url = `http://localhost:3000/api/citas/${cita.idCita}/reagendar`;
-          const body = {
-            fecha,
-            torre,
-            hora: horaOffset,
-            horaTermina: horaTermOffset
-          };
-
-          this.http.patch(url, body).subscribe({
-            next: () => {
-              alert('✅ Consulta reagendada correctamente');
-              this.closeRescheduleModal();
-              this.editingCitaId = null;
-              this.editingSlot = null;
-              this.cargarConsultas();
-            },
-            error: err => {
-              console.error('Error al reagendar:', err);
-              alert('No se pudo reagendar la consulta');
-            }
+            return (newStartMin < existEndMin) && (newEndMin > existStartMin);
           });
-        },
-        error: err => {
-          console.error('Error comprobando disponibilidad:', err);
-          alert('No se pudo verificar conflicto con otras citas/consultas');
+
+        if (overlap) {
+          return alert('❌ Este rango de horas solapa con otra cita/consulta en la misma torre.');
         }
-      });
+
+        // 7) Si no hay solapamiento, enviar PATCH al backend
+        const url = `http://192.168.9.8:3000/api/citas/${cita.idCita}/reagendar`;
+        const body = {
+          fecha: fecha,               // "YYYY-MM-DD"
+          torre: torre,               // número
+          hora: horaStr,              // "HH:mm:ss"
+          horaTermina: horaTermStr    // "HH:mm:ss"
+        };
+
+        console.log('Debug - Datos a enviar para reagendar:', body);
+
+        this.http.patch(url, body).subscribe({
+          next: () => {
+            alert('✅ Cita reagendada correctamente');
+            this.closeRescheduleModal();
+            this.editingCitaId = null;
+            this.editingSlot = null;
+            this.cargarConsultas();
+          },
+          error: err => {
+            console.error('Error al reagendar:', err);
+            alert('No se pudo reagendar la cita. Inténtalo nuevamente.');
+          }
+        });
+      },
+      error: err => {
+        console.error('Error comprobando disponibilidades:', err);
+        alert('No se pudo verificar conflictos con otras citas/consultas.');
+      }
+    });
+  }
+
+  /**
+   * Convierte un string de hora "HH:mm:ss" o "HH:mm" a minutos totales desde medianoche.
+   * Ejemplo: "08:30:00" → 8*60 + 30 = 510.
+   */
+  private convertToMinutes(hora: string): number {
+    // Asegurarse de tener formato "HH:mm:ss"
+    const parts = hora.split(':').map(p => parseInt(p, 10));
+    let h = 0, m = 0;
+    if (parts.length >= 2) {
+      h = parts[0];
+      m = parts[1];
+    }
+    return h * 60 + m;
+  }
+
+  /**
+   * Obtiene la fecha en formato YYYY-MM-DD sin afectaciones de zona horaria.
+   */
+  private getFechaString(date: string | Date): string {
+    if (typeof date === 'string') {
+      // Si ya es string, verificar que esté en formato correcto
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (dateRegex.test(date)) {
+        return date;
+      }
+      // Si no está en formato correcto, convertir
+      const d = new Date(date);
+      return this.formatDateToYMD(d);
+    } else {
+      // Si es Date object
+      return this.formatDateToYMD(date);
+    }
+  }
+
+  /**
+   * Obtiene la hora en formato HH:mm:ss.
+   * Normaliza la hora ingresada en el formulario ("H:mm", "HH:mm", "HH:mm:ss", etc.).
+   */
+  private getHoraString(hora: string): string {
+    // Si viene en "H:mm" o "HH:mm", convertir a "HH:mm:00"
+    if (/^\d{1,2}:\d{2}$/.test(hora)) {
+      const [h, m] = hora.split(':');
+      return `${h.padStart(2, '0')}:${m}:${'00'}`;
+    }
+    // Si viene en "HH:mm:ss", validar
+    if (/^\d{2}:\d{2}:\d{2}$/.test(hora)) {
+      return hora;
+    }
+    // Si es algún otro formato, intentar parsear y formatear
+    const parts = hora.split(':');
+    const hours = parts[0]?.padStart(2, '0') || '00';
+    const minutes = parts[1]?.padStart(2, '0') || '00';
+    const seconds = parts[2]?.padStart(2, '0') || '00';
+    return `${hours}:${minutes}:${seconds}`;
+  }
+
+  /**
+   * Convierte un objeto Date a string "YYYY-MM-DD" respetando la fecha local,
+   * sin aplicar ajustes de zona horaria que cambien el día.
+   */
+  formatDateToYMD(date: Date): string {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   // -----------------------------------------------------------------------------------------------------
@@ -1140,7 +1202,7 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
      const newEnd = calculateEnd(newStart, durMin);
  
      // 5) armar body
-     const url = `http://localhost:3000/api/citas/${dragged.idCita}`;
+     const url = `http://192.168.9.8:3000/api/citas/${dragged.idCita}`;
      const body = {
        ...dragged,
        hora: newStart,

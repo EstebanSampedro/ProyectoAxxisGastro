@@ -709,15 +709,17 @@ async function exportImprimirPDF(req, res) {
   }
 }
 
-// PATCH /api/citas/:id/reagendar
+const { DateTime } = require('luxon');
+
 const reagendarCita = async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const { fecha, torre, hora, horaTermina } = req.body;
+
     if (!fecha || !torre || !hora) {
       return res.status(400).json({ error: 'fecha, torre y hora son obligatorios' });
     }
-    // obtenemos el valor actual de horaTermina si no nos la pasan
+
     const citaActual = await prisma.cita.findUnique({
       where: { idCita: id },
       select: { horaTermina: true }
@@ -726,33 +728,69 @@ const reagendarCita = async (req, res) => {
       return res.status(404).json({ error: 'Cita no encontrada' });
     }
 
-    // construimos el objeto para update
+    const zona = 'America/Guayaquil';
+
+    // 1. Crear DateTime directamente en la zona de Guayaquil
+    // Asumimos que fecha viene como "YYYY-MM-DD" y hora como "HH:mm" o "HH:mm:ss"
+    const fechaHoraStr = `${fecha}T${hora.padEnd(8, ':00')}`;
+    const dtInicio = DateTime.fromISO(fechaHoraStr, { zone: zona });
+
+    // 2. Calcular hora de término
+    const dtTermina = horaTermina
+      ? DateTime.fromISO(`${fecha}T${horaTermina.padEnd(8, ':00')}`, { zone: zona })
+      : dtInicio.plus({ minutes: 30 });
+
+    // 3. Validar que los DateTime sean válidos
+    if (!dtInicio.isValid) {
+      return res.status(400).json({
+        error: `Fecha/hora de inicio inválida: ${dtInicio.invalidExplanation}`
+      });
+    }
+    if (!dtTermina.isValid) {
+      return res.status(400).json({
+        error: `Fecha/hora de término inválida: ${dtTermina.invalidExplanation}`
+      });
+    }
+
+    // 4. Convertir a formato para MySQL/Prisma
+    // Para el campo fecha (DATE)
+    const fechaMySQL = DateTime.fromISO(fecha).toJSDate();
+
+    // Para los campos hora y horaTermina - crear DateTime SIN zona horaria para evitar conversiones
+    // Usamos UTC para que no haya conversiones automáticas
+    const baseDate = '1970-01-01';
+    const horaDateTime = new Date(`${baseDate}T${dtInicio.toFormat('HH:mm:ss')}Z`);
+    const horaTerminaDateTime = new Date(`${baseDate}T${dtTermina.toFormat('HH:mm:ss')}Z`);
+
+    console.log('REAGENDAMIENTO ------- Datos procesados:', {
+      fechaOriginal: fecha,
+      horaOriginal: hora,
+      fechaMySQL: fechaMySQL,
+      horaDateTime: horaDateTime,
+      horaTerminaDateTime: horaTerminaDateTime,
+      dtInicio: dtInicio.toISO(),
+      dtTermina: dtTermina.toISO()
+    });
+
     const data = {
-      fecha: new Date(fecha),
+      fecha: fechaMySQL,
       torre: Number(torre),
-      // se añade ":00Z" para forzar UTC
-      hora: new Date(`${fecha}T${hora}`),
+      hora: horaDateTime,
+      horaTermina: horaTerminaDateTime,
       confirmado: 'pendiente'
     };
-    if (horaTermina) {
-      data.horaTermina = new Date(`${fecha}T${horaTermina}`);
-    } else {
-      data.horaTermina = citaActual.horaTermina;
-    }
 
     const updated = await prisma.cita.update({
       where: { idCita: id },
       data
     });
+
     res.json(updated);
   } catch (err) {
     console.error('Error reagendando cita:', err);
     res.status(500).json({ error: 'Error interno al reagendar cita' });
   }
 };
-
-
-
 
 module.exports = {
   registerCita,
