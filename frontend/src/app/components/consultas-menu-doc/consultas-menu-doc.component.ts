@@ -255,24 +255,35 @@ export class ConsultasMenuDocComponent implements OnInit {
       consultas: this.citaService.getConsultasActivas(fechaStr, doctorId, torreId)
     }).pipe(
       map(({ citas, consultas }) => {
-        const mapSlot = (c: any) => ({
-          ...c,
-          horaStr: this.extraerHora(c.hora),
-          horaFinStr: this.extraerHora(c.horaTermina)
-        });
+        const mapSlot = (c: any) => {
+          const horaStr = this.extraerHora(c.hora);
+          const horaFinStr = this.extraerHora(c.horaTermina);
+          // 👉 Aquí obtenemos el código (iniciales) del admin que creó el registro:
+          const responsable = c.idResponsable_idMedico
+            ? this.authService.getAdminCode(c.idResponsable_idMedico)
+            : '';
 
-        // 1) Primero todas las citas "normales"
+          return {
+            ...c,
+            horaStr,
+            horaFinStr,
+            responsable       // ✅ ahora cada cita/consulta tiene su “responsable”
+          };
+        };
+
+        // 1) Mapear todas las citas regulares
         const citasNorm = citas.normal.map(mapSlot);
-        // 2) Luego solo aquellas consultas que NO empalmen con ninguna cita
+
+        // 2) Filtrar consultas que no empalmen con cita
         const citaHoras = new Set(citasNorm.map(c => c.horaStr));
         const consultasNorm = consultas.normal
           .map(mapSlot)
           .filter(c => !citaHoras.has(c.horaStr));
 
-        // 3) Combinamos
+        // 3) Unir
         const normales = [...citasNorm, ...consultasNorm];
 
-        // 4) Errores: igual, omitimos consultas que empalman con citas de error
+        // 4) Errores igual
         const citasErr = citas.errors.map(mapSlot);
         const errHoras = new Set(citasErr.map(c => c.horaStr));
         const consultasErr = consultas.errors
@@ -284,6 +295,7 @@ export class ConsultasMenuDocComponent implements OnInit {
       })
     ).subscribe({
       next: ({ normales, errores }) => {
+        // Guardamos las “consultas” (que incluyen la propiedad responsable)
         this.errorSlots = errores.map(c => ({
           slot: '00:00:00',
           type: 'appointment' as const,
