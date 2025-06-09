@@ -241,18 +241,18 @@ export class ConsultasMenuDocComponent implements OnInit {
   }**/
   /** Carga las citas + consultas y reconstruye la vista de slots */
   cargarConsultas(): void {
-    // Limpia antes de cargar
-    this.errorSlots = [];
-    this.consultas = [];
-    this.slotViews = [];
+  // Limpia antes de cargar
+  this.errorSlots = [];
+  this.consultas  = [];
+  this.slotViews  = [];
 
-    const fechaStr = this.selectedDate;                       // "YYYY-MM-DD"
-    const doctorId = parseInt(this.idDoctor, 10);
-    const torreId = this.selectedTorreId;
+  const fechaStr = this.selectedDate;               // "YYYY-MM-DD"
+  const doctorId = parseInt(this.idDoctor, 10);
+  // NOTA: ya no usamos this.selectedTorreId aquí, para traer todas las torres
 
-    forkJoin({
-    citas: this.citaService.getCitasActivas(fechaStr, doctorId, torreId),
-    consultas: this.citaService.getConsultasActivas(fechaStr, doctorId, torreId)
+  forkJoin({
+    citas:     this.citaService.getCitasActivas(fechaStr, doctorId),
+    consultas: this.citaService.getConsultasActivas(fechaStr, doctorId)
   }).pipe(
     map(({ citas, consultas }) => {
       const mapSlot = (c: any) => {
@@ -271,21 +271,21 @@ export class ConsultasMenuDocComponent implements OnInit {
         };
       };
 
-      // 1) Mapear todas las citas regulares
+      // 1) Mapear todas las citas regulares (tipo “cita”)
       const citasNorm = citas.normal.map(mapSlot);
 
-      // 2) Filtrar consultas que no empalmen con cita
-      const citaHoras    = new Set(citasNorm.map(c => c.horaStr));
+      // 2) Filtrar consultas (tipo “consulta”) que no empalmen con ninguna cita
+      const citaHoras     = new Set(citasNorm.map(c => c.horaStr));
       const consultasNorm = consultas.normal
         .map(mapSlot)
         .filter(c => !citaHoras.has(c.horaStr));
 
-      // 3) Unir
+      // 3) Unir ambas colecciones en un solo arreglo “normales”
       const normales = [...citasNorm, ...consultasNorm];
 
-      // 4) Errores igual
-      const citasErr  = citas.errors.map(mapSlot);
-      const errHoras  = new Set(citasErr.map(c => c.horaStr));
+      // 4) Hacer lo mismo para los registros con “error” en confirmado
+      const citasErr     = citas.errors.map(mapSlot);
+      const errHoras     = new Set(citasErr.map(c => c.horaStr));
       const consultasErr = consultas.errors
         .map(mapSlot)
         .filter(c => !errHoras.has(c.horaStr));
@@ -295,18 +295,21 @@ export class ConsultasMenuDocComponent implements OnInit {
     })
   ).subscribe({
     next: ({ normales, errores }) => {
-      // Guardamos las “consultas” (que incluyen la propiedad responsable)
+      // Guardamos las “consultas con error” para mostrar alertas, etc.
       this.errorSlots = errores.map(c => ({
         slot: '00:00:00',
         type: 'appointment' as const,
         cita: c
       }));
+      // Asignamos a this.consultas el conjunto combinado de citas+consultas
       this.consultas = normales;
+      // Reconstruimos la vista de slots con buildSlotViews()
       this.buildSlotViews();
     },
     error: err => console.error('Error cargando citas y consultas:', err)
   });
 }
+
 
   /** Genera los slots cada slotDurationMin desde startHour hasta endHour */
   generarTimeSlots(): void {

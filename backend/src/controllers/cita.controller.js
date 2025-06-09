@@ -488,6 +488,9 @@ const exportExcelCitas = async (req, res) => {
  * Formatea la hora en formato HH:MM.
  * Toma la subcadena de la hora del valor ISO.
  */
+/**
+ * Devuelve “HH:mm” a partir de un objeto Date o ISO string.
+ */
 function formatHora(fechaHora) {
   if (!fechaHora) return "";
   const isoStr = fechaHora instanceof Date ? fechaHora.toISOString() : fechaHora;
@@ -496,21 +499,21 @@ function formatHora(fechaHora) {
 
 // Definición de columnas para la tabla (los anchos están en puntos)
 const columns = [
-  { header: "HORA", width: 40 },
-  { header: "MEDICO", width: 100 },
-  { header: "PACIENTE", width: 100 },
-  { header: "EDAD", width: 30 },
-  { header: "PROCEDIMI.", width: 100 },
-  { header: "IMAGEN", width: 50 },
-  { header: "SOLICITADO", width: 100 },
-  { header: "INSTITU.", width: 60 },
-  { header: "SEGURO", width: 70 },
-  { header: "RESP", width: 30 },
-  { header: "OBSERVACIONES", width: 120 },
+  { header: "HORA",         width: 40  },
+  { header: "MEDICO",       width: 100 },
+  { header: "PACIENTE",     width: 100 },
+  { header: "EDAD",         width: 30  },
+  { header: "PROCEDIMI.",   width: 100 },
+  { header: "IMAGEN",       width: 50  },
+  { header: "SOLICITADO",   width: 100 },
+  { header: "INSTITU.",     width: 60  },
+  { header: "SEGURO",       width: 70  },
+  { header: "RESP",         width: 30  },
+  { header: "OBSERVACIONES",width: 120 },
 ];
 
 /**
- * Dibuja una celda: primero dibuja el rectángulo y luego coloca el texto dentro con un pequeño margen.
+ * Dibuja una celda (rectángulo + texto dentro).
  */
 function drawCell(doc, x, y, w, h, text, fontSize = 8, align = "left") {
   doc.rect(x, y, w, h).stroke();
@@ -523,50 +526,81 @@ function drawCell(doc, x, y, w, h, text, fontSize = 8, align = "left") {
 }
 
 /**
- * Dibuja una fila de la tabla. La altura de la fila se ajusta según el contenido de la última columna.
- * Retorna la nueva posición Y para la siguiente fila.
+ * Dibuja una fila de la tabla. Ajusta la altura según la columna de observaciones.
+ * Devuelve la coordenada Y donde continuará la siguiente fila.
  */
 function drawRow(doc, startX, startY, rowData) {
   const lastColIndex = columns.length - 1;
   const lastColWidth = columns[lastColIndex].width;
-  const lastColText = rowData[lastColIndex] || "";
+  const lastColText  = rowData[lastColIndex] || "";
 
-  // Calcular la altura necesaria para la última columna (MultiCell)
+  // Calcular altura necesaria para el texto de la última columna
   doc.font("Helvetica").fontSize(8);
-  const neededHeight = doc.heightOfString(lastColText, { width: lastColWidth - 4 });
+  const neededHeight = doc.heightOfString(lastColText, {
+    width: lastColWidth - 4
+  });
 
-  // Altura mínima para las otras columnas (puedes ajustar)
   const baseHeight = 15;
-  const rowHeight = Math.max(baseHeight, neededHeight + 4);
+  const rowHeight  = Math.max(baseHeight, neededHeight + 4);
 
   let currentX = startX;
-  // Dibujar cada celda de la fila
   for (let i = 0; i < columns.length; i++) {
     const colWidth = columns[i].width;
-    const text = rowData[i] || "";
-    // Para la última columna, usamos el rowHeight calculado
-    drawCell(doc, currentX, startY, colWidth, rowHeight, text, 6, i === 0 ? "center" : "left");
+    const text     = rowData[i] || "";
+    drawCell(
+      doc,
+      currentX,
+      startY,
+      colWidth,
+      rowHeight,
+      text,
+      6,
+      i === 0 ? "center" : "left"
+    );
     currentX += colWidth;
   }
+
   return startY + rowHeight;
 }
 
 /**
- * Función que genera el PDF mostrando TODOS los registros para la fecha indicada.
- * Se recorren las torres del 1 al 4.
+ * Dibuja la fila de encabezados (nombres de columnas) en la posición actual de doc.y.
+ * Debe llamarse cada vez que comience una nueva página o al iniciar una torre.
  */
+function drawTableHeader(doc, startX) {
+  let x       = startX;
+  const yHeader = doc.y;
+  doc.font("Helvetica-Bold").fontSize(8);
+
+  for (const col of columns) {
+    doc.rect(x, yHeader, col.width, 15).stroke();
+    doc.text(col.header, x + 2, yHeader + 4, {
+      width: col.width - 4,
+      align: "center"
+    });
+    x += col.width;
+  }
+
+  doc.y = yHeader + 15;
+}
+
 async function exportImprimirPDF(req, res) {
   try {
     const { f } = req.query;
     if (!f) {
       return res.status(400).json({ error: "Se requiere la fecha (f)" });
     }
-    const fecha = f; // "YYYY-MM-DD"
-    const startDate = new Date(fecha);
-    const endDate = new Date(fecha);
+    const fecha = f; // “YYYY-MM-DD”
+
+    // Construir fecha local (sin desfase UTC)
+    const [year, month, day] = fecha.split("-").map(Number);
+    // Nota: aquí startDate/endDate solo se conservan en caso de que quieras usarlos,
+    // pero en la consulta usamos DATE(c.fecha) = fecha, así que no son estrictamente necesarios.
+    const startDate = new Date(year, month - 1, day);
+    const endDate   = new Date(year, month - 1, day);
     endDate.setDate(endDate.getDate() + 1);
 
-    // Consultar datos de confirmación global (para confTorreX)
+    // Consultar datos de confirmación global (confTorre1, confTorre2, …)
     const [confirmacion = {}] = await prisma.$queryRaw`
       SELECT c.*, m.nombreMedico
       FROM confirmacion c
@@ -574,133 +608,186 @@ async function exportImprimirPDF(req, res) {
       WHERE c.fechaCita = ${fecha}
     `;
 
-    // Iniciar PDF en landscape A4
-    const doc = new PDFDocument({ layout: "landscape", size: "A4", margin: 20 });
+    // Iniciar PDF landscape A4
+    const doc = new PDFDocument({
+      layout: "landscape",
+      size: "A4",
+      margin: 20
+    });
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="respaldo-citas-${fecha}.pdf"`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="respaldo-citas-${fecha}.pdf"`
+    );
     doc.pipe(res);
 
-    // ——— ENCABEZADO ———
-    const pageWidth = doc.page.width;
-    const headerY = 10;
-    const logoSize = 60;
-    const boxW = 80;
-    const boxH = 24;
-
-    // Dimensiones del cuadro que engloba todo el encabezado
-    const headerBoxX = 10;
-    const headerBoxY = headerY - 5;
+    // ——— ENCABEZADO PRINCIPAL ———
+    const pageWidth      = doc.page.width;
+    const headerY        = 10;
+    const logoSize       = 60;
+    const boxW           = 80;
+    const headerBoxX     = 10;
+    const headerBoxY     = headerY - 5;
     const headerBoxWidth = pageWidth - 20;
-    const headerBoxHeight = logoSize - 12;
-    const headerFont = "Helvetica-Oblique";
-    // Dibujar el cuadro que engloba todo el encabezado
+    const headerBoxHeight= logoSize - 12;
+    const headerFont     = "Helvetica-Oblique";
+
+    // Dibujar recuadro del encabezado
     doc.rect(headerBoxX, headerBoxY, headerBoxWidth, headerBoxHeight).stroke();
 
-    // Logo más grande
+    // Logo
     const logoPath = path.join(__dirname, "../public/images/axxis-gastro.png");
     doc.image(logoPath, 20, headerY, { width: logoSize });
 
-    // Título centrado y en 20 pt
+    // Título centrado
     const title = "PROGRAMACIÓN DE PROCEDIMIENTOS";
     doc.font(headerFont).fontSize(20);
     const titleWidth = doc.widthOfString(title);
     doc.text(title, (pageWidth - titleWidth) / 2, headerY + 5);
 
-    // Día de la semana
-    const dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-    const dayName = dias[new Date(fecha).getDay()] || "";
-    const dayX = pageWidth - boxW * 2 - 40;
-    doc
-      .font(headerFont).fontSize(12)
-      .text(dayName.toUpperCase(), dayX, headerY + 6, { width: boxW, align: "center" });
+    // Día de la semana (en zona local) + Fecha
+    const dias      = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+    const localDate = new Date(year, month - 1, day);
+    const dayName   = dias[localDate.getDay()] || "";
+    const dayX      = pageWidth - boxW * 2 - 40;
 
-    // Fecha
     doc
+      .font(headerFont)
+      .fontSize(12)
+      .text(dayName.toUpperCase(), dayX, headerY + 6, { width: boxW, align: "center" })
       .text(fecha, dayX + boxW + 10, headerY + 6, { width: boxW, align: "center" });
 
-    // Espacio antes de las tablas
     doc.moveDown(2);
 
-    // ——— TABLAS POR TORRE ———
+    // ——— TABLAS POR CADA TORRE ———
     for (let torre = 1; torre <= 4; torre++) {
-      // Traer también al médico que confirmó
-      const filas = await prisma.$queryRaw`
+      // Antes de dibujar el título de la torre, comprobamos si cabe en la página actual.
+      const neededSpaceForTitle  = 20; // aprox. alto para el texto del título
+      const neededSpaceForHeader = 20; // alto para dibujar encabezados de columna
+      if (doc.y + neededSpaceForTitle + neededSpaceForHeader > doc.page.height - doc.page.margins.bottom) {
+        doc.addPage();
+      }
+
+      // Título “Torre X – NOMBRE –” centrado
+      const confT       = confirmacion[`confTorre${torre}`] || "";
+      const filasConsulta = await prisma.$queryRaw`
         SELECT 
-          c.*,
+          c.idCita,
+          c.hora,
+          c.horaTermina,
+          c.paciente,
+          c.edad,
+          c.telefono,
+          c.procedimiento,
+          c.imagen,
+          c.pedido,
+          c.institucion,
+          c.seguro,
+          c.confirmado,
+          c.observaciones,
           d.nomDoctor2    AS nomDoctor,
-          mc.codigoMedico AS codigoMedico,
+          m.codigoMedico  AS codigoMedico,
           t.textTorre     AS nomTorre
         FROM cita c
-        LEFT JOIN doctor2 d
+        LEFT JOIN doctor2 d 
           ON d.idDoctor2 = c.idDoctor_cita
-        LEFT JOIN confirmacion conf
-          ON conf.confDoctor    = c.idDoctor_cita
-        AND conf.fechaCita     = ${fecha}
-        LEFT JOIN medico mc
-          ON mc.idmedico        = conf.idMedicoConfirma
-        LEFT JOIN torres t
-          ON c.torre = t.idTorre
-        WHERE c.torre      = ${torre}
-          AND c.tipoCita   = 'cita'
-          AND c.fecha     >= ${startDate}
-          AND c.fecha     <  ${endDate}
-        ORDER BY c.hora
+        LEFT JOIN medico m 
+          ON m.idmedico = c.idConfirma_idMedico
+        LEFT JOIN torres t 
+          ON t.idTorre = c.torre
+        WHERE
+          c.torre          = ${torre}
+          AND c.tipoCita     = 'cita'
+          AND DATE(c.fecha) = ${fecha}
+          AND c.confirmado   = 'si'
+          AND c.estado     <> 'eliminado'
+        ORDER BY c.hora;
       `;
-      if (!filas.length) continue;
 
-      // Título de torre con su confTorreX
-      const confT = confirmacion[`confTorre${torre}`] || "";
+      // Si no hay citas válidas para esta torre, saltamos a la siguiente
+      if (!filasConsulta.length) continue;
+
+      const torreNombre = filasConsulta[0]?.nomTorre || `TORRE ${torre}`;
       const tableW = columns.reduce((sum, col) => sum + col.width, 0);
-      const torreNombre = filas[0]?.nomTorre || `TORRE ${torre}`;
-      doc.font("Helvetica-Bold").fontSize(10)
-        .text(`${torreNombre}  –  ${confT}`, 20, doc.y, { width: tableW, align: "center" });
-      doc.moveDown(0.5);
-      // Encabezados
-      let x = 20;
-      const headerY2 = doc.y;
-      doc.font("Helvetica-Bold").fontSize(8);
-      for (const col of columns) {
-        doc.rect(x, headerY2, col.width, 15).stroke();
-        doc.text(col.header, x + 2, headerY2 + 4, { width: col.width - 4, align: "center" });
-        x += col.width;
-      }
-      doc.y = headerY2 + 15;
 
-      // Filas
-      doc.font("Helvetica").fontSize(8);
-      for (const fila of filas) {
+      doc.font("Helvetica-Bold").fontSize(10)
+         .text(`${torreNombre}  –  ${confT}`, 20, doc.y, {
+           width: tableW,
+           align: "center"
+         });
+      doc.moveDown(0.5);
+
+      // Antes de pintar los encabezados de columnas, volvemos a verificar si cabe completo:
+      if (doc.y + neededSpaceForHeader > doc.page.height - doc.page.margins.bottom) {
+        doc.addPage();
+        // Re-dibujar título de la misma torre en la nueva página
+        doc.font("Helvetica-Bold").fontSize(10)
+           .text(`${torreNombre}  –  ${confT}`, 20, doc.y, {
+             width: tableW,
+             align: "center"
+           });
+        doc.moveDown(0.5);
+      }
+
+      // Dibujar encabezados de columnas
+      drawTableHeader(doc, 20);
+
+      // Ahora recorremos cada fila (cita) y la pintamos, chequeando saltos de página
+      for (const fila of filasConsulta) {
+        // Aproximamos la altura mínima de la siguiente fila
+        const approximateRowHeight = 20;
+        if (doc.y + approximateRowHeight > doc.page.height - doc.page.margins.bottom) {
+          doc.addPage();
+          // En la nueva página, volver a dibujar encabezados:
+          drawTableHeader(doc, 20);
+        }
+
         const row = [
           formatHora(fila.hora),
-          fila.nomDoctor || "",
-          fila.paciente || "",
+          fila.nomDoctor    || "",
+          fila.paciente     || "",
           fila.edad != null ? String(fila.edad) : "",
-          fila.procedimiento || "",
-          fila.imagen || "",
-          fila.pedido || "",
-          fila.institucion || "",
-          fila.seguro || "",
-          fila.codigoMedico || "",   // ← aquí está el RESPONSABLE real
-          fila.observaciones || ""
+          fila.procedimiento|| "",
+          fila.imagen       || "",
+          fila.pedido       || "",
+          fila.institucion  || "",
+          fila.seguro       || "",
+          fila.codigoMedico || "",   // “RESP”
+          fila.observaciones|| ""
         ];
         doc.y = drawRow(doc, 20, doc.y, row);
       }
+
+      // Espacio extra antes de la siguiente torre
       doc.moveDown(1);
     }
 
-    // ——— FIRMAS ———
+    // ——— FIRMAS FINALES ———
+    // Antes de dibujar las líneas de firma, comprobamos si cabe en la página
+    const bottomSpaceNeeded = 40;
+    if (doc.y + bottomSpaceNeeded > doc.page.height - doc.page.margins.bottom) {
+      doc.addPage();
+    }
     doc.moveDown(5);
+
     const y0 = doc.y;
     const pageW2 = doc.page.width;
-    const colW = (pageW2 - 40) / 2;
-    const lineW = colW * 0.5;
-    const off = (colW - lineW) / 2;
+    const colW   = (pageW2 - 40) / 2;
+    const lineW  = colW * 0.5;
+    const off    = (colW - lineW) / 2;
 
     doc.moveTo(20 + off, y0).lineTo(20 + off + lineW, y0).stroke();
     doc.moveTo(20 + colW + 20 + off, y0).lineTo(20 + colW + 20 + off + lineW, y0).stroke();
 
     doc.font("Helvetica").fontSize(10)
-      .text(`Responsable: ${confirmacion.nombreMedico || ""}`, 20, y0 + 5, { width: colW, align: "center" })
-      .text("Aprobado por:", 20 + colW + 20, y0 + 5, { width: colW, align: "center" });
+      .text(`Responsable: ${confirmacion.nombreMedico || ""}`, 20, y0 + 5, {
+        width: colW,
+        align: "center"
+      })
+      .text("Aprobado por:", 20 + colW + 20, y0 + 5, {
+        width: colW,
+        align: "center"
+      });
 
     doc.end();
   } catch (err) {
@@ -708,6 +795,8 @@ async function exportImprimirPDF(req, res) {
     res.status(500).json({ error: "Error interno del servidor" });
   }
 }
+
+
 
 const { DateTime } = require('luxon');
 
