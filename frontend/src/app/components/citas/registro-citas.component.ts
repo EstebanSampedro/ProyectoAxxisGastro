@@ -211,7 +211,7 @@ export class RegistroCitasComponent implements OnInit {
 
   // Carga la lista de doctores para el dropdown (de la tabla doctor2)
   cargarDoctores(): void {
-    this.http.get<any[]>('http://localhost:3000/api/doctores').subscribe({
+    this.http.get<any[]>('http://192.168.9.8:3000/api/doctores').subscribe({
       next: (data) => {
         // Mapear para que la propiedad "doctorId" contenga el ID del doctor (doctor2) y "doctor" su nombre.
         this.doctores = data.map(doc => ({
@@ -376,7 +376,7 @@ export class RegistroCitasComponent implements OnInit {
                 responsable: this.adminInitials
               };
 
-              this.http.post('http://localhost:3000/api/citas/register', body).subscribe({
+              this.http.post('http://192.168.9.8:3000/api/citas/register', body).subscribe({
                 next: resp => {
                   console.log('Cita agregada:', resp);
                   this.editingSlot = null;
@@ -463,7 +463,7 @@ export class RegistroCitasComponent implements OnInit {
 
     // 4) Llamamos al endpoint de registro de cita
     this.http.post(
-      'http://localhost:3000/api/citas/register',
+      'http://192.168.9.8:3000/api/citas/register',
       body
     ).subscribe({
       next: resp => {
@@ -627,7 +627,7 @@ export class RegistroCitasComponent implements OnInit {
       payload.mediaUrl = mediaUrl;
     }
     // NOTA: Cambiamos el endpoint para que apunte a /api/whatsapp/send, ya que allí está integrada la subida de archivos
-    this.http.post('http://localhost:3000/api/whatsapp/send', payload).subscribe({
+    this.http.post('http://192.168.9.8:3000/api/whatsapp/send', payload).subscribe({
       next: resp => {
         console.log('Mensaje enviado:', resp);
         alert('Mensaje de WhatsApp enviado con éxito');
@@ -695,7 +695,7 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
     });
 
     // 4) Petición
-    this.http.post<any>('http://localhost:3000/api/whatsapp/send', formData).subscribe({
+    this.http.post<any>('http://192.168.9.8:3000/api/whatsapp/send', formData).subscribe({
       next: uploadRes => {
         if (uploadRes.success) {
           // 5a) Mensaje interno
@@ -724,7 +724,7 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
             cedula: this.citaSeleccionada.cedula,
             recordatorioEnv: true
           };
-          const urlPut = `http://localhost:3000/api/citas/${this.citaSeleccionada.idCita}`;
+          const urlPut = `http://192.168.9.8:3000/api/citas/${this.citaSeleccionada.idCita}`;
           this.http.put(urlPut, updateBody).subscribe({
             next: () => this.cargarCitas(),
             error: err => console.error('Error actualizando cita:', err)
@@ -909,7 +909,7 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
     }
 
     // Enviar el mensaje a través del endpoint de WhatsApp en el backend
-    this.http.post('http://localhost:3000/api/whatsapp/send', {
+    this.http.post('http://192.168.9.8:3000/api/whatsapp/send', {
       phone: phoneNumber,
       message: mensaje
     }).subscribe({
@@ -941,7 +941,7 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
           recordatorioEnv: true
         };
 
-        const url = `http://localhost:3000/api/citas/${cita.idCita}`;
+        const url = `http://192.168.9.8:3000/api/citas/${cita.idCita}`;
         this.http.put(url, updateBody).subscribe({
           next: (resp: any) => {
             console.log('Cita actualizada con recordatorio:', resp);
@@ -996,7 +996,7 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
     };
 
     // Realizamos el PUT para actualizar la cita con los nuevos horarios.
-    const url = `http://localhost:3000/api/citas/${draggedCita.idCita}`;
+    const url = `http://192.168.9.8:3000/api/citas/${draggedCita.idCita}`;
     this.http.put(url, updateBody).subscribe({
       next: (resp: any) => {
         console.log('Cita actualizada tras drop:', resp);
@@ -1014,10 +1014,10 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
       tipoCambio: tipo,
       medico_idMedico: this.authService.getAdminId()
     };
-    return this.http.post('http://localhost:3000/api/citas/logs', body);
+    return this.http.post('http://192.168.9.8:3000/api/citas/logs', body);
   }
 
-  private readonly BASE = 'http://localhost:3000/api/citas';
+  private readonly BASE = 'http://192.168.9.8:3000/api/citas';
 
   // Guarda la edición de una cita existente (PUT)
   /** Guarda la edición de una cita existente (PUT) y luego crea un log de tipo 'edicion' */
@@ -1133,7 +1133,7 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
     // 1) Soft‑delete en el backend
     this.http
       .patch(
-        `http://localhost:3000/api/citas/${cita.idCita}/eliminar`,
+        `http://192.168.9.8:3000/api/citas/${cita.idCita}/eliminar`,
         { medico_idMedico: this.authService.getAdminId() }
       )
       .pipe(
@@ -1199,7 +1199,7 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
       recordatorioEnv: this.citaToConfirm.recordatorioEnv || false
     };
 
-    const urlCita = `http://localhost:3000/api/citas/${this.citaToConfirm.idCita}`;
+    const urlCita = `http://192.168.9.8:3000/api/citas/${this.citaToConfirm.idCita}`;
 
     // 2) Primero actualizamos la cita, luego creamos/actualizamos la confirmación
     this.http.put(urlCita, updateBody).pipe(
@@ -1215,7 +1215,7 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
         };
         // POST a /api/citas/confirmacion
         return this.http.post<ApiResponse>(
-          'http://localhost:3000/api/citas/confirmacion',
+          'http://192.168.9.8:3000/api/citas/confirmacion',
           body
         );
       })
@@ -1254,7 +1254,7 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
       estado,
     };
 
-    return this.http.post<ApiResponse>('http://localhost:3000/api/citas/confirmacion', body).pipe(
+    return this.http.post<ApiResponse>('http://192.168.9.8:3000/api/citas/confirmacion', body).pipe(
       catchError((error) => {
         console.error('Error al crear/actualizar confirmación:', error);
         throw new Error('No se pudo crear/actualizar la confirmación');
@@ -1283,7 +1283,7 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
   imprimir() {
     const fechaStr = this.selectedDate.toISOString().split('T')[0];
 
-    this.http.get(`http://localhost:3000/api/citas/imprimir?f=${fechaStr}`, { responseType: 'blob' })
+    this.http.get(`http://192.168.9.8:3000/api/citas/imprimir?f=${fechaStr}`, { responseType: 'blob' })
       .subscribe({
         next: (blob) => {
           const blobUrl = URL.createObjectURL(blob);
@@ -1332,7 +1332,9 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
             torre: this.rescheduleTorre
           });
 
-          const url = `http://localhost:3000/api/citas/${this.citaToReschedule.idCita}/reagendar`;
+
+          const url = `http://192.168.9.8:3000/api/citas/${this.citaToReschedule.idCita}/reagendar`;
+
           const body = {
             fecha: fechaStr,              // "2025-06-03"
             torre: this.rescheduleTorre,  // 1

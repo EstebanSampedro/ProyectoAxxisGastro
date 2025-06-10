@@ -133,7 +133,7 @@ export class ConsultasMenuDocComponent implements OnInit {
   }
 
   cargarNombreDoctor(): void {
-    const url = `http://localhost:3000/api/doctores/${this.idDoctor}`;
+    const url = `http://192.168.9.8:3000/api/doctores/${this.idDoctor}`;
     this.http.get<any>(url).subscribe({
       next: (data) => {
         this.doctorName = data.nomDoctor2 || 'DR. SIN NOMBRE';
@@ -152,7 +152,7 @@ export class ConsultasMenuDocComponent implements OnInit {
       tipoCambio: tipo,
       medico_idMedico: this.authService.getAdminId()
     };
-    return this.http.post('http://localhost:3000/api/citas/logs', body).pipe(
+    return this.http.post('http://192.168.9.8:3000/api/citas/logs', body).pipe(
       catchError(err => {
         console.error(`Error creando log de ${tipo}:`, err);
         return of(null);
@@ -179,7 +179,7 @@ export class ConsultasMenuDocComponent implements OnInit {
   }
 
   cargarObservaciones(): void {
-    this.http.get<any[]>(`http://localhost:3000/api/observaciones/filter`, {
+    this.http.get<any[]>(`http://192.168.9.8:3000/api/observaciones/filter`, {
       params: {
         doctorId: this.idDoctor,
         fecha: this.selectedDate
@@ -213,7 +213,7 @@ export class ConsultasMenuDocComponent implements OnInit {
     if (this.currentObservacionId) {
       // --> ACTUALIZAR
       this.http.put(
-        `http://localhost:3000/api/observaciones/${this.currentObservacionId}`,
+        `http://192.168.9.8:3000/api/observaciones/${this.currentObservacionId}`,
         body
       ).subscribe({
         next: () => this.cargarObservaciones(),
@@ -222,7 +222,7 @@ export class ConsultasMenuDocComponent implements OnInit {
     } else {
       // --> CREAR NUEVO
       this.http.post(
-        'http://localhost:3000/api/observaciones/register',
+        'http://192.168.9.8:3000/api/observaciones/register',
         body
       ).subscribe({
         next: () => this.cargarObservaciones(),
@@ -241,60 +241,75 @@ export class ConsultasMenuDocComponent implements OnInit {
   }**/
   /** Carga las citas + consultas y reconstruye la vista de slots */
   cargarConsultas(): void {
-    // Limpia antes de cargar
-    this.errorSlots = [];
-    this.consultas = [];
-    this.slotViews = [];
+  // Limpia antes de cargar
+  this.errorSlots = [];
+  this.consultas  = [];
+  this.slotViews  = [];
 
-    const fechaStr = this.selectedDate;                       // "YYYY-MM-DD"
-    const doctorId = parseInt(this.idDoctor, 10);
-    const torreId = this.selectedTorreId;
+  const fechaStr = this.selectedDate;               // "YYYY-MM-DD"
+  const doctorId = parseInt(this.idDoctor, 10);
+  // NOTA: ya no usamos this.selectedTorreId aquí, para traer todas las torres
 
-    forkJoin({
-      citas: this.citaService.getCitasActivas(fechaStr, doctorId, torreId),
-      consultas: this.citaService.getConsultasActivas(fechaStr, doctorId, torreId)
-    }).pipe(
-      map(({ citas, consultas }) => {
-        const mapSlot = (c: any) => ({
+  forkJoin({
+    citas:     this.citaService.getCitasActivas(fechaStr, doctorId),
+    consultas: this.citaService.getConsultasActivas(fechaStr, doctorId)
+  }).pipe(
+    map(({ citas, consultas }) => {
+      const mapSlot = (c: any) => {
+        const horaStr    = this.extraerHora(c.hora);
+        const horaFinStr = this.extraerHora(c.horaTermina);
+        // 👉 Aquí obtenemos el código (iniciales) del admin que creó el registro:
+        const responsable = c.idResponsable_idMedico
+          ? this.authService.getAdminCode(c.idResponsable_idMedico)
+          : '';
+
+        return {
           ...c,
-          horaStr: this.extraerHora(c.hora),
-          horaFinStr: this.extraerHora(c.horaTermina)
-        });
+          horaStr,
+          horaFinStr,
+          responsable       // ✅ ahora cada cita/consulta tiene su “responsable”
+        };
+      };
 
-        // 1) Primero todas las citas "normales"
-        const citasNorm = citas.normal.map(mapSlot);
-        // 2) Luego solo aquellas consultas que NO empalmen con ninguna cita
-        const citaHoras = new Set(citasNorm.map(c => c.horaStr));
-        const consultasNorm = consultas.normal
-          .map(mapSlot)
-          .filter(c => !citaHoras.has(c.horaStr));
+      // 1) Mapear todas las citas regulares (tipo “cita”)
+      const citasNorm = citas.normal.map(mapSlot);
 
-        // 3) Combinamos
-        const normales = [...citasNorm, ...consultasNorm];
+      // 2) Filtrar consultas (tipo “consulta”) que no empalmen con ninguna cita
+      const citaHoras     = new Set(citasNorm.map(c => c.horaStr));
+      const consultasNorm = consultas.normal
+        .map(mapSlot)
+        .filter(c => !citaHoras.has(c.horaStr));
 
-        // 4) Errores: igual, omitimos consultas que empalman con citas de error
-        const citasErr = citas.errors.map(mapSlot);
-        const errHoras = new Set(citasErr.map(c => c.horaStr));
-        const consultasErr = consultas.errors
-          .map(mapSlot)
-          .filter(c => !errHoras.has(c.horaStr));
-        const errores = [...citasErr, ...consultasErr];
+      // 3) Unir ambas colecciones en un solo arreglo “normales”
+      const normales = [...citasNorm, ...consultasNorm];
 
-        return { normales, errores };
-      })
-    ).subscribe({
-      next: ({ normales, errores }) => {
-        this.errorSlots = errores.map(c => ({
-          slot: '00:00:00',
-          type: 'appointment' as const,
-          cita: c
-        }));
-        this.consultas = normales;
-        this.buildSlotViews();
-      },
-      error: err => console.error('Error cargando citas y consultas:', err)
-    });
-  }
+      // 4) Hacer lo mismo para los registros con “error” en confirmado
+      const citasErr     = citas.errors.map(mapSlot);
+      const errHoras     = new Set(citasErr.map(c => c.horaStr));
+      const consultasErr = consultas.errors
+        .map(mapSlot)
+        .filter(c => !errHoras.has(c.horaStr));
+      const errores = [...citasErr, ...consultasErr];
+
+      return { normales, errores };
+    })
+  ).subscribe({
+    next: ({ normales, errores }) => {
+      // Guardamos las “consultas con error” para mostrar alertas, etc.
+      this.errorSlots = errores.map(c => ({
+        slot: '00:00:00',
+        type: 'appointment' as const,
+        cita: c
+      }));
+      // Asignamos a this.consultas el conjunto combinado de citas+consultas
+      this.consultas = normales;
+      // Reconstruimos la vista de slots con buildSlotViews()
+      this.buildSlotViews();
+    },
+    error: err => console.error('Error cargando citas y consultas:', err)
+  });
+}
+
 
   /** Genera los slots cada slotDurationMin desde startHour hasta endHour */
   generarTimeSlots(): void {
@@ -467,7 +482,7 @@ export class ConsultasMenuDocComponent implements OnInit {
 
         // 6) POST para registrar la cita
         return this.http.post<{ idCita: number }>(
-          'http://localhost:3000/api/citas/register',
+          'http://192.168.9.8:3000/api/citas/register',
           body
         );
       })
@@ -509,7 +524,7 @@ export class ConsultasMenuDocComponent implements OnInit {
       return;
     }
     this.http
-      .patch(`http://localhost:3000/api/citas/${id}/eliminar`, { medico_idMedico: this.authService.getAdminId() })
+      .patch(`http://192.168.9.8:3000/api/citas/${id}/eliminar`, { medico_idMedico: this.authService.getAdminId() })
       .pipe(switchMap(() => this.crearLog(id, 'eliminacion')))
       .subscribe({
         next: () => {
@@ -528,7 +543,7 @@ export class ConsultasMenuDocComponent implements OnInit {
     if (!id) {
       return alert('No se pudo editar: ID de cita inválido');
     }
-    const url = `http://localhost:3000/api/citas/${id}`;
+    const url = `http://192.168.9.8:3000/api/citas/${id}`;
     const adminId = this.authService.getAdminId();
 
     // 1) Extraer y validar horas
@@ -683,7 +698,7 @@ export class ConsultasMenuDocComponent implements OnInit {
     };
 
     // PUT a la cita
-    const urlCita = `http://localhost:3000/api/citas/${this.citaToConfirm.idCita}`;
+    const urlCita = `http://192.168.9.8:3000/api/citas/${this.citaToConfirm.idCita}`;
     this.http.put(urlCita, updateBody).subscribe({
       next: (resp: any) => {
         console.log('Cita actualizada:', resp);
@@ -718,7 +733,7 @@ export class ConsultasMenuDocComponent implements OnInit {
       estado,
     };
 
-    return this.http.post<ApiResponse>('http://localhost:3000/api/citas/confirmacion', body).pipe(
+    return this.http.post<ApiResponse>('http://192.168.9.8:3000/api/citas/confirmacion', body).pipe(
       catchError((error) => {
         console.error('Error al crear/actualizar confirmación:', error);
         throw new Error('No se pudo crear/actualizar la confirmación');
@@ -768,7 +783,7 @@ Adicionalmente, por favor confírmenos si toma las siguientes pastillas:
     }
 
     // Envía el mensaje vía el endpoint de WhatsApp en el backend
-    this.http.post('http://localhost:3000/api/whatsapp/send', {
+    this.http.post('http://192.168.9.8:3000/api/whatsapp/send', {
       phone: phoneNumber,
       message: mensaje
     }).subscribe({
@@ -918,7 +933,7 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
     }
 
     // Envía el recordatorio vía el endpoint de WhatsApp
-    this.http.post('http://localhost:3000/api/whatsapp/send', {
+    this.http.post('http://192.168.9.8:3000/api/whatsapp/send', {
       phone: phoneNumber,
       message: mensaje
     }).subscribe({
@@ -950,7 +965,7 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
           recordatorioEnv: true
         };
 
-        const url = `http://localhost:3000/api/citas/${cita.idCita}`;
+        const url = `http://192.168.9.8:3000/api/citas/${cita.idCita}`;
         this.http.put(url, updateBody).subscribe({
           next: (resp: any) => {
             console.log('Cita actualizada con recordatorio:', resp);
@@ -1061,7 +1076,8 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
         }
 
         // 7) Si no hay solapamiento, enviar PATCH al backend
-        const url = `http://localhost:3000/api/citas/${cita.idCita}/reagendar`;
+        const url = `http://192.168.9.8:3000/api/citas/${cita.idCita}/reagendar`;
+
         const body = {
           fecha: fecha,               // "YYYY-MM-DD"
           torre: torre,               // número
@@ -1190,7 +1206,7 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
      const newEnd = calculateEnd(newStart, durMin);
  
      // 5) armar body
-     const url = `http://localhost:3000/api/citas/${dragged.idCita}`;
+     const url = `http://192.168.9.8:3000/api/citas/${dragged.idCita}`;
      const body = {
        ...dragged,
        hora: newStart,

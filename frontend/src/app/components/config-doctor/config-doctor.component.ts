@@ -21,7 +21,7 @@ export class ConfigDoctorComponent implements OnInit {
   }
 
   loadDoctors(): void {
-    this.http.get<any[]>('http://localhost:3000/api/doctores').subscribe({
+    this.http.get<any[]>('http://192.168.9.8:3000/api/doctores').subscribe({
       next: (data) => {
         this.doctors = data;
       },
@@ -42,7 +42,7 @@ export class ConfigDoctorComponent implements OnInit {
   }
 
   createDoctor(): void {
-    this.http.post('http://localhost:3000/api/doctores', this.doctorForm).subscribe({
+    this.http.post('http://192.168.9.8:3000/api/doctores', this.doctorForm).subscribe({
       next: (resp) => {
         console.log('Doctor creado:', resp);
         this.loadDoctors();
@@ -55,7 +55,7 @@ export class ConfigDoctorComponent implements OnInit {
   }
 
   updateDoctor(): void {
-    const url = `http://localhost:3000/api/doctores/${this.selectedDoctor.idDoctor2}`;
+    const url = `http://192.168.9.8:3000/api/doctores/${this.selectedDoctor.idDoctor2}`;
     this.http.put(url, this.doctorForm).subscribe({
       next: (resp) => {
         console.log('Doctor actualizado:', resp);
@@ -69,7 +69,7 @@ export class ConfigDoctorComponent implements OnInit {
 
   deleteDoctor(): void {
     if (!confirm('¿Está seguro de eliminar este doctor?')) return;
-    const url = `http://localhost:3000/api/doctores/${this.selectedDoctor.idDoctor2}`;
+    const url = `http://192.168.9.8:3000/api/doctores/${this.selectedDoctor.idDoctor2}`;
     this.http.delete(url).subscribe({
       next: (resp) => {
         console.log('Doctor eliminado:', resp);
