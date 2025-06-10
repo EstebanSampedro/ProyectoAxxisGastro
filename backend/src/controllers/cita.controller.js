@@ -797,7 +797,6 @@ async function exportImprimirPDF(req, res) {
 }
 
 
-
 const { DateTime } = require('luxon');
 
 const reagendarCita = async (req, res) => {

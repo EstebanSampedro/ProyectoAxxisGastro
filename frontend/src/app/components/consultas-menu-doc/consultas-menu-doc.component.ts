@@ -1077,6 +1077,7 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
 
         // 7) Si no hay solapamiento, enviar PATCH al backend
         const url = `http://192.168.9.8:3000/api/citas/${cita.idCita}/reagendar`;
+
         const body = {
           fecha: fecha,               // "YYYY-MM-DD"
           torre: torre,               // número
