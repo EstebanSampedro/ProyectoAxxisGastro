@@ -499,17 +499,17 @@ function formatHora(fechaHora) {
 
 // Definición de columnas para la tabla (los anchos están en puntos)
 const columns = [
-  { header: "HORA", width: 40 },
-  { header: "MEDICO", width: 100 },
-  { header: "PACIENTE", width: 100 },
-  { header: "EDAD", width: 30 },
-  { header: "PROCEDIMI.", width: 100 },
-  { header: "IMAGEN", width: 50 },
-  { header: "SOLICITADO", width: 100 },
-  { header: "INSTITU.", width: 60 },
-  { header: "SEGURO", width: 70 },
-  { header: "RESP", width: 30 },
-  { header: "OBSERVACIONES", width: 120 },
+  { header: "HORA",         width: 40  },
+  { header: "MEDICO",       width: 100 },
+  { header: "PACIENTE",     width: 100 },
+  { header: "EDAD",         width: 30  },
+  { header: "PROCEDIMI.",   width: 100 },
+  { header: "IMAGEN",       width: 50  },
+  { header: "SOLICITADO",   width: 100 },
+  { header: "INSTITU.",     width: 60  },
+  { header: "SEGURO",       width: 70  },
+  { header: "RESP",         width: 30  },
+  { header: "OBSERVACIONES",width: 120 },
 ];
 
 /**
@@ -532,7 +532,7 @@ function drawCell(doc, x, y, w, h, text, fontSize = 8, align = "left") {
 function drawRow(doc, startX, startY, rowData) {
   const lastColIndex = columns.length - 1;
   const lastColWidth = columns[lastColIndex].width;
-  const lastColText = rowData[lastColIndex] || "";
+  const lastColText  = rowData[lastColIndex] || "";
 
   // Calcular altura necesaria para el texto de la última columna
   doc.font("Helvetica").fontSize(8);
@@ -541,12 +541,12 @@ function drawRow(doc, startX, startY, rowData) {
   });
 
   const baseHeight = 15;
-  const rowHeight = Math.max(baseHeight, neededHeight + 4);
+  const rowHeight  = Math.max(baseHeight, neededHeight + 4);
 
   let currentX = startX;
   for (let i = 0; i < columns.length; i++) {
     const colWidth = columns[i].width;
-    const text = rowData[i] || "";
+    const text     = rowData[i] || "";
     drawCell(
       doc,
       currentX,
@@ -568,7 +568,7 @@ function drawRow(doc, startX, startY, rowData) {
  * Debe llamarse cada vez que comience una nueva página o al iniciar una torre.
  */
 function drawTableHeader(doc, startX) {
-  let x = startX;
+  let x       = startX;
   const yHeader = doc.y;
   doc.font("Helvetica-Bold").fontSize(8);
 
@@ -597,7 +597,7 @@ async function exportImprimirPDF(req, res) {
     // Nota: aquí startDate/endDate solo se conservan en caso de que quieras usarlos,
     // pero en la consulta usamos DATE(c.fecha) = fecha, así que no son estrictamente necesarios.
     const startDate = new Date(year, month - 1, day);
-    const endDate = new Date(year, month - 1, day);
+    const endDate   = new Date(year, month - 1, day);
     endDate.setDate(endDate.getDate() + 1);
 
     // Consultar datos de confirmación global (confTorre1, confTorre2, …)
@@ -622,15 +622,15 @@ async function exportImprimirPDF(req, res) {
     doc.pipe(res);
 
     // ——— ENCABEZADO PRINCIPAL ———
-    const pageWidth = doc.page.width;
-    const headerY = 10;
-    const logoSize = 60;
-    const boxW = 80;
-    const headerBoxX = 10;
-    const headerBoxY = headerY - 5;
+    const pageWidth      = doc.page.width;
+    const headerY        = 10;
+    const logoSize       = 60;
+    const boxW           = 80;
+    const headerBoxX     = 10;
+    const headerBoxY     = headerY - 5;
     const headerBoxWidth = pageWidth - 20;
-    const headerBoxHeight = logoSize - 12;
-    const headerFont = "Helvetica-Oblique";
+    const headerBoxHeight= logoSize - 12;
+    const headerFont     = "Helvetica-Oblique";
 
     // Dibujar recuadro del encabezado
     doc.rect(headerBoxX, headerBoxY, headerBoxWidth, headerBoxHeight).stroke();
@@ -646,10 +646,11 @@ async function exportImprimirPDF(req, res) {
     doc.text(title, (pageWidth - titleWidth) / 2, headerY + 5);
 
     // Día de la semana (en zona local) + Fecha
-    const dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    const dias      = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
     const localDate = new Date(year, month - 1, day);
-    const dayName = dias[localDate.getDay()] || "";
-    const dayX = pageWidth - boxW * 2 - 40;
+    const dayName   = dias[localDate.getDay()] || "";
+    const dayX      = pageWidth - boxW * 2 - 40;
+
 
     doc
       .font(headerFont)
@@ -662,14 +663,14 @@ async function exportImprimirPDF(req, res) {
     // ——— TABLAS POR CADA TORRE ———
     for (let torre = 1; torre <= 4; torre++) {
       // Antes de dibujar el título de la torre, comprobamos si cabe en la página actual.
-      const neededSpaceForTitle = 20; // aprox. alto para el texto del título
+      const neededSpaceForTitle  = 20; // aprox. alto para el texto del título
       const neededSpaceForHeader = 20; // alto para dibujar encabezados de columna
       if (doc.y + neededSpaceForTitle + neededSpaceForHeader > doc.page.height - doc.page.margins.bottom) {
         doc.addPage();
       }
 
       // Título “Torre X – NOMBRE –” centrado
-      const confT = confirmacion[`confTorre${torre}`] || "";
+      const confT       = confirmacion[`confTorre${torre}`] || "";
       const filasConsulta = await prisma.$queryRaw`
         SELECT 
           c.idCita,
@@ -711,10 +712,10 @@ async function exportImprimirPDF(req, res) {
       const tableW = columns.reduce((sum, col) => sum + col.width, 0);
 
       doc.font("Helvetica-Bold").fontSize(10)
-        .text(`${torreNombre}  –  ${confT}`, 20, doc.y, {
-          width: tableW,
-          align: "center"
-        });
+         .text(`${torreNombre}  –  ${confT}`, 20, doc.y, {
+           width: tableW,
+           align: "center"
+         });
       doc.moveDown(0.5);
 
       // Antes de pintar los encabezados de columnas, volvemos a verificar si cabe completo:
@@ -722,10 +723,10 @@ async function exportImprimirPDF(req, res) {
         doc.addPage();
         // Re-dibujar título de la misma torre en la nueva página
         doc.font("Helvetica-Bold").fontSize(10)
-          .text(`${torreNombre}  –  ${confT}`, 20, doc.y, {
-            width: tableW,
-            align: "center"
-          });
+           .text(`${torreNombre}  –  ${confT}`, 20, doc.y, {
+             width: tableW,
+             align: "center"
+           });
         doc.moveDown(0.5);
       }
 
@@ -744,16 +745,16 @@ async function exportImprimirPDF(req, res) {
 
         const row = [
           formatHora(fila.hora),
-          fila.nomDoctor || "",
-          fila.paciente || "",
+          fila.nomDoctor    || "",
+          fila.paciente     || "",
           fila.edad != null ? String(fila.edad) : "",
-          fila.procedimiento || "",
-          fila.imagen || "",
-          fila.pedido || "",
-          fila.institucion || "",
-          fila.seguro || "",
+          fila.procedimiento|| "",
+          fila.imagen       || "",
+          fila.pedido       || "",
+          fila.institucion  || "",
+          fila.seguro       || "",
           fila.codigoMedico || "",   // “RESP”
-          fila.observaciones || ""
+          fila.observaciones|| ""
         ];
         doc.y = drawRow(doc, 20, doc.y, row);
       }
@@ -772,9 +773,9 @@ async function exportImprimirPDF(req, res) {
 
     const y0 = doc.y;
     const pageW2 = doc.page.width;
-    const colW = (pageW2 - 40) / 2;
-    const lineW = colW * 0.5;
-    const off = (colW - lineW) / 2;
+    const colW   = (pageW2 - 40) / 2;
+    const lineW  = colW * 0.5;
+    const off    = (colW - lineW) / 2;
 
     doc.moveTo(20 + off, y0).lineTo(20 + off + lineW, y0).stroke();
     doc.moveTo(20 + colW + 20 + off, y0).lineTo(20 + colW + 20 + off + lineW, y0).stroke();

@@ -40,6 +40,9 @@ loadRoute('./src/routes/torre.routes.js', '/api/torres');
 loadRoute('./src/routes/historial.js', '/api/historial');
 
 
+
+
+
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

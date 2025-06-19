@@ -1,112 +1,189 @@
 // backend/src/routes/whatsapp.js
+require('dotenv').config();
 const express = require('express');
-const router = express.Router();
-const twilio = require('twilio');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const router  = express.Router();
+const twilio  = require('twilio');
+const multer  = require('multer');
+const path    = require('path');
+const fs      = require('fs');
 const { google } = require('googleapis');
-const authMiddleware = require("../../middleware/authMiddleware");
+const authMw  = require('../../middleware/authMiddleware');
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-router.use(authMiddleware);
-// Configuración de Multer para guardar archivos temporalmente en "src/public/uploads"
+
+// ————— Multer para recibir archivos —————
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    // Guarda los archivos en "backend/src/public/uploads"
-    cb(null, path.join(__dirname, '../public/uploads'));
-  },
-  filename: function (req, file, cb) {
-    // Genera un nombre único
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
-  }
+  destination: (req, file, cb) =>
+    cb(null, path.join(__dirname, '../public/uploads')),
+  filename: (req, file, cb) =>
+    cb(null, Date.now() + '-' + file.originalname)
 });
-const upload = multer({ storage: storage });
+const upload = multer({ storage });
 
-// Variables de entorno de Twilio
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const whatsappFrom = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+19895644496';
+// ————— Twilio & WhatsApp —————
+const client       = twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN
+);
+const whatsappFrom = process.env.TWILIO_WHATSAPP_FROM; // ej. 'whatsapp:+14155238886'
 
-// Configuración de Google Drive API (usando un Service Account)
-const auth = new google.auth.GoogleAuth({
+// ————— Tus Content SIDs —————
+const TEMPLATE_SIDS = {
+  consulta_recordatorio: 'HXad8d4558531c5f8dcc722f62b7ae50d5',
+  consulta_seguimiento:  'HXde99bc581c7b25776a4963fb0330a80f',
+  cita_recordatorio:     'HXd60d08b72a86e3d08afa7188eee6bfda',
+  cita_seguimiento:      'HXdbf118539c801642c06494e2d707b511',
+};
+
+// ————— Google Drive setup —————
+const gAuth = new google.auth.GoogleAuth({
   keyFile: path.join(__dirname, '../credentials/valid-token.json'),
   scopes: ['https://www.googleapis.com/auth/drive.file']
 });
-const drive = google.drive({ version: 'v3', auth });
+const drive = google.drive({ version: 'v3', auth: gAuth });
 
-// Endpoint para enviar mensaje de WhatsApp con opción de adjuntar archivos
-// Usa upload.any() para aceptar uno o más archivos (si se envían)
-router.post('/send', upload.any(), async (req, res) => {
-  try {
-    const { phone, message } = req.body;
-    if (!phone || !message) {
-      return res.status(400).json({ error: 'Faltan parámetros phone y message.' });
-    }
-
-    // Formatea el número de teléfono
-    let toWhatsApp = phone.startsWith('whatsapp:') ? phone : `whatsapp:${phone}`;
-
-    // Procesar archivos: subir a Google Drive y generar enlaces de descarga directa
-    let mediaUrls = [];
-    if (req.files && req.files.length > 0) {
-      mediaUrls = await Promise.all(req.files.map(async (file) => {
-        const fileMetadata = { name: file.filename };
-        const media = {
-          mimeType: file.mimetype,
-          body: fs.createReadStream(file.path)
-        };
-
-        const driveResponse = await drive.files.create({
-          requestBody: fileMetadata,
-          media: media,
-          fields: 'id'
-        });
-        const fileId = driveResponse.data.id;
-
-        // Cambiar permisos para que sea accesible públicamente
-        await drive.permissions.create({
-          fileId: fileId,
-          requestBody: { role: 'reader', type: 'anyone' }
-        });
-
-        // Generar enlace de descarga directa usando la plantilla
-        return `https://drive.google.com/uc?export=download&id=${fileId}`;
-      }));
-      mediaUrls = mediaUrls.filter(url => url); // Filtra nulos
-    }
-
-    const client = twilio(accountSid, authToken);
-
-    // Si hay archivos, envía el primer mensaje con el cuerpo completo
-    // y para el resto utiliza body vacío.
-    if (mediaUrls.length > 0) {
-      let messageSids = [];
-      for (let i = 0; i < mediaUrls.length; i++) {
-        const msgParams = {
-          from: whatsappFrom,
-          to: toWhatsApp,
-          body: i === 0 ? message : "", // Solo el primer mensaje tiene el cuerpo completo
-          mediaUrl: [mediaUrls[i]]
-        };
-        const response = await client.messages.create(msgParams);
-        messageSids.push(response.sid);
-      }
-      return res.json({ success: true, sids: messageSids });
-    } else {
-      // Sin archivos: se envía un único mensaje
-      const msgParams = {
-        from: whatsappFrom,
-        to: toWhatsApp,
-        body: message
-      };
-      const response = await client.messages.create(msgParams);
-      return res.json({ success: true, sid: response.sid });
-    }
-  } catch (error) {
-    console.error('Error al enviar WhatsApp:', error);
-    return res.status(500).json({ error: 'No se pudo enviar el mensaje de WhatsApp' });
+// Sube todos los archivos a Drive y devuelve URLs públicas
+async function uploadToDrive(files) {
+  const urls = [];
+  for (let file of files) {
+    const { data } = await drive.files.create({
+      requestBody: { name: file.filename },
+      media: { mimeType: file.mimetype, body: fs.createReadStream(file.path) },
+      fields: 'id'
+    });
+    await drive.permissions.create({
+      fileId: data.id,
+      requestBody: { role: 'reader', type: 'anyone' }
+    });
+    urls.push(`https://drive.google.com/uc?export=download&id=${data.id}`);
   }
-});
+  return urls;
+}
+
+// Envía plantilla + adjuntos (si los hay)
+async function sendTemplateWithFiles(req, res, templateSid, vars) {
+  try {
+    const phone = req.body.phone;
+    if (!phone) {
+      return res.status(400).json({ error: 'Falta el campo phone.' });
+    }
+
+    // 1) Subir a Drive
+    const mediaUrls = (req.files && req.files.length)
+      ? await uploadToDrive(req.files)
+      : [];
+
+    // 2) Prefija whatsapp:
+    const to = phone.startsWith('whatsapp:')
+      ? phone
+      : `whatsapp:${phone}`;
+
+    // 3) Dispara la plantilla
+    await client.messages.create({
+      from: whatsappFrom,
+      to,
+      contentSid:       templateSid,
+      contentVariables: JSON.stringify(vars)
+    });
+
+    // 4) Envía cada adjunto como mensaje separado
+    const sids = [];
+    for (let url of mediaUrls) {
+      const msg = await client.messages.create({
+        from: whatsappFrom,
+        to,
+        mediaUrl: [url]
+      });
+      sids.push(msg.sid);
+    }
+
+    return res.json({ success: true, sids });
+  } catch (err) {
+    console.error('Error enviando WhatsApp:', err);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+router.use(authMw);
+
+// ————— Endpoints —————
+
+// 1) Consulta – Recordatorio
+router.post(
+  '/consulta/recordatorio',
+  upload.any(),
+  (req, res) => {
+    const { paciente, doctor, fecha, hora } = req.body;
+    if (!paciente || !fecha || !hora || !doctor) {
+      return res.status(400).json({ error: 'Faltan datos para recordatorio consulta.' });
+    }
+    const vars = { 1: paciente, 2: doctor, 3: fecha, 4: hora, 5: '' };
+    return sendTemplateWithFiles(
+      req, res,
+      TEMPLATE_SIDS.consulta_recordatorio,
+      vars
+    );
+  }
+);
+
+// 2) Consulta – Seguimiento
+router.post(
+  '/consulta/seguimiento',
+  upload.any(),
+  (req, res) => {
+    const { paciente, fecha, hora, doctor } = req.body;
+    if (!paciente || !fecha || !hora || !doctor) {
+      return res.status(400).json({ error: 'Faltan datos para seguimiento consulta.' });
+    }
+    const vars = { 1: doctor, 2: fecha, 3: hora, 4: paciente, 5: '' };
+    return sendTemplateWithFiles(
+      req, res,
+      TEMPLATE_SIDS.consulta_seguimiento,
+      vars
+    );
+  }
+);
+
+// 3) Cita – Recordatorio
+router.post(
+  '/cita/recordatorio',
+  upload.any(),
+  (req, res) => {
+    const { paciente, fecha, hora, doctor } = req.body;
+    if (!paciente || !fecha || !hora || !doctor) {
+      return res.status(400).json({ error: 'Faltan datos para recordatorio cita.' });
+    }
+    const vars = { 1: paciente, 2: doctor, 3: fecha, 4: hora, 5: '' };
+    return sendTemplateWithFiles(
+      req, res,
+      TEMPLATE_SIDS.cita_recordatorio,
+      vars
+    );
+  }
+);
+
+router.post(
+  '/cita/seguimiento',
+  upload.any(),
+  (req, res) => {
+    const { phone, fecha, hora, doctor } = req.body;
+    if (!phone || !fecha || !hora || !doctor) {
+      return res
+        .status(400)
+        .json({ error: 'Faltan datos para seguimiento cita.' });
+    }
+    // Solo 3 variables:
+    const vars = {
+      1: fecha,
+      2: hora,
+      3: doctor
+    };
+    return sendTemplateWithFiles(
+      req,
+      res,
+      TEMPLATE_SIDS.cita_seguimiento,
+      vars
+    );
+  }
+);
 
 module.exports = router;

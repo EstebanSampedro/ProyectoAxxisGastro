@@ -814,244 +814,100 @@ export class ConsultasMenuDocComponent implements OnInit {
 
 
   enviarWhatsApp(cita: any): void {
-    // Prepara el número de teléfono (formato E.164)
-    let phoneNumber = cita.telefono.trim();
-    if (phoneNumber.startsWith('0')) {
-      phoneNumber = phoneNumber.substring(1);
-    }
-    if (!phoneNumber.startsWith('+')) {
-      phoneNumber = '+593' + phoneNumber;
-    }
+  // 1) Número en E.164
+  let phone = cita.telefono.trim();
+  if (phone.startsWith('0')) phone = phone.substring(1);
+  if (!phone.startsWith('+')) phone = '+593' + phone;
 
-    // Construir el mensaje de WhatsApp según el tipo de cita
-    const parsedDate = parse(this.selectedDate, "yyyy-MM-dd", new Date());
-    const fechaFormateada = format(parsedDate, "EEEE dd 'de' MMMM 'del' yyyy", { locale: es });
-    let mensaje = '';
-    const tipo = cita.tipoCita ? cita.tipoCita.toLowerCase() : '';
-
-    if (tipo === 'consulta') {
-      // Mensaje para CONSULTA
-      mensaje = `Señor(a) ${cita.paciente}, su cita de consulta médica con Dr(a) ${this.doctorName} ha sido programada para el día ${fechaFormateada} a las ${cita.horaStr}. En el área de gastroenterología primer piso del Hospital Axxis, Av. 10 de agosto N39-155 y Av. América frente al Coral de la Y. Favor se solicita su puntual asistencia el día de la consulta. Además, le comunicamos que un día antes de su consulta se volverá a confirmar.`;
-    } else if (tipo === 'cita') {
-      // Mensaje para CITA (procedimiento)
-      mensaje =
-        `Señor(a) ${cita.paciente} de Axxisgastro le saludamos para recordarle: el día ${fechaFormateada} a las ${cita.horaStr} usted tiene cita para realizarse el procedimiento *${cita.procedimiento}* con Dr(a). ${this.doctorName}.
-      
-Para el día del examen debe acudir con 45 minutos de anticipación a la hora señalada del procedimiento.
-      
-Debe acudir máximo con un familiar o un acompañante. Es obligatorio traer pedido el médico original y la cédula de ciudadanía. Debe seguir las indicaciones adjuntas al pie de la letra.
-      
-Adicionalmente, por favor confírmenos si toma las siguientes pastillas:
-      • Presión
-      • Tiroides
-      • Problemas cardíacos
-      • Diabetes
-      • Anticoagulantes`
-    } else {
-      // Si no es ninguno de los anteriores, usa un mensaje por defecto
-      mensaje = `Hola ${cita.paciente}, su cita está programada para el día ${this.selectedDate} a las ${cita.horaStr}.`;
-    }
-
-    // Envía el mensaje vía el endpoint de WhatsApp en el backend
-    this.http.post('http://localhost:3000/api/whatsapp/send', {
-      phone: phoneNumber,
-      message: mensaje
-    }).subscribe({
-      next: (resp: any) => {
-        console.log('Mensaje enviado:', resp);
-        alert('Mensaje de WhatsApp enviado con éxito');
-      },
-      error: (err) => {
-        console.error('Error al enviar WhatsApp:', err);
-        alert('No se pudo enviar el mensaje de WhatsApp');
-      }
-    });
+  // 2) Solo para tipo "consulta"
+  if ((cita.tipoCita || '').toLowerCase() !== 'consulta') {
+    alert('Este botón es sólo para recordatorio de CONSULTA.');
+    return;
   }
+
+  // 3) Variables de plantilla
+  const parsed = parse(this.selectedDate, 'yyyy-MM-dd', new Date());
+  const fecha   = format(parsed, "EEEE dd 'de' MMMM 'del' yyyy", { locale: es });
+  const hora    = cita.horaStr;
+  const paciente = cita.paciente;
+  const doctor   = this.doctorName;
+
+  // 4) Llamada al nuevo endpoint
+  this.http.post<any>(
+    'http://localhost:3000/api/whatsapp/consulta/recordatorio',
+    {
+      phone,      // '+5939XXXXXXX'
+      paciente,   // {{1}}
+      doctor,      // {{2}}
+      fecha,       // {{3}}
+      hora      // {{4}}
+    }
+  ).subscribe({
+    next: resp => {
+      console.log('Plantilla consulta/recordatorio enviada:', resp);
+      alert('Recordatorio de consulta enviado por WhatsApp 👍');
+    },
+    error: err => {
+      console.error('Error al enviar recordatorio de consulta:', err);
+      alert('No se pudo enviar el recordatorio de consulta');
+    }
+  });
+}
 
 
 
   enviarRecordatorio(cita: any): void {
-    if (cita.recordatorioEnv) {
-      alert('El recordatorio ya fue enviado.');
-      return;
-    }
-    if (!confirm(`¿Está seguro de enviar el recordatorio al paciente "${cita.paciente}"?`)) {
-      return;
-    }
-
-    // Formateo del número (asegura formato E.164)
-    let phoneNumber = cita.telefono.trim();
-    if (phoneNumber.startsWith('0')) {
-      phoneNumber = phoneNumber.substring(1);
-    }
-    if (!phoneNumber.startsWith('+')) {
-      phoneNumber = '+593' + phoneNumber;
-    }
-
-    // Obtener la fecha de mañana (basada en la fecha seleccionada)
-    const fechaHoy = new Date(this.selectedDate);
-    fechaHoy.setDate(fechaHoy.getDate() + 1);
-    // Utilizamos date-fns para formatear la fecha en español
-    const fechaMananaFormateada = format(fechaHoy, "EEEE dd 'de' MMMM 'del' yyyy", { locale: es });
-
-    let mensaje = '';
-    const tipo = cita.tipoCita ? cita.tipoCita.toLowerCase() : '';
-
-    // Diferencia de mensajes según el doctor: evaluamos this.doctorName (ya cargado en el componente)
-    if (this.doctorName.toLowerCase().includes("marco luna")) {
-      // Mensaje para DR. MARCO LUNA (consulta)
-      mensaje =
-        `Buenas tardes de Axxis Gastro, le saludamos de parte del consultorio del Dr. Marco Luna. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
-
-El valor de la consulta médica es de $50 dólares, que lo puede cancelar en efectivo o transferencia bancaria.
-El ingreso al parqueadero actualmente es por la calle Vozandes, y la salida es por la Avenida 10 de agosto.
-
-Por favor, ayúdenos con los nombres completos del paciente y con el número de cédula o pasaporte en caso de ser extranjero.
-
-Tome en cuenta que el hospital se encuentra ubicado en una zona de alto tráfico; recomendamos tener presente las debidas precauciones y llegar oportunamente.
-Si desea certificado médico por su asistencia, hágalo saber en recepción el mismo día de la consulta; caso contrario, tendrá que acercarse posteriormente para solicitar el documento.
-
-Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
-
-    } else if (this.doctorName.toLowerCase().includes("coello")) {
-      // Mensaje para DR. COELLO (consulta) y dependiente de seguro
-      if (!cita.seguro || cita.seguro.trim() === "") {
-        mensaje =
-          `Buenos días de Axxis Gastro, le saludamos de parte del consultorio del Dr. Ramiro Coello. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr} de la mañana.
-
-El valor de la consulta es de $60 dólares, que lo puede cancelar en efectivo o transferencia bancaria.
-El ingreso al parqueadero es por la calle Vozandes, y la salida es por la Avenida 10 de agosto.
-
-Por favor, ayúdenos con los nombres completos del paciente y con el número de cédula o pasaporte en caso de ser extranjero.
-
-Tome en cuenta que el hospital se encuentra en una zona de alto tráfico; se recomienda tomar las debidas precauciones y llegar oportunamente.
-Si desea certificado médico por su asistencia, hágalo saber en recepción el mismo día de la consulta; caso contrario, deberá acercarse posteriormente para solicitar el documento.
-
-Por favor, confirme su cita. En el caso de no tener respuesta, su consulta será cancelada.`;
-      } else {
-        mensaje =
-          `Buenos días de Axxis Gastro, le saludamos de parte del consultorio del Dr. Ramiro Coello. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr} de la mañana.
-El valor de la consulta lo puede cancelar en efectivo o transferencia bancaria, de acuerdo al copago que tenga con su seguro médico.
-
-El ingreso al parqueadero es por la calle Vozandes, y la salida es por la Avenida 10 de agosto.
-Por favor, ayúdenos con los nombres completos del paciente y con el número de cédula o pasaporte en caso de ser extranjero.
-Tome en cuenta que el hospital se encuentra en una zona de alto tráfico; se recomienda tomar las debidas precauciones y llegar oportunamente.
-Si desea certificado médico por su asistencia, hágalo saber en recepción el mismo día de la consulta; caso contrario, deberá acercarse posteriormente para solicitar el documento.
-
-Nota: si usted es paciente de SALUD S.A, tenga en cuenta las siguientes recomendaciones:
-  • El doctor aplica el copago en consulta con el plan CERO TRÁMITES y bajo reembolso.
-  • El doctor no trabaja con el plan ODAS.
-Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
-      }
-    } else if (this.doctorName.toLowerCase().includes("cargua")) {
-      // Mensaje para DR. OSWALDO CARGUA
-      mensaje =
-        `Buenos días de Axxis Gastro, le saludamos de parte del consultorio del Dr. Oswaldo Cargua. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
-El valor de la consulta médica lo puede cancelar en efectivo o transferencia bancaria.
-
-El ingreso al parqueadero es por la calle Vozandes, y la salida es por la Avenida 10 de agosto.
-Por favor, ayúdenos con los nombres completos del paciente y con el número de cédula o pasaporte en caso de ser extranjero.
-Tome en cuenta que el hospital se encuentra ubicado en una zona de alto tráfico; se recomienda tomar las debidas precauciones y llegar oportunamente.
-Si desea certificado médico por su asistencia, hágalo saber en recepción el mismo día de la consulta; caso contrario, deberá acercarse posteriormente para solicitar el documento.
-
-Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
-    } else if (this.doctorName.toLowerCase().includes("orellana")) {
-      // Mensaje para DRA. IVONNE ORELLANA
-      mensaje = `Buenos días de Axxis Gastro, le saludamos de parte del consultorio de la Dra. Ivonne Orellana. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
-El valor de la consulta médica lo puede cancelar en efectivo o transferencia bancaria.
-
-El ingreso al parqueadero es por la calle Vozandes, y la salida es por la Avenida 10 de agosto.
-Por favor, ayúdenos con los nombres completos del paciente y con el número de cédula o pasaporte en caso de ser extranjero.
-Tome en cuenta que el hospital se encuentra ubicado en una zona de alto tráfico; recomendamos tomar las debidas precauciones y llegar oportunamente.
-Si desea certificado médico por su asistencia, hágalo saber en recepción el mismo día de la consulta; de lo contrario, deberá acercarse presencialmente luego para solicitar el documento.
-
-Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
-
-    } else if (this.doctorName.toLowerCase().includes("escudero")) {
-      // Mensaje para DRA. PÍA ESCUDERO
-      mensaje = `Buenos días de Axxis Gastro, le saludamos de parte del consultorio de la Dra. Pía Escudero. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
-El valor de la consulta médica lo puede cancelar en efectivo o transferencia bancaria.
-
-El ingreso al parqueadero es por la calle Vozandes, y la salida es por la Avenida 10 de agosto.
-Por favor, ayúdenos con los nombres completos del paciente y con el número de cédula o pasaporte en caso de ser extranjero.
-Tome en cuenta que el hospital se encuentra ubicado en una zona de alto tráfico; recomendamos tomar las debidas precauciones y llegar oportunamente.
-Si desea certificado médico por su asistencia, hágalo saber en recepción el mismo día de la consulta; de lo contrario, deberá acercarse presencialmente luego para solicitar el documento.
-
-Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
-
-    } else if (this.doctorName.toLowerCase().includes("flamain")) {
-      // Mensaje para DR. CARLOS CASTILLO FLAMAIN
-      mensaje = `Buenos días de Axxis Gastro, le saludamos de parte del consultorio del Dr. Carlos Castillo Flamain. Por recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
-Por favor, si dispone de resultados recientes o antiguos (laboratorio, rayos X u otra especialidad) que el doctor aún no haya revisado referentes a su estado de salud, acuda con una copia física. Estos resultados serán anexados a su historia clínica y servirán como antecedente en su tratamiento.
-Recuerde que el valor de la consulta lo puede cancelar en cheque, efectivo o transferencia. Por favor, ayude facilitando la búsqueda de su historia clínica proporcionando los nombres completos del paciente.
-
-Anexo enlace de la ubicación de Axxis Gastro: https://maps.app.goo.gl/q9HtZ6ZrnEG83RjV9 
-
-Actualmente, el ingreso es por la calle Vozandes y la salida por la Avenida 10 de agosto. El consultorio del doctor está ubicado en: Primer piso, Torre de hospitalización, Consultorio 119, Unidad de gastroenterología (Axxis Gastro) junto a Medical Track.
-Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
-
-
-    } else {
-      mensaje = `Buenos días de Axxis Gastro, le saludamos de parte del consultorio de ${this.doctorName}. Para recordarle que el día de mañana ${fechaMananaFormateada} tiene cita para consulta médica a las ${cita.horaStr}.
-El valor de la consulta médica lo puede cancelar en efectivo o transferencia bancaria.
-
-El ingreso al parqueadero es por la calle Vozandes, y la salida es por la Avenida 10 de agosto. Por favor, ayúdenos con los nombres completos del paciente y con el número de cédula o pasaporte en caso de ser extranjero.
-Tome en cuenta que el hospital se encuentra en una zona de alto tráfico; recomendamos tomar las debidas precauciones y llegar oportunamente.
-Si desea certificado médico por su asistencia, hágalo saber en recepción el mismo día de la consulta; de lo contrario, deberá acercarse presencialmente luego para solicitar el documento.
-
-Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta será cancelada.`;
-    }
-
-    // Envía el recordatorio vía el endpoint de WhatsApp
-    this.http.post('http://localhost:3000/api/whatsapp/send', {
-      phone: phoneNumber,
-      message: mensaje
-    }).subscribe({
-      next: (resp: any) => {
-        console.log('Recordatorio enviado:', resp);
-        alert('Recordatorio de WhatsApp enviado con éxito');
-
-        // Actualiza la cita para marcar que ya se envió el recordatorio
-        const updateBody = {
-          idDoctor_cita: cita.idDoctor_cita,
-          fecha: cita.fecha,
-          torre: cita.torre,
-          hora: cita.horaStr,
-          horaTermina: cita.horaFinStr,
-          paciente: cita.paciente,
-          edad: cita.edad,
-          telefono: cita.telefono,
-          procedimiento: cita.procedimiento,
-          imagen: cita.imagen || "",
-          pedido: cita.pedido || "",
-          institucion: cita.institucion || "",
-          seguro: cita.seguro || "",
-          estado: cita.estado,
-          confirmado: cita.confirmado,
-          observaciones: cita.observaciones || "",
-          observaciones2: cita.observaciones2 || "",
-          colorCita: cita.colorCita,
-          cedula: cita.cedula,
-          recordatorioEnv: true
-        };
-
-        const url = `http://localhost:3000/api/citas/${cita.idCita}`;
-        this.http.put(url, updateBody).subscribe({
-          next: (resp: any) => {
-            console.log('Cita actualizada con recordatorio:', resp);
-            this.cargarConsultas();
-          },
-          error: (err) => {
-            console.error('Error al actualizar cita con recordatorio:', err);
-          }
-        });
-      },
-      error: (err) => {
-        console.error('Error al enviar recordatorio:', err);
-        alert('No se pudo enviar el recordatorio de WhatsApp');
-      }
-    });
+  // 1) evita reenvíos
+  if (cita.recordatorioEnv) {
+    alert('El recordatorio ya fue enviado.');
+    return;
   }
+  if (!confirm(`¿Está seguro de enviar el recordatorio al paciente "${cita.paciente}"?`)) {
+    return;
+  }
+
+  // 2) formatea teléfono a E.164
+  let phone = cita.telefono.trim();
+  if (phone.startsWith('0')) phone = phone.substring(1);
+  if (!phone.startsWith('+')) phone = '+593' + phone;
+
+  // 3) solo para CONSULTA
+  if ((cita.tipoCita || '').toLowerCase() !== 'consulta') {
+    alert('Este botón es solo para recordatorio de CONSULTA.');
+    return;
+  }
+
+  // 4) prepara vars de plantilla
+  const fechaObj = new Date(this.selectedDate);
+  fechaObj.setDate(fechaObj.getDate() + 1);
+  const fecha = format(fechaObj, "EEEE dd 'de' MMMM 'del' yyyy", { locale: es });
+  const hora    = cita.horaStr;
+  const paciente= cita.paciente;
+  const doctor  = this.doctorName
+
+  // 5) invoca tu endpoint de plantilla2
+  this.http.post<any>(
+    'http://localhost:3000/api/whatsapp/consulta/seguimiento',
+    { phone, paciente, fecha, hora, doctor }
+  ).subscribe({
+    next: resp => {
+      console.log('Seguimiento consulta enviado:', resp);
+      alert('Recordatorio de consulta enviado por WhatsApp 👍');
+
+      // 6) marca recordatorioEnv = true
+      const updateBody = { ...cita, recordatorioEnv: true };
+      this.http.put(`http://localhost:3000/api/citas/${cita.idCita}`, updateBody)
+        .subscribe({
+          next: () => this.cargarConsultas(),
+          error: err => console.error('Error actualizando cita:', err)
+        });
+    },
+    error: err => {
+      console.error('Error al enviar recordatorio:', err);
+      alert('No se pudo enviar el recordatorio de WhatsApp');
+    }
+  });
+}
 
   // -----------------------------------------------------------------------------------------------------
   //Propiedades para reagendar ---
