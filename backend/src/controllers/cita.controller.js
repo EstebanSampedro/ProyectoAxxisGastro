@@ -651,6 +651,7 @@ async function exportImprimirPDF(req, res) {
     const dayName   = dias[localDate.getDay()] || "";
     const dayX      = pageWidth - boxW * 2 - 40;
 
+
     doc
       .font(headerFont)
       .fontSize(12)

@@ -206,7 +206,7 @@ export class RegistroCitasComponent implements OnInit {
     '#0000ff': 'Azul',
     '#FEBB02': 'Naranja',
     '#00ff00': 'Verde',
-    '#8080c0': 'Gris'
+    '#808080': 'Gris'
   };
 
   // Carga la lista de doctores para el dropdown (de la tabla doctor2)
@@ -325,79 +325,64 @@ export class RegistroCitasComponent implements OnInit {
     // 1) Convertimos la fecha al formato YYYY-MM-DD para pasarla a la API
     const fechaStr = this.selectedDate.toISOString().split('T')[0];
 
-    // 2) Primero comprobamos si hay una CONSULTA ocupando ese slot (en cualquier torre)
-    this.citaService.getCitasByDate(fechaStr).subscribe({
+    // 2) Primero comprobamos si hay una CONSULTA ocupando ese slot
+    this.citaService.getCitasByDoctorAndDate(+this.selectedDoctorForCita, fechaStr).subscribe({
       next: allCitas => {
         const conflict = allCitas.find(c =>
           c.tipoCita === 'consulta' &&
           this.extraerHora(c.hora) === slot
         );
+
         if (conflict) {
           // Si existe conflicto, abrimos el modal para reubicar
           this.openConflictModal(conflict, slot);
           return;
         }
 
-        // 3) Si no hay consulta que choque, verificamos disponibilidad del doctor
-        this.citaService.getCitasByDoctorAndDate(+this.selectedDoctorForCita, fechaStr)
-          .subscribe({
-            next: citasDoctor => {
-              const ocupado = citasDoctor.some(c => this.extraerHora(c.hora) === slot);
-              if (ocupado) {
-                alert('❌ Doctor ocupado en este horario');
-                return;
-              }
+        // 4) Si está libre, creamos la CITA:
+        const horaFin = this.calcularFin(slot, 30);
+        const body = {
+          idResponsable_idMedico: this.authService.getAdminId(),
+          idDoctor_cita: +this.selectedDoctorForCita,
+          fecha: fechaStr,
+          torre: this.selectedTorreId,
+          hora: slot,
+          horaTermina: horaFin,
+          paciente: this.newCitaData.paciente || 'Paciente X',
+          edad: this.newCitaData.edad || '',
+          telefono: this.newCitaData.telefono || '',
+          procedimiento: this.newCitaData.procedimiento || '',
+          imagen: this.newCitaData.imagen || '',
+          pedido: this.newCitaData.pedido || '',
+          institucion: this.newCitaData.institucion || '',
+          seguro: this.newCitaData.seguro || '',
+          estado: 'activo',
+          confirmado: 'pendiente',
+          observaciones: this.newCitaData.observaciones || '',
+          observaciones2: this.newCitaData.observaciones2 || '',
+          colorCita: this.newCitaData.colorCita || '#FFFFFF',
+          cedula: this.newCitaData.cedula || '',
+          recordatorioEnv: false,
+          tipoCita: 'cita',
+          responsable: this.adminInitials
+        };
 
-              // 4) Si está libre, creamos la CITA:
-              const horaFin = this.calcularFin(slot, 30);
-              const body = {
-                idResponsable_idMedico: this.authService.getAdminId(),
-                idDoctor_cita: +this.selectedDoctorForCita,
-                fecha: fechaStr,
-                torre: this.selectedTorreId,
-                hora: slot,
-                horaTermina: horaFin,
-                paciente: this.newCitaData.paciente || 'Paciente X',
-                edad: this.newCitaData.edad || '',
-                telefono: this.newCitaData.telefono || '',
-                procedimiento: this.newCitaData.procedimiento || '',
-                imagen: this.newCitaData.imagen || '',
-                pedido: this.newCitaData.pedido || '',
-                institucion: this.newCitaData.institucion || '',
-                seguro: this.newCitaData.seguro || '',
-                estado: 'activo',
-                confirmado: 'pendiente',
-                observaciones: this.newCitaData.observaciones || '',
-                observaciones2: this.newCitaData.observaciones2 || '',
-                colorCita: this.newCitaData.colorCita || '#FFFFFF',
-                cedula: this.newCitaData.cedula || '',
-                recordatorioEnv: false,
-                tipoCita: 'cita',
-                responsable: this.adminInitials
-              };
-
-              this.http.post('http://localhost:3000/api/citas/register', body).subscribe({
-                next: resp => {
-                  console.log('Cita agregada:', resp);
-                  this.editingSlot = null;
-                  this.newCitaData = {};
-                  this.cargarCitas();
-                },
-                error: err => {
-                  console.error('Error al agregar cita:', err);
-                  alert('No se pudo guardar la cita');
-                }
-              });
-            },
-            error: err => {
-              console.error('Error comprobando citas del doctor:', err);
-              alert('No se pudo verificar la disponibilidad del doctor');
-            }
-          });
+        this.http.post('http://localhost:3000/api/citas/register', body).subscribe({
+          next: resp => {
+            console.log('Cita agregada:', resp);
+            this.editingSlot = null;
+            this.newCitaData = {};
+            this.cargarCitas();
+          },
+          error: err => {
+            console.error('Error al agregar cita:', err);
+            alert('No se pudo guardar la cita');
+          }
+        });
       },
       error: err => {
-        console.error('Error comprobando consultas existentes:', err);
-        alert('No se pudo verificar conflicto con consultas');
+        console.error('Error comprobando citas del doctor:', err);
+        alert('No se pudo verificar la disponibilidad del doctor');
       }
     });
   }
