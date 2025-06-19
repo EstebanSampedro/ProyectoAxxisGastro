@@ -25,7 +25,7 @@ export class ConfigUsuariosComponent implements OnInit {
   // Cargar todos los usuarios desde el backend
   loadUsuarios(): void {
     // Ajusta la URL a tu endpoint real
-    this.http.get<any[]>('http://192.168.9.8:3000/api/auth/usuarios').subscribe({
+    this.http.get<any[]>('http://localhost:3000/api/auth/usuarios').subscribe({
       next: (data) => {
         this.usuarios = data;
       },
@@ -51,7 +51,7 @@ export class ConfigUsuariosComponent implements OnInit {
   // Crear un nuevo usuario
   createUsuario(): void {
     // Ajusta la URL al endpoint correcto
-    this.http.post('http://192.168.9.8:3000/api/auth/usuarios', this.usuarioForm).subscribe({
+    this.http.post('http://localhost:3000/api/auth/usuarios', this.usuarioForm).subscribe({
       next: (resp) => {
         console.log('Usuario creado:', resp);
         this.loadUsuarios();
@@ -67,7 +67,7 @@ export class ConfigUsuariosComponent implements OnInit {
   updateUsuario(): void {
     if (!this.selectedUsuario) return;
 
-    const url = `http://192.168.9.8:3000/api/auth/usuarios/${this.selectedUsuario.idmedico}`;
+    const url = `http://localhost:3000/api/auth/usuarios/${this.selectedUsuario.idmedico}`;
     this.http.put(url, this.usuarioForm).subscribe({
       next: (resp) => {
         console.log('Usuario actualizado:', resp);
@@ -84,7 +84,7 @@ export class ConfigUsuariosComponent implements OnInit {
     if (!this.selectedUsuario) return;
     if (!confirm('¿Está seguro de eliminar este usuario?')) return;
 
-    const url = `http://192.168.9.8:3000/api/auth/usuarios/${this.selectedUsuario.idmedico}`;
+    const url = `http://localhost:3000/api/auth/usuarios/${this.selectedUsuario.idmedico}`;
     this.http.delete(url).subscribe({
       next: (resp) => {
         console.log('Usuario eliminado:', resp);

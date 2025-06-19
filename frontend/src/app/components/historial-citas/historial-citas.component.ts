@@ -39,7 +39,7 @@ export class HistorialCitasComponent implements OnInit {
   }
 
   cargarDoctores(): void {
-    this.http.get<any[]>('http://192.168.9.8:3000/api/doctores').subscribe({
+    this.http.get<any[]>('http://localhost:3000/api/doctores').subscribe({
       next: (data) => {
         // Mapear cada objeto para que tenga las propiedades "doctorId" y "doctor"
         this.doctores = data.map(doc => ({
@@ -55,7 +55,7 @@ export class HistorialCitasComponent implements OnInit {
   
 
   buscarHistorial(): void {
-    let url = `http://192.168.9.8:3000/api/historial/citas?from=${this.fromDate}&to=${this.toDate}`;
+    let url = `http://localhost:3000/api/historial/citas?from=${this.fromDate}&to=${this.toDate}`;
     if (this.selectedDoctor) {
       url += `&doctorId=${this.selectedDoctor}`;
     }

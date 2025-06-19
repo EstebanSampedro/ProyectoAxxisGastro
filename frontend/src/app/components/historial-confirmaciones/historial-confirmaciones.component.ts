@@ -26,7 +26,7 @@ export class HistorialConfirmacionesComponent implements OnInit {
   }
 
   private cargarDoctores(): void {
-    this.http.get<any[]>('http://192.168.9.8:3000/api/doctores')
+    this.http.get<any[]>('http://localhost:3000/api/doctores')
       .subscribe({
         next: data => this.doctores = data.map(d => ({
           doctorId: d.idDoctor2,
@@ -46,7 +46,7 @@ export class HistorialConfirmacionesComponent implements OnInit {
       params = params.set('doctorId', this.selectedDoctor);
     }
 
-    this.http.get<any[]>('http://192.168.9.8:3000/api/historial/confirmaciones', { params })
+    this.http.get<any[]>('http://localhost:3000/api/historial/confirmaciones', { params })
       .subscribe({
         next: data => this.confirmaciones = data,
         error: err => console.error('Error al buscar confirmaciones:', err)

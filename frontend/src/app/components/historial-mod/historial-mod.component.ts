@@ -26,7 +26,7 @@ export class HistorialModComponent implements OnInit {
   }
 
   cargarDoctores(): void {
-    this.http.get<any[]>('http://192.168.9.8:3000/api/doctores')
+    this.http.get<any[]>('http://localhost:3000/api/doctores')
       .subscribe({
         next: data => this.doctores = data.map(d => ({
           doctorId: d.idDoctor2,
@@ -44,7 +44,7 @@ export class HistorialModComponent implements OnInit {
       params = params.set('doctorId', this.selectedDoctor);
     }
 
-    this.http.get<any[]>('http://192.168.9.8:3000/api/historial/modificaciones', { params })
+    this.http.get<any[]>('http://localhost:3000/api/historial/modificaciones', { params })
       .subscribe({
         next: data => this.logs = data,
         error: err => console.error('Error al buscar historial de modificaciones:', err)

@@ -38,7 +38,7 @@ export class UserdocMenuComponent implements OnInit {
     }
   
     cargarNombreDoctor(): void {
-      const url = `http://192.168.9.8:3000/api/doctores/${this.idDoctor2}`;
+      const url = `http://localhost:3000/api/doctores/${this.idDoctor2}`;
       this.http.get<any>(url).subscribe({
         next: data => {
           this.doctorName = data.nomDoctor2 || 'Dr. sin nombre';
@@ -51,7 +51,7 @@ export class UserdocMenuComponent implements OnInit {
     }
   
     cargarAgenda(): void {  // Renombrado de cargarConsultas a cargarAgenda
-      const url = `http://192.168.9.8:3000/api/citas/filter?doctorId=${this.idDoctor2}&fecha=${this.selectedDate}`;
+      const url = `http://localhost:3000/api/citas/filter?doctorId=${this.idDoctor2}&fecha=${this.selectedDate}`;
       this.http.get<any[]>(url).subscribe({
         next: data => {
           this.agenda = data.map(cita => {

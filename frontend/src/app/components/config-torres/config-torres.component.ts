@@ -20,7 +20,7 @@ export class ConfigTorreComponent implements OnInit {
   }
 
   loadTorres(): void {
-    this.http.get<any[]>('http://192.168.9.8:3000/api/torres').subscribe({
+    this.http.get<any[]>('http://localhost:3000/api/torres').subscribe({
       next: data => {
         this.torres = data;
       },
@@ -43,7 +43,7 @@ export class ConfigTorreComponent implements OnInit {
 
   createTorre(): void {
     // Se asume que el endpoint para crear es /api/torres/register
-    this.http.post('http://192.168.9.8:3000/api/torres/register', this.torreForm).subscribe({
+    this.http.post('http://localhost:3000/api/torres/register', this.torreForm).subscribe({
       next: (resp: any) => {
         console.log('Torre creada:', resp);
         this.loadTorres();
@@ -57,7 +57,7 @@ export class ConfigTorreComponent implements OnInit {
 
   updateTorre(): void {
     if (!this.selectedTorre) return;
-    const url = `http://192.168.9.8:3000/api/torres/${this.selectedTorre.idTorre}`;
+    const url = `http://localhost:3000/api/torres/${this.selectedTorre.idTorre}`;
     this.http.put(url, this.torreForm).subscribe({
       next: (resp: any) => {
         console.log('Torre actualizada:', resp);
@@ -72,7 +72,7 @@ export class ConfigTorreComponent implements OnInit {
   deleteTorre(): void {
     if (!this.selectedTorre) return;
     if (!confirm('¿Está seguro de eliminar esta torre?')) return;
-    const url = `http://192.168.9.8:3000/api/torres/${this.selectedTorre.idTorre}`;
+    const url = `http://localhost:3000/api/torres/${this.selectedTorre.idTorre}`;
     this.http.delete(url).subscribe({
       next: (resp: any) => {
         console.log('Torre eliminada:', resp);

@@ -20,7 +20,7 @@ export class RespaldoExcelComponent {
     }
 
     // Endpoint: GET /api/citas/exportExcel?fechaInicio=...&fechaFin=...
-    const url = `http://192.168.9.8:3000/api/citas/exportExcel?fechaInicio=${this.fechaInicio}&fechaFin=${this.fechaFin}`;
+    const url = `http://localhost:3000/api/citas/exportExcel?fechaInicio=${this.fechaInicio}&fechaFin=${this.fechaFin}`;
 
     // Pedir como Blob
     this.http.get(url, { responseType: 'blob' }).subscribe({

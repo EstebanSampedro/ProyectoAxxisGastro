@@ -2,7 +2,7 @@
 export const environment = {
     production: true,
     api: {
-        baseUrl: 'http://192.168.9.8:3000/api', // Cambia esto por tu URL de producción
+        baseUrl: 'http://localhost:3000/api', // Cambia esto por tu URL de producción
         endpoints: {
             // Mantenemos la misma estructura de endpoints
             doctores: '/doctores',
