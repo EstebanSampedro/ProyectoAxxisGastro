@@ -1171,8 +1171,7 @@ Por favor, confirme su asistencia. En caso de no recibir respuesta, su procedimi
           });
 
 
-          const url = `http://localhost:3000/api/citas/${this.citaToReschedule.idCita}/reagendar`;
-
+          const url = `http://192.168.9.8:3000/api/citas/${this.citaToReschedule.idCita}/reagendar`;
           const body = {
             fecha: fechaStr,              // "2025-06-03"
             torre: this.rescheduleTorre,  // 1
