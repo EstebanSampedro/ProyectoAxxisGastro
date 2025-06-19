@@ -56,6 +56,8 @@ export class ConsultasMenuDocComponent implements OnInit {
   editingSlotIndex: number | null = null; // índice del slot que se está editando
   errorSlots: SlotView[] = [];
 
+  startHour = 7;  // hora de inicio
+  endHour = 21; // hora de fin
 
   // Para controlar el modo de edición
   editingSlot: string | null = null;
@@ -85,7 +87,7 @@ export class ConsultasMenuDocComponent implements OnInit {
     '#0000ff': 'Azul',
     '#FEBB02': 'Naranja',
     '#00ff00': 'Verde',
-    '#8080c0': 'Gris'
+    '#808080': 'Gris'
   };
   // slot “fantasma” para errores
   errorSlot: SlotView | null = null;
@@ -312,11 +314,8 @@ export class ConsultasMenuDocComponent implements OnInit {
 
   /** Genera los slots cada slotDurationMin desde startHour hasta endHour */
   generarTimeSlots(): void {
-    const startHour = 7;  // hora de inicio
-    const endHour = 21; // hora de fin
     this.timeSlots = [];
-
-    for (let h = startHour; h <= endHour; h++) {
+    for (let h = this.startHour; h <= this.endHour; h++) {
       for (let m of [0, this.slotDurationMin]) {
         const hh = h.toString().padStart(2, '0');
         const mm = m.toString().padStart(2, '0');
@@ -331,57 +330,74 @@ export class ConsultasMenuDocComponent implements OnInit {
     return h * 60 + m;
   }
 
-  /** Construye slotViews sin huecos extra y hasta la última cita */
+  /**
+   * Reconstruye `slotViews` incluyendo:
+   * - Todas las citas, colocándolas en su hora exacta de inicio.
+   * - Huecos `empty` y `custom-empty` para todo el resto del día,
+   *   usando el tamaño de slot definido en `slotDurationMin`.
+   */
   private buildSlotViews(): void {
-    const slotMin = this.slotDurationMin;
+    const slotMin = this.slotDurationMin;          // duración de cada subslot en minutos
     const sorted = [...this.consultas]
       .sort((a, b) => this.timeToMinutes(a.horaStr) - this.timeToMinutes(b.horaStr));
 
     this.slotViews = [];
-    let skip = 0, ci = 0;
 
-    for (let slot of this.timeSlots) {
-      if (skip > 0) { skip--; continue; }
-      const baseMin = this.timeToMinutes(slot);
-      const cita = sorted[ci];
+    // determinar inicio y fin del día en minutos
+    const startDayMin = this.startHour * 60;       // ej. 7h → 420
+    const endDayMin = (this.endHour + 1) * 60;   // ej. 21h → (22*60)=1320
 
-      if (cita) {
-        const startMin = this.timeToMinutes(cita.horaStr);
-        // Si arranca dentro de este slot base…
-        if (startMin >= baseMin && startMin < baseMin + slotMin) {
-          // 1) Usamos la hora exacta de la cita en vez del slot
-          const rowSlot = cita.horaStr;
+    let cursor = startDayMin;  // "cursor" recorre todo el día en minutos
 
-          // 2) Inyectamos color según tipo
-          const citaConColor = {
-            ...cita,
-            colorCita: cita.tipoCita === 'cita'
-              ? '#FF3F38'
-              : (cita.colorCita || '#FFFFFF')
-          };
+    for (let cita of sorted) {
+      const citaStart = this.timeToMinutes(cita.horaStr);
+      const citaEnd = this.timeToMinutes(cita.horaFinStr);
 
-          this.slotViews.push({
-            slot: rowSlot,
-            type: 'appointment',
-            cita: citaConColor
-          });
-
-          // 3) Saltamos los slots que ocupa
-          const endMin = this.timeToMinutes(cita.horaFinStr);
-          const durSlots = Math.ceil((endMin - startMin) / slotMin);
-          skip = durSlots - 1;
-          ci++;
-          continue;
-        }
+      // 1) Rellenar huecos libres antes de esta cita
+      while (cursor < citaStart) {
+        const slotTime = this.minutesToTimeStr(cursor);
+        this.slotViews.push({ slot: slotTime, type: 'empty' });
+        this.slotViews.push({ slot: slotTime, type: 'custom-empty' });
+        cursor += slotMin;
       }
 
-      // Si no hay cita en este slot → vacio
-      this.slotViews.push({ slot, type: 'empty' });
-      // y hueco editable
-      this.slotViews.push({ slot, type: 'custom-empty' });
+      // 2) Insertar la cita en su hora exacta
+      const citaConColor = {
+        ...cita,
+        colorCita: cita.tipoCita === 'cita'
+          ? '#FF3F38'
+          : (cita.colorCita || '#FFFFFF')
+      };
+      this.slotViews.push({
+        slot: cita.horaStr,
+        type: 'appointment',
+        cita: citaConColor
+      });
+
+      // 3) Avanzar el cursor hasta el final de esta cita
+      cursor = Math.max(cursor, citaEnd);
+    }
+
+    // 4) Rellenar huecos libres **después** de la última cita
+    while (cursor < endDayMin) {
+      const slotTime = this.minutesToTimeStr(cursor);
+      this.slotViews.push({ slot: slotTime, type: 'empty' });
+      this.slotViews.push({ slot: slotTime, type: 'custom-empty' });
+      cursor += slotMin;
     }
   }
 
+
+  /** 
+ * Convierte un número de minutos desde medianoche a "HH:mm:ss" 
+ */
+  private minutesToTimeStr(totalMin: number): string {
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    const hh = h.toString().padStart(2, '0');
+    const mm = m.toString().padStart(2, '0');
+    return `${hh}:${mm}:00`;
+  }
 
   /** Combina errores (provenientes de errorSlots) y slotViews */
   get displaySlots(): SlotView[] {

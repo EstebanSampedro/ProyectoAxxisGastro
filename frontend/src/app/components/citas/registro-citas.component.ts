@@ -206,7 +206,7 @@ export class RegistroCitasComponent implements OnInit {
     '#0000ff': 'Azul',
     '#FEBB02': 'Naranja',
     '#00ff00': 'Verde',
-    '#8080c0': 'Gris'
+    '#808080': 'Gris'
   };
 
   // Carga la lista de doctores para el dropdown (de la tabla doctor2)
