@@ -62,9 +62,14 @@
         <ng-container *ngIf="view.cita.tipoCita === 'consulta'; else citaOnly">
           <!-- Edición de consulta -->
           <ng-container *ngIf="editingCitaId === view.cita.idCita; else lecturaConsulta">
-            <!-- hora fin read‑only -->
+            <!-- 1) HORA INICIO editable -->
             <td>
-              <input type="text" [(ngModel)]="newCitaData.horaTermina" maxlength="5" placeholder="HH:mm" disabled />
+              <input type="text" [(ngModel)]="newCitaData.hora" maxlength="5" placeholder="HH:mm" />
+            </td>
+
+            <!-- 2) HORA FIN editable -->
+            <td>
+              <input type="text" [(ngModel)]="newCitaData.horaTermina" maxlength="5" placeholder="HH:mm" />
             </td>
             <!-- resto de campos editables -->
             <td><input type="text" [(ngModel)]="newCitaData.paciente" placeholder="Paciente" /></td>

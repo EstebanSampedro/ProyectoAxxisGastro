@@ -20,7 +20,7 @@ import { Observacion } from '../../interfaces/observacion.general';
 import { ObservacionService } from '../../services/observaciones.generales.service';
 import { CitaService } from '../../services/cita.service';
 import { map, switchMap, tap } from 'rxjs/operators';
-import { forkJoin, of } from 'rxjs';
+import { EMPTY, forkJoin, of } from 'rxjs';
 
 interface SlotView {
   slot: string;           // texto “HH:mm:ss” que mostramos en la primera columna
@@ -552,14 +552,11 @@ export class ConsultasMenuDocComponent implements OnInit {
       });
   }
 
-
   guardarEdicion(): void {
     const id = this.newCitaData.idCita;
     if (!id) {
       return alert('No se pudo editar: ID de cita inválido');
     }
-    const url = `http://localhost:3000/api/citas/${id}`;
-    const adminId = this.authService.getAdminId();
 
     // 1) Extraer y validar horas
     let { hora, horaTermina } = this.newCitaData;
@@ -584,46 +581,63 @@ export class ConsultasMenuDocComponent implements OnInit {
       return alert('La hora de fin debe ser posterior a la de inicio');
     }
 
-    // 4) Armar el body usando las horas formateadas
-    const body = {
-      idResponsable_idMedico: adminId,
-      idDoctor_cita: +this.idDoctor,
-      fecha: this.selectedDate,
-      torre: this.selectedTorreId,
-      hora,
-      horaTermina,
-      paciente: this.newCitaData.paciente || 'Paciente X',
-      edad: this.newCitaData.edad ?? 30,
-      telefono: this.newCitaData.telefono || '',
-      procedimiento: this.newCitaData.procedimiento || '',
-      imagen: this.newCitaData.imagen || '',
-      pedido: this.newCitaData.pedido || '',
-      institucion: this.newCitaData.institucion || '',
-      seguro: this.newCitaData.seguro || '',
-      estado: this.newCitaData.estado || 'activo',
-      confirmado: this.newCitaData.confirmado || 'pendiente',
-      observaciones: this.newCitaData.observaciones || '',
-      observaciones2: this.newCitaData.observaciones2 || '',
-      colorCita: this.newCitaData.colorCita || '#FFFFFF',
-      cedula: this.newCitaData.cedula || '',
-      recordatorioEnv: !!this.newCitaData.recordatorioEnv
-    };
+    // 4) Validar solapamiento
+    const fecha = this.selectedDate;           // "YYYY-MM-DD"
+    const torre = this.selectedTorreId;        // número
 
-    this.http.put(url, body).pipe(
-      switchMap(() => this.crearLog(id, 'edicion'))
-    ).subscribe({
-      next: () => {
-        this.editingCitaId = null;
-        this.newCitaData = {};
-        this.cargarConsultas();
-      },
-      error: err => {
-        console.error(err);
-        alert('Error editando la cita');
-      }
-    });
+    this.hasOverlap(fecha, torre, id, hora, horaTermina)
+      .pipe(
+        switchMap(overlap => {
+          if (overlap) {
+            alert('❌ Este rango solapa con otra cita/consulta.');
+            return EMPTY;   // nada más hacer
+          }
+
+          // 5) Armar el body y enviar PUT
+          const url = `http://localhost:3000/api/citas/${id}`;
+          const adminId = this.authService.getAdminId();
+          // 4) Armar el body usando las horas formateadas
+          const body = {
+            idResponsable_idMedico: adminId,
+            idDoctor_cita: +this.idDoctor,
+            fecha: this.selectedDate,
+            torre: this.selectedTorreId,
+            hora,
+            horaTermina,
+            paciente: this.newCitaData.paciente || 'Paciente X',
+            edad: this.newCitaData.edad ?? 30,
+            telefono: this.newCitaData.telefono || '',
+            procedimiento: this.newCitaData.procedimiento || '',
+            imagen: this.newCitaData.imagen || '',
+            pedido: this.newCitaData.pedido || '',
+            institucion: this.newCitaData.institucion || '',
+            seguro: this.newCitaData.seguro || '',
+            estado: this.newCitaData.estado || 'activo',
+            confirmado: this.newCitaData.confirmado || 'pendiente',
+            observaciones: this.newCitaData.observaciones || '',
+            observaciones2: this.newCitaData.observaciones2 || '',
+            colorCita: this.newCitaData.colorCita || '#FFFFFF',
+            cedula: this.newCitaData.cedula || '',
+            recordatorioEnv: !!this.newCitaData.recordatorioEnv
+          };
+
+          return this.http.put(url, body).pipe(
+            switchMap(() => this.crearLog(id, 'edicion'))
+          );
+        })
+      )
+      .subscribe({
+        next: () => {
+          this.editingCitaId = null;
+          this.newCitaData = {};
+          this.cargarConsultas();
+        },
+        error: err => {
+          console.error('Error editando la cita:', err);
+          alert('Error guardando cambios');
+        }
+      });
   }
-
 
   // Cancelar edición o creación
   cancelarEdicion(): void {
@@ -633,6 +647,47 @@ export class ConsultasMenuDocComponent implements OnInit {
   cancelarCita(): void {
     this.editingSlotIndex = null;
     this.newCitaData = {};
+  }
+
+
+  /**
+   * Consulta al backend las citas/consultas de una fecha+torre,
+   * y retorna un Observable<boolean> indicando si el rango [newStart, newEnd]
+   * solapa con alguna existente (excluyendo excludeId).
+   *
+   * @param fecha       "YYYY-MM-DD"
+   * @param torre       número de torre
+   * @param excludeId   idCita a excluir de la comprobación (la que estamos editando)
+   * @param newStart    "HH:mm:ss"
+   * @param newEnd      "HH:mm:ss"
+   */
+  private hasOverlap(
+    fecha: string,
+    torre: number,
+    excludeId: number,
+    newStart: string,
+    newEnd: string
+  ): Observable<boolean> {
+    const toMin = (s: string) => {
+      const [H, M] = s.split(':').map(Number);
+      return H * 60 + M;
+    };
+    const newStartMin = toMin(newStart);
+    const newEndMin = toMin(newEnd);
+
+    return this.citaService.getCitasByDateAndTower(fecha, torre).pipe(
+      map(all => all
+        .filter(c => c.idCita !== excludeId)
+        .some(c => {
+          // extraer y normalizar a "HH:mm:ss"
+          const existStart = this.getHoraString(this.extraerHora(c.hora));
+          const existEnd = this.getHoraString(this.extraerHora(c.horaTermina));
+          const existStartMin = toMin(existStart);
+          const existEndMin = toMin(existEnd);
+          return newStartMin < existEndMin && newEndMin > existStartMin;
+        })
+      )
+    );
   }
 
   //-----------------------------------------------------------------------------------------------------
@@ -1048,76 +1103,56 @@ Por favor, confirme su asistencia. En el caso de no tener respuesta, su consulta
     }
 
     // 1) Obtener valores ingresados
-    const fechaRaw = this.rescheduleDate;        // Puede ser string "YYYY-MM-DD" o Date
-    const torre = this.rescheduleTorre;           // número
-    let startRaw = this.rescheduleHour;           // "H:mm" ó "HH:mm" ó incluso "HH:mm:ss"
-    let endRaw = this.rescheduleEndHour;          // "H:mm" ó "HH:mm" ó incluso "HH:mm:ss"
+    const fechaRaw = this.rescheduleDate;
+    const torre = this.rescheduleTorre;
+    let startRaw = this.rescheduleHour;
+    let endRaw = this.rescheduleEndHour;
 
-    // 2) Validaciones básicas de campos
+    // 2) Validaciones básicas
     if (!fechaRaw || !startRaw || !endRaw) {
       return alert('Por favor, completa todos los campos (fecha, hora inicio, hora fin y torre).');
     }
 
-    // 3) Obtener strings normalizados de fecha e hora (YYYY-MM-DD y HH:mm:ss)
-    const fecha = this.getFechaString(fechaRaw);
-    const horaStr = this.getHoraString(startRaw);
-    const horaTermStr = this.getHoraString(endRaw);
+    // 3) Normalizar formatos
+    const fecha = this.getFechaString(fechaRaw);      // "YYYY-MM-DD"
+    const horaStr = this.getHoraString(startRaw);       // "HH:mm:ss"
+    const horaTermStr = this.getHoraString(endRaw);         // "HH:mm:ss"
 
-    // 4) Convertir a minutos para comparar rangos
-    const newStartMin = this.convertToMinutes(horaStr);      // Ej: "08:30:00" → 510
-    const newEndMin = this.convertToMinutes(horaTermStr);     // Ej: "09:15:00" → 555
-
-    if (newEndMin <= newStartMin) {
+    // 4) Validar orden
+    const toMin = (s: string) => {
+      const [H, M] = s.split(':').map(Number);
+      return H * 60 + M;
+    };
+    if (toMin(horaTermStr) <= toMin(horaStr)) {
       return alert('La hora fin debe ser posterior a la hora inicio.');
     }
 
-    // 5) Traer todas las citas/consultas de ese día y torre
-    this.citaService.getCitasByDateAndTower(fecha, torre).subscribe({
-      next: allCitas => {
-        // 6) Validar solapamiento: newStart < existEnd && newEnd > existStart
-        const overlap = allCitas
-          .filter(c => c.idCita !== cita.idCita)   // Excluir la misma cita que vamos a reagendar
-          .some(c => {
-            const existStartStr = this.extraerHora(c.hora);           // "HH:mm" extraído de c.hora ("HH:mm:ss")
-            const existEndStr = this.extraerHora(c.horaTermina);      // "HH:mm" extraído de c.horaTermina ("HH:mm:ss")
-            const existStartMin = this.convertToMinutes(existStartStr + ':00');
-            const existEndMin = this.convertToMinutes(existEndStr + ':00');
-
-            return (newStartMin < existEndMin) && (newEndMin > existStartMin);
-          });
-
+    // 5) Validar solapamiento con método compartido
+    this.hasOverlap(fecha, torre, cita.idCita, horaStr, horaTermStr).pipe(
+      switchMap(overlap => {
         if (overlap) {
-          return alert('❌ Este rango de horas solapa con otra cita/consulta en la misma torre.');
+          alert('❌ Este rango de horas solapa con otra cita/consulta en la misma torre.');
+          return EMPTY;
         }
 
-        // 7) Si no hay solapamiento, enviar PATCH al backend
+        // 6) Si no hay overlap, enviamos PATCH
         const url = `http://localhost:3000/api/citas/${cita.idCita}/reagendar`;
-        const body = {
-          fecha: fecha,               // "YYYY-MM-DD"
-          torre: torre,               // número
-          hora: horaStr,              // "HH:mm:ss"
-          horaTermina: horaTermStr    // "HH:mm:ss"
-        };
+        const body = { fecha, torre, hora: horaStr, horaTermina: horaTermStr };
 
-        console.log('Debug - Datos a enviar para reagendar:', body);
-
-        this.http.patch(url, body).subscribe({
-          next: () => {
+        return this.http.patch(url, body).pipe(
+          tap(() => {
             alert('✅ Cita reagendada correctamente');
             this.closeRescheduleModal();
             this.editingCitaId = null;
             this.editingSlot = null;
             this.cargarConsultas();
-          },
-          error: err => {
-            console.error('Error al reagendar:', err);
-            alert('No se pudo reagendar la cita. Inténtalo nuevamente.');
-          }
-        });
-      },
+          })
+        );
+      })
+    ).subscribe({
       error: err => {
-        console.error('Error comprobando disponibilidades:', err);
-        alert('No se pudo verificar conflictos con otras citas/consultas.');
+        console.error('Error en reagendamiento:', err);
+        alert('No se pudo reagendar la cita. Inténtalo nuevamente.');
       }
     });
   }
