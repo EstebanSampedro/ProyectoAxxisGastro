@@ -675,21 +675,24 @@ export class ConsultasMenuDocComponent implements OnInit {
     const newStartMin = toMin(newStart);
     const newEndMin = toMin(newEnd);
 
-    return this.citaService.getCitasByDateAndTower(fecha, torre).pipe(
-      map(all => all
-        .filter(c => c.idCita !== excludeId)
-        .some(c => {
-          // extraer y normalizar a "HH:mm:ss"
-          const existStart = this.getHoraString(this.extraerHora(c.hora));
-          const existEnd = this.getHoraString(this.extraerHora(c.horaTermina));
-          const existStartMin = toMin(existStart);
-          const existEndMin = toMin(existEnd);
-          return newStartMin < existEndMin && newEndMin > existStartMin;
-        })
-      )
-    );
+    return this.citaService
+      .getCitasByDateAndTower(fecha, torre)
+      .pipe(
+        map(all =>
+          all
+            // <-- aquí forzamos ambos a número para excluir la cita que editamos
+            .filter(c => Number(c.idCita) !== Number(excludeId))
+            .some(c => {
+              // extraer y normalizar a "HH:mm:ss"
+              const existStart = this.getHoraString(this.extraerHora(c.hora));
+              const existEnd = this.getHoraString(this.extraerHora(c.horaTermina));
+              const existStartMin = toMin(existStart);
+              const existEndMin = toMin(existEnd);
+              return newStartMin < existEndMin && newEndMin > existStartMin;
+            })
+        )
+      );
   }
-
   //-----------------------------------------------------------------------------------------------------
   // Lógica de confirmaciones
   calcularFin(slot: string, minutos: number): string {
@@ -814,100 +817,100 @@ export class ConsultasMenuDocComponent implements OnInit {
 
 
   enviarWhatsApp(cita: any): void {
-  // 1) Número en E.164
-  let phone = cita.telefono.trim();
-  if (phone.startsWith('0')) phone = phone.substring(1);
-  if (!phone.startsWith('+')) phone = '+593' + phone;
+    // 1) Número en E.164
+    let phone = cita.telefono.trim();
+    if (phone.startsWith('0')) phone = phone.substring(1);
+    if (!phone.startsWith('+')) phone = '+593' + phone;
 
-  // 2) Solo para tipo "consulta"
-  if ((cita.tipoCita || '').toLowerCase() !== 'consulta') {
-    alert('Este botón es sólo para recordatorio de CONSULTA.');
-    return;
+    // 2) Solo para tipo "consulta"
+    if ((cita.tipoCita || '').toLowerCase() !== 'consulta') {
+      alert('Este botón es sólo para recordatorio de CONSULTA.');
+      return;
+    }
+
+    // 3) Variables de plantilla
+    const parsed = parse(this.selectedDate, 'yyyy-MM-dd', new Date());
+    const fecha = format(parsed, "EEEE dd 'de' MMMM 'del' yyyy", { locale: es });
+    const hora = cita.horaStr;
+    const paciente = cita.paciente;
+    const doctor = this.doctorName;
+
+    // 4) Llamada al nuevo endpoint
+    this.http.post<any>(
+      'http://localhost:3000/api/whatsapp/consulta/recordatorio',
+      {
+        phone,      // '+5939XXXXXXX'
+        paciente,   // {{1}}
+        doctor,      // {{2}}
+        fecha,       // {{3}}
+        hora      // {{4}}
+      }
+    ).subscribe({
+      next: resp => {
+        console.log('Plantilla consulta/recordatorio enviada:', resp);
+        alert('Recordatorio de consulta enviado por WhatsApp 👍');
+      },
+      error: err => {
+        console.error('Error al enviar recordatorio de consulta:', err);
+        alert('No se pudo enviar el recordatorio de consulta');
+      }
+    });
   }
-
-  // 3) Variables de plantilla
-  const parsed = parse(this.selectedDate, 'yyyy-MM-dd', new Date());
-  const fecha   = format(parsed, "EEEE dd 'de' MMMM 'del' yyyy", { locale: es });
-  const hora    = cita.horaStr;
-  const paciente = cita.paciente;
-  const doctor   = this.doctorName;
-
-  // 4) Llamada al nuevo endpoint
-  this.http.post<any>(
-    'http://localhost:3000/api/whatsapp/consulta/recordatorio',
-    {
-      phone,      // '+5939XXXXXXX'
-      paciente,   // {{1}}
-      doctor,      // {{2}}
-      fecha,       // {{3}}
-      hora      // {{4}}
-    }
-  ).subscribe({
-    next: resp => {
-      console.log('Plantilla consulta/recordatorio enviada:', resp);
-      alert('Recordatorio de consulta enviado por WhatsApp 👍');
-    },
-    error: err => {
-      console.error('Error al enviar recordatorio de consulta:', err);
-      alert('No se pudo enviar el recordatorio de consulta');
-    }
-  });
-}
 
 
 
   enviarRecordatorio(cita: any): void {
-  // 1) evita reenvíos
-  if (cita.recordatorioEnv) {
-    alert('El recordatorio ya fue enviado.');
-    return;
-  }
-  if (!confirm(`¿Está seguro de enviar el recordatorio al paciente "${cita.paciente}"?`)) {
-    return;
-  }
-
-  // 2) formatea teléfono a E.164
-  let phone = cita.telefono.trim();
-  if (phone.startsWith('0')) phone = phone.substring(1);
-  if (!phone.startsWith('+')) phone = '+593' + phone;
-
-  // 3) solo para CONSULTA
-  if ((cita.tipoCita || '').toLowerCase() !== 'consulta') {
-    alert('Este botón es solo para recordatorio de CONSULTA.');
-    return;
-  }
-
-  // 4) prepara vars de plantilla
-  const fechaObj = new Date(this.selectedDate);
-  fechaObj.setDate(fechaObj.getDate() + 1);
-  const fecha = format(fechaObj, "EEEE dd 'de' MMMM 'del' yyyy", { locale: es });
-  const hora    = cita.horaStr;
-  const paciente= cita.paciente;
-  const doctor  = this.doctorName
-
-  // 5) invoca tu endpoint de plantilla2
-  this.http.post<any>(
-    'http://localhost:3000/api/whatsapp/consulta/seguimiento',
-    { phone, paciente, fecha, hora, doctor }
-  ).subscribe({
-    next: resp => {
-      console.log('Seguimiento consulta enviado:', resp);
-      alert('Recordatorio de consulta enviado por WhatsApp 👍');
-
-      // 6) marca recordatorioEnv = true
-      const updateBody = { ...cita, recordatorioEnv: true };
-      this.http.put(`http://localhost:3000/api/citas/${cita.idCita}`, updateBody)
-        .subscribe({
-          next: () => this.cargarConsultas(),
-          error: err => console.error('Error actualizando cita:', err)
-        });
-    },
-    error: err => {
-      console.error('Error al enviar recordatorio:', err);
-      alert('No se pudo enviar el recordatorio de WhatsApp');
+    // 1) evita reenvíos
+    if (cita.recordatorioEnv) {
+      alert('El recordatorio ya fue enviado.');
+      return;
     }
-  });
-}
+    if (!confirm(`¿Está seguro de enviar el recordatorio al paciente "${cita.paciente}"?`)) {
+      return;
+    }
+
+    // 2) formatea teléfono a E.164
+    let phone = cita.telefono.trim();
+    if (phone.startsWith('0')) phone = phone.substring(1);
+    if (!phone.startsWith('+')) phone = '+593' + phone;
+
+    // 3) solo para CONSULTA
+    if ((cita.tipoCita || '').toLowerCase() !== 'consulta') {
+      alert('Este botón es solo para recordatorio de CONSULTA.');
+      return;
+    }
+
+    // 4) prepara vars de plantilla
+    const fechaObj = new Date(this.selectedDate);
+    fechaObj.setDate(fechaObj.getDate() + 1);
+    const fecha = format(fechaObj, "EEEE dd 'de' MMMM 'del' yyyy", { locale: es });
+    const hora = cita.horaStr;
+    const paciente = cita.paciente;
+    const doctor = this.doctorName
+
+    // 5) invoca tu endpoint de plantilla2
+    this.http.post<any>(
+      'http://localhost:3000/api/whatsapp/consulta/seguimiento',
+      { phone, paciente, fecha, hora, doctor }
+    ).subscribe({
+      next: resp => {
+        console.log('Seguimiento consulta enviado:', resp);
+        alert('Recordatorio de consulta enviado por WhatsApp 👍');
+
+        // 6) marca recordatorioEnv = true
+        const updateBody = { ...cita, recordatorioEnv: true };
+        this.http.put(`http://localhost:3000/api/citas/${cita.idCita}`, updateBody)
+          .subscribe({
+            next: () => this.cargarConsultas(),
+            error: err => console.error('Error actualizando cita:', err)
+          });
+      },
+      error: err => {
+        console.error('Error al enviar recordatorio:', err);
+        alert('No se pudo enviar el recordatorio de WhatsApp');
+      }
+    });
+  }
 
   // -----------------------------------------------------------------------------------------------------
   //Propiedades para reagendar ---
