@@ -52,10 +52,26 @@
     </tr>
   </thead>
   <tbody>
-    <tr *ngFor="let view of displaySlots; let i = index" [ngStyle]="{ 'background-color': view.cita?.colorCita || '' }">
-      <!-- 1) HORA: solo para appointment y empty (no custom-empty) -->
-      <td *ngIf="view.type !== 'custom-empty' && editingSlotIndex !== i">{{ view.slot.substr(0,5) }}</td>
-      <td *ngIf="view.type === 'custom-empty'  && editingSlotIndex !== i"></td>
+      <tr
+    *ngFor="let view of displaySlots; let i = index"
+    [ngStyle]="{ 'background-color': view.cita?.colorCita || '' }"
+  >
+    <!-- 1) HORA: solo para appointment y empty (no custom‐empty) -->
+    <td
+      *ngIf="
+        view.type !== 'custom-empty'
+        && editingSlotIndex !== i
+        && (view.type !== 'appointment' || editingCitaId !== view.cita?.idCita)
+      "
+    >
+      {{ view.slot.substr(0, 5) }}
+    </td>
+    <td
+      *ngIf="
+        view.type === 'custom-empty'
+        && editingSlotIndex !== i
+      "
+    ></td>
       <!-- 2) APPOINTMENT (citas y consultas) -->
       <ng-container *ngIf="view.type === 'appointment'; else slotEmpty">
         <!-- 2.1) CONSULTA -->
